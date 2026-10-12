@@ -1,0 +1,152 @@
+{
+  "name": "copilot-pace",
+  "displayName": "Copilot Pace",
+  "description": "GitHub Copilot credit usage and daily pace, right in your status bar.",
+  "version": "0.1.2",
+  "publisher": "rublaman",
+  "private": true,
+  "engines": {
+    "vscode": "^1.120.0",
+    "node": ">=24 <27"
+  },
+  "packageManager": "npm@11.20.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rublaman/copilot-pace.git"
+  },
+  "license": "UNLICENSED",
+  "categories": [
+    "Other"
+  ],
+  "extensionKind": [
+    "ui"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": {
+      "supported": true
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "copilotPace.showDetails",
+        "title": "Copilot Pace: Show Details"
+      },
+      {
+        "command": "copilotPace.refresh",
+        "title": "Copilot Pace: Refresh Usage"
+      },
+      {
+        "command": "copilotPace.connect",
+        "title": "Copilot Pace: Connect GitHub"
+      },
+      {
+        "command": "copilotPace.demo",
+        "title": "Copilot Pace: Try Demo Scenarios"
+      },
+      {
+        "command": "copilotPace.useGitHub",
+        "title": "Copilot Pace: Use GitHub"
+      }
+    ],
+    "configuration": {
+      "title": "Copilot Pace",
+      "properties": {
+        "copilotPace.dataSource": {
+          "type": "string",
+          "enum": [
+            "github",
+            "mock"
+          ],
+          "default": "github",
+          "scope": "application",
+          "description": "Usage data source. Mock mode never requests authentication or uses the network."
+        },
+        "copilotPace.mockScenario": {
+          "type": "string",
+          "enum": [
+            "10000-comfortable",
+            "3900-on-track",
+            "3900-over-pace",
+            "budget-3900",
+            "budget-10000",
+            "exhausted",
+            "usage-only",
+            "incomplete",
+            "disconnected",
+            "timeout",
+            "401",
+            "403",
+            "429",
+            "500"
+          ],
+          "default": "10000-comfortable",
+          "scope": "application",
+          "description": "Synthetic usage scenario for demo mode."
+        },
+        "copilotPace.dayMode": {
+          "type": "string",
+          "enum": [
+            "all",
+            "weekdays"
+          ],
+          "enumDescriptions": [
+            "Every day",
+            "Monday to Friday, without a public holiday calendar"
+          ],
+          "default": "all",
+          "scope": "application",
+          "description": "Days included in the monthly pace estimate."
+        },
+        "copilotPace.pollIntervalMinutes": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 120,
+          "default": 15,
+          "scope": "application",
+          "description": "Usage refresh interval, in minutes."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src test scripts",
+    "test:unit": "npm run build && mocha \"out/test/unit/**/*.test.js\"",
+    "test:integration": "npm run build && vscode-test",
+    "test:package": "node scripts/smoke.mjs",
+    "test": "npm run test:unit",
+    "check": "npm run lint && npm run typecheck && npm run test:unit",
+    "vscode:prepublish": "npm run build -- --production",
+    "package": "vsce package --skip-license --out dist/copilot-pace-0.1.2.vsix",
+    "package:contents": "vsce ls"
+  },
+  "overrides": {
+    "mocha": {
+      "diff": "8.0.3",
+      "serialize-javascript": "7.0.5"
+    }
+  },
+  "devDependencies": {
+    "@types/mocha": "10.0.10",
+    "@types/node": "22.20.5",
+    "@types/vscode": "1.120.0",
+    "@vscode/test-cli": "0.0.15",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "4.0.0",
+    "esbuild": "0.28.2",
+    "eslint": "10.12.0",
+    "mocha": "11.7.6",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.2"
+  }
+}
