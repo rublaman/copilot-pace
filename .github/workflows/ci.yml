@@ -45,8 +45,9 @@ jobs:
           cache: npm
       - run: npm install --global npm@11.20.0
       - run: npm ci --no-audit --no-fund
-      - run: npm run test:package
+      - name: Build and validate production VSIX without demos
+        run: npm run test:package
       - uses: actions/upload-artifact@v7.0.2
         with:
-          name: copilot-pace-vsix
+          name: copilot-pace-production-vsix
           path: dist/copilot-pace-*.vsix

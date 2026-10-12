@@ -46,51 +46,11 @@
       {
         "command": "copilotPace.connect",
         "title": "Copilot Pace: Connect GitHub"
-      },
-      {
-        "command": "copilotPace.demo",
-        "title": "Copilot Pace: Try Demo Scenarios"
-      },
-      {
-        "command": "copilotPace.useGitHub",
-        "title": "Copilot Pace: Use GitHub"
       }
     ],
     "configuration": {
       "title": "Copilot Pace",
       "properties": {
-        "copilotPace.dataSource": {
-          "type": "string",
-          "enum": [
-            "github",
-            "mock"
-          ],
-          "default": "github",
-          "scope": "application",
-          "description": "Usage data source. Mock mode never requests authentication or uses the network."
-        },
-        "copilotPace.mockScenario": {
-          "type": "string",
-          "enum": [
-            "10000-comfortable",
-            "3900-on-track",
-            "3900-over-pace",
-            "budget-3900",
-            "budget-10000",
-            "exhausted",
-            "usage-only",
-            "incomplete",
-            "disconnected",
-            "timeout",
-            "401",
-            "403",
-            "429",
-            "500"
-          ],
-          "default": "10000-comfortable",
-          "scope": "application",
-          "description": "Synthetic usage scenario for demo mode."
-        },
         "copilotPace.dayMode": {
           "type": "string",
           "enum": [
@@ -126,9 +86,10 @@
     "test:package": "node scripts/smoke.mjs",
     "test": "npm run test:unit",
     "check": "npm run lint && npm run typecheck && npm run test:unit",
-    "vscode:prepublish": "npm run build -- --production",
+    "vscode:prepublish": "npm run build:production",
     "package": "vsce package --skip-license --out dist/copilot-pace-0.1.2.vsix",
-    "package:contents": "vsce ls"
+    "package:contents": "npm run build:production && vsce ls",
+    "build:production": "node scripts/build.mjs --production"
   },
   "overrides": {
     "mocha": {

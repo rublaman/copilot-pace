@@ -65,12 +65,12 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
 function markdownText(value: string): string {
   return value.replace(/[\\`*_{}[\]()<>#+!|$]/g, '\\$&').replace(/[\r\n]+/g, ' ');
 }
-export const hoverCommands = ['copilotPace.showDetails', 'copilotPace.refresh', 'copilotPace.connect', 'copilotPace.demo'];
+export const hoverCommands = ['copilotPace.showDetails', 'copilotPace.refresh', 'copilotPace.connect'];
 export function renderHover(model: ViewModel): string {
   const text = markdownText;
   const icon = model.tone === 'good' ? 'pass' : model.tone === 'watch' ? 'clock' : model.tone === 'over' ? 'warning' : 'info';
   const lines = [
-    `**Copilot Pace**${model.demo ? '　·　**DEMO**' : ''}`,
+    `**Copilot Pace**${__DEV__ && model.demo ? '　·　**DEMO**' : ''}`,
     '', `$(${icon}) **${text(model.summary)}**`, '', text(model.message), '', '---', '',
     '| This cycle | |', '| :--- | ---: |',
     `| Used | **${text(model.used)}** |`, `| Remaining | **${text(model.remaining)}** |`,
@@ -83,10 +83,10 @@ export function renderHover(model: ViewModel): string {
     '', `**Projected at renewal:** ${text(model.projection)}`,
     '', `*${model.dayMode === 'weekdays' ? 'Mon–Fri' : 'Every day'} · Estimates from this cycle’s total usage.*`,
   ];
-  if (model.demo) lines.push('', `$(beaker) Simulated data · ${text(model.referenceDate)}`);
+  if (__DEV__ && model.demo) lines.push('', `$(beaker) Simulated data · ${text(model.referenceDate)}`);
   if (model.retry) lines.push('', text(model.retry));
   lines.push('', `Updated ${text(model.updated)}`, '', '---', '',
     '[$(graph) Open details](command:copilotPace.showDetails)　[$(refresh) Refresh](command:copilotPace.refresh)' +
-    (model.canConnect ? '　[Connect GitHub](command:copilotPace.connect)' : '　[Change demo](command:copilotPace.demo)'));
+    (__DEV__ && model.demo ? '　[Change demo](command:copilotPace.demo)' : '　[Connect GitHub](command:copilotPace.connect)'));
   return lines.join('\n');
 }

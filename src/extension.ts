@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { randomBytes } from 'node:crypto';
 import { systemClock, type DayMode } from './domain';
-import { isScenario, resolveScenario, MockSessions, MockTransport, scenarioLabels, type MockScenario } from './mocks';
+import { getDemoSource, registerDemoCommands } from './development';
 import { createViewModel, renderHtml, renderHover, hoverCommands, type ViewModel } from './presentation';
 import { QuotaService, type ServiceState } from './service';
 import { GitHubTransport, type SessionProvider } from './transport';
@@ -30,46 +30,45 @@ class CopilotPace implements vscode.Disposable {
   private service!: QuotaService;
   private readonly clock = systemClock;
   private demo = false;
-  private scenario: MockScenario = '10000-comfortable';
+  private scenario = '';
+  private readonly developmentEnabled: boolean;
   private dayMode: DayMode = 'all';
   private sourceKey = '';
   private panel?: vscode.WebviewPanel;
   private panelReady = false;
   private timer?: ReturnType<typeof setTimeout>;
   private disposed = false;
-  constructor() {
+  constructor(context: vscode.ExtensionContext) {
+    this.developmentEnabled = __DEV__ && (context.extensionMode === vscode.ExtensionMode.Development || context.extensionMode === vscode.ExtensionMode.Test);
     this.status.name = 'Copilot Pace';
     this.status.command = 'copilotPace.showDetails';
     this.subscriptions.push(this.status,
       vscode.commands.registerCommand('copilotPace.showDetails', () => this.showDetails()),
       vscode.commands.registerCommand('copilotPace.refresh', () => this.refresh()),
       vscode.commands.registerCommand('copilotPace.connect', () => this.refresh(!this.demo)),
-      vscode.commands.registerCommand('copilotPace.demo', () => this.chooseDemo()),
-      vscode.commands.registerCommand('copilotPace.useGitHub', () => this.updateConfig('dataSource', 'github')),
       vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration('copilotPace')) this.configure(); }),
       vscode.authentication.onDidChangeSessions(event => {
         if (event.provider.id === 'github' && !this.demo) { this.service.reset(); void this.refresh(); }
       }),
     );
+    if (__DEV__ && this.developmentEnabled) {
+      void vscode.commands.executeCommand('setContext', 'copilotPace.development', true);
+      this.subscriptions.push(...registerDemoCommands(vscode, (key, value) => this.updateConfig(key, value)));
+    }
     this.configure();
     this.status.show();
   }
   private configure() {
     const config = vscode.workspace.getConfiguration('copilotPace');
     this.dayMode = config.get<string>('dayMode') === 'weekdays' ? 'weekdays' : 'all';
-    const demo = config.get<string>('dataSource') === 'mock';
-    const configured = config.get<string>('mockScenario', '10000-comfortable');
-    const scenario = resolveScenario(configured);
-    if (!isScenario(configured)) {
-      void config.update('mockScenario', scenario, vscode.ConfigurationTarget.Global).then(undefined, () => { /* The in-memory alias still works if settings are read-only. */ });
-    }
-    const key = demo ? `mock:${scenario}` : 'github';
+    const source = __DEV__ && this.developmentEnabled ? getDemoSource(vscode, config, this.clock) : undefined;
+    const key = source?.key ?? 'github';
     if (key !== this.sourceKey) {
       this.service?.dispose();
-      this.sourceKey = key; this.demo = demo; this.scenario = scenario;
+      this.sourceKey = key; this.demo = source !== undefined; this.scenario = source?.label ?? '';
       this.service = new QuotaService({
-        sessions: demo ? new MockSessions(scenario) : new GitHubSessions(),
-        transport: demo ? new MockTransport(scenario, this.clock) : new GitHubTransport(vscode.version),
+        sessions: source?.sessions ?? new GitHubSessions(),
+        transport: source?.transport ?? new GitHubTransport(vscode.version),
         dataClock: this.clock,
       }, () => this.render());
       void this.refresh();
@@ -79,12 +78,6 @@ class CopilotPace implements vscode.Disposable {
     await vscode.workspace.getConfiguration('copilotPace').update(key, value, vscode.ConfigurationTarget.Global);
     // Also apply synchronously for command callers; a subsequent config event is idempotent.
     if (!this.disposed) this.configure();
-  }
-  private async chooseDemo() {
-    const selection = await vscode.window.showQuickPick(Object.entries(scenarioLabels).map(([scenario, label]) => ({ label, scenario })), { title: 'Copilot Pace · Demo scenarios' });
-    if (!selection) return;
-    await this.updateConfig('mockScenario', selection.scenario);
-    await this.updateConfig('dataSource', 'mock');
   }
   async refresh(interactive = false) {
     const service = this.service;
@@ -100,7 +93,7 @@ class CopilotPace implements vscode.Disposable {
     this.timer = setTimeout(() => { void this.refresh(); }, Math.min(delay, 2_147_483_647));
     this.timer.unref();
   }
-  get model(): ViewModel { return createViewModel(this.service.current, this.clock, this.dayMode, this.demo, scenarioLabels[this.scenario], this.service.nextAllowedAt); }
+  get model(): ViewModel { return createViewModel(this.service.current, this.clock, this.dayMode, this.demo, this.scenario, this.service.nextAllowedAt); }
   private render() {
     if (this.disposed) return;
     const model = this.model;
@@ -108,7 +101,7 @@ class CopilotPace implements vscode.Disposable {
     const color = { good: 'charts.green', watch: 'charts.yellow', over: 'charts.red', neutral: undefined }[model.tone];
     this.status.color = color ? new vscode.ThemeColor(color) : undefined;
     const tooltip = new vscode.MarkdownString(renderHover(model), true);
-    tooltip.isTrusted = { enabledCommands: hoverCommands };
+    tooltip.isTrusted = { enabledCommands: __DEV__ && this.developmentEnabled ? [...hoverCommands, 'copilotPace.demo'] : hoverCommands };
     tooltip.supportHtml = false;
     this.status.tooltip = tooltip;
     this.status.accessibilityInformation = { label: `Copilot Pace: ${model.statusText}` };
@@ -149,7 +142,7 @@ class CopilotPace implements vscode.Disposable {
 }
 
 export function activate(context: vscode.ExtensionContext): TestApi | undefined {
-  const app = new CopilotPace();
+  const app = new CopilotPace(context);
   context.subscriptions.push(app);
   return context.extensionMode === vscode.ExtensionMode.Test ? app.testApi : undefined;
 }
