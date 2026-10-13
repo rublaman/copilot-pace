@@ -1,14 +1,18 @@
 # Changelog
 
-No releases have been published. Versions below describe local development builds.
+Versions 0.1.x describe local development builds.
 
 ## [Unreleased]
 
-- Adopt the MIT license and add a repository social preview.
-- Add tested VSIX artifacts with checksums and build provenance.
-- Prepare tagged GitHub release drafts for pilots from `develop` and stable versions from `main`.
-- Derive the VSIX filename from the manifest version.
-- Review and version the English documentation.
+## [0.2.0] - 2026-10-13
+
+- First pilot with GitHub Copilot credits, remaining allowance and estimated UTC monthly pace in the status bar, hover and detail panel.
+- Support Every day / Mon–Fri estimates, manual refresh, retained stale data and retry cooldowns.
+- Keep synthetic demos in development hosts; production packages use GitHub and exclude demo code, commands and settings.
+- Add tested VSIX artifacts, SHA-256 checksums, build records and tagged release drafts.
+- Include English documentation, the MIT license and Copilot Pace branding.
+
+Real account and corporate network compatibility remain unverified. The extension uses an internal GitHub endpoint; GHE.com, GitHub Enterprise Server and web hosts are unsupported.
 
 ## [0.1.3] - 2026-10-13
 
