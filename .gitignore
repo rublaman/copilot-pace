@@ -6,6 +6,7 @@ node_modules/
 /out/
 *.vsix
 *.tgz
+/dist-release-notes.md
 
 # Downloaded VS Code hosts, test profiles and installed test extensions
 # Keep .vscode-test.mjs: it is the shared test runner configuration.
@@ -40,13 +41,6 @@ pids/
 .env.*
 !.env.example
 
-# Local documentation drafts: review before publication.
-# Keep the release guide versioned without publishing the other drafts yet.
-# Review VSIX documentation separately: vsce always includes README.md by default.
-/README.md
-/docs/*
-!/docs/RELEASING.md
-
 # Personal editor settings; keep shared build/debug configuration
 /.vscode/*
 !/.vscode/launch.json
@@ -63,5 +57,6 @@ Desktop.ini
 *.swp
 *.swo
 *~
-.github/copilot-instructions.md
-docs/RELEASING.md
+
+# Maintainer's local Copilot summary
+/.github/copilot-instructions.md

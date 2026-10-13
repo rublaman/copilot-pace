@@ -2,7 +2,7 @@
 
 ## Context and references
 
-Copilot Pace is a VS Code extension that displays GitHub Copilot credits and an estimated monthly usage pace. Keep the extension UI, contribution guidance and pull request content in English. Respond to each contributor in their preferred language; the current maintainer prefers Spanish.
+Copilot Pace is a VS Code extension that displays GitHub Copilot credits and an estimated monthly usage pace. Keep the extension UI, Markdown and pull request content in English. Respond to each contributor in their preferred language; the current maintainer prefers Spanish.
 
 - Read [CONTRIBUTING.md](CONTRIBUTING.md) for development and testing.
 - Before changing versions, packaging, CI, branches, tags or publishing, read [docs/RELEASING.md](docs/RELEASING.md). It is the reference for the release workflow and outstanding work.
@@ -53,4 +53,5 @@ Copilot Pace is a VS Code extension that displays GitHub Copilot credits and an 
 - Use SemVer and annotated `vMAJOR.MINOR.PATCH` tags. The tag, manifest, lockfile and manifest inside the VSIX must agree. Create the tag on the validated SHA of the release branch, after merging.
 - Do not move or overwrite published tags or assets. A distributed fix requires a new version.
 - GitHub Releases retain notes, the VSIX and its SHA-256. Marketplace must receive the same tested VSIX, without rebuilding during publication.
+- CI produces test artifacts; annotated tags prepare release drafts. Publishing those drafts and Marketplace releases requires explicit authorization. Keep candidate execution under read permissions and upload the tested artifact without rebuilding.
 - The release guide defines the specific criteria, the distinction between preview and prerelease, and publisher requirements. Do not declare `1.0.0` ready while its blockers remain unresolved.

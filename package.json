@@ -6,6 +6,7 @@
   "version": "0.1.3",
   "publisher": "rublaman",
   "private": true,
+  "preview": true,
   "engines": {
     "vscode": "^1.120.0",
     "node": ">=24 <27"
@@ -86,9 +87,10 @@
     "test:integration": "npm run build && vscode-test",
     "test:package": "node scripts/smoke.mjs",
     "test": "npm run test:unit",
-    "check": "npm run lint && npm run typecheck && npm run test:unit",
+    "check": "npm run lint && npm run typecheck && npm run test:unit && npm run test:release",
+    "test:release": "node --test test/scripts/*.test.mjs",
     "vscode:prepublish": "npm run build:production",
-    "package": "vsce package --skip-license --out dist/copilot-pace-0.1.3.vsix",
+    "package": "node scripts/package.mjs",
     "package:contents": "npm run build:production && vsce ls",
     "build:production": "node scripts/build.mjs --production"
   },

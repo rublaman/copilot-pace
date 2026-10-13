@@ -1,15 +1,5 @@
-# Copilot Pace logo assets
+# Logo assets
 
-The extension uses `copilot-pace-128.png`, with a solid white background,
-through the root `package.json` icon property. `copilot-pace-1024.png` and
-`copilot-pace.svg` provide the same white-background artwork at higher resolution
-and in vector format.
+The manifest uses `copilot-pace-128.png`. The 1024 px PNG and SVG provide the same artwork on a white background. The `copilot-pace-ui.svg` and `copilot-pace-ui-dark.svg` variants are used by the extension UI.
 
-The supplied transparent originals are preserved unchanged for future use:
-
-- `transparent/copilot-pace.svg`: vector artwork, 512 × 512 viewBox.
-- `transparent/copilot-pace-128.png`: transparent PNG, 128 × 128 pixels.
-- `transparent/copilot-pace-1024.png`: transparent PNG, 1024 × 1024 pixels.
-
-The transparent originals and this guide are excluded from the VSIX by
-`.vscodeignore`.
+Original transparent SVG (512 × 512 viewBox) and 128/1024 px PNGs are preserved in `transparent/`. Those originals and this guide are excluded from the VSIX.

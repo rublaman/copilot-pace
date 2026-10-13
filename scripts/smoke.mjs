@@ -41,4 +41,5 @@ await writeFile(config, `import { defineConfig } from '@vscode/test-cli';\nexpor
   launchArgs: ['--disable-extensions', '--skip-welcome', '--skip-release-notes', '--user-data-dir', profile, '--extensions-dir', extensions],
 })});\n`);
 await execute(process.execPath, [path.join(root, 'node_modules', '@vscode', 'test-cli', 'out', 'bin.mjs'), '--config', config], { COPILOT_PACE_TEST_SETTINGS: settingsPath });
+await execute('pwsh', ['-NoProfile', '-File', path.join(root, 'scripts', 'inspect-vsix.ps1'), '-Root', root, '-WriteMetadata']);
 console.log('Production VSIX installed and validated without demos in an isolated profile.');
