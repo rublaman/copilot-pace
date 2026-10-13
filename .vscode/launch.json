@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [{
+    "name": "Copilot Pace: Extension",
+    "type": "node",
+    "request": "attach",
+    "address": "127.0.0.1",
+    "port": 9333,
+    "timeout": 30000,
+    "autoAttachChildProcesses": false,
+    "outFiles": ["${workspaceFolder}/out/development/dist/**/*.js"],
+    "preLaunchTask": "Copilot Pace: start debug host"
+  }]
+}

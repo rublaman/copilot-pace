@@ -1,0 +1,14 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "type": "npm", "script": "build", "group": "build", "problemMatcher": [] },
+    {
+      "label": "Copilot Pace: start debug host",
+      "type": "process",
+      "command": "pwsh",
+      "args": ["-NoProfile", "-File", "${workspaceFolder}/scripts/debug.ps1"],
+      "dependsOn": "npm: build",
+      "problemMatcher": []
+    }
+  ]
+}

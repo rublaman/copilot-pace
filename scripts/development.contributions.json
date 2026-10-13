@@ -1,0 +1,60 @@
+{
+  "commands": [
+    {
+      "command": "copilotPace.demo",
+      "title": "Copilot Pace: Try Demo Scenarios"
+    },
+    {
+      "command": "copilotPace.useGitHub",
+      "title": "Copilot Pace: Use GitHub"
+    }
+  ],
+  "configuration": {
+    "properties": {
+      "copilotPace.dataSource": {
+        "type": "string",
+        "enum": [
+          "github",
+          "mock"
+        ],
+        "default": "github",
+        "scope": "application",
+        "description": "Usage data source. Mock mode never requests authentication or uses the network."
+      },
+      "copilotPace.mockScenario": {
+        "type": "string",
+        "enum": [
+          "10000-comfortable",
+          "3900-on-track",
+          "3900-over-pace",
+          "budget-3900",
+          "budget-10000",
+          "exhausted",
+          "usage-only",
+          "incomplete",
+          "disconnected",
+          "timeout",
+          "401",
+          "403",
+          "429",
+          "500"
+        ],
+        "default": "10000-comfortable",
+        "scope": "application",
+        "description": "Synthetic usage scenario for demo mode."
+      }
+    }
+  },
+  "menus": {
+    "commandPalette": [
+      {
+        "command": "copilotPace.demo",
+        "when": "copilotPace.development"
+      },
+      {
+        "command": "copilotPace.useGitHub",
+        "when": "copilotPace.development"
+      }
+    ]
+  }
+}

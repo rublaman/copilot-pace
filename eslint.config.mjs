@@ -1,0 +1,7 @@
+import tseslint from 'typescript-eslint';
+
+export default tseslint.config(
+  { ignores: ['out/**', 'dist/**', '.vscode-test/**', 'node_modules/**'] },
+  ...tseslint.configs.recommended,
+  { files: ['scripts/**/*.mjs'], languageOptions: { globals: { process: 'readonly', console: 'readonly' } } },
+);
