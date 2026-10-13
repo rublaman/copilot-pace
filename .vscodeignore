@@ -8,6 +8,8 @@ test/**
 scripts/**
 out/**
 docs/**
+images/transparent/**
+images/README.md
 **/*.map
 **/*.vsix
 package-lock.json
