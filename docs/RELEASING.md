@@ -9,7 +9,7 @@ Reviewed on October 13, 2026:
 - Public repository: `rublaman/copilot-pace`; default branch: `main`. There is no `master` branch.
 - The extension is on `feature/copilot-pace-mvp` at version `0.1.3`. Remote `main` and `develop` still contain only the initial commit.
 - No tags or GitHub Releases exist. Branch protection and rulesets are absent.
-- `ci.yml` validates and uploads production VSIX test artifacts. The local changes add reusable validation and `release.yml` for release drafts; remote execution of those changes is pending.
+- `ci.yml` validates and uploads production VSIX test artifacts. [CI passed on the feature branch at `e8a26cf`](https://github.com/rublaman/copilot-pace/actions/runs/38436602176). `release.yml` prepares release drafts; its end-to-end tag-triggered run is still pending.
 - The project uses the MIT license. Real account/network validation and Marketplace publisher access remain unresolved.
 
 The planned first sequence is a `0.2.0` pilot, real account validation, then `1.0.0` stable. These are targets, not published versions.
@@ -54,7 +54,7 @@ Use GitHub prereleases for beta testing rather than `-beta` or `-rc` tags. Ordin
 
 Only the draft job has `contents: write`; it does not check out or execute candidate code. Neither workflow publishes to Marketplace or publishes the GitHub draft automatically.
 
-Install these workflow changes through `develop` and promote them to `main` before the first release cycle. Manual Actions dispatch requires the workflow on the default branch. Push tags with the maintainer's identity: events created using `GITHUB_TOKEN` generally do not start another workflow. [GitHub trigger reference](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
+Integrate the workflows into `develop` before the pilot. Tag pushes run the workflow from the tagged commit, so the pilot does not require promoting the extension to `main`. Manual Actions dispatch requires the workflow on the default branch. Push tags with the maintainer's identity: events created using `GITHUB_TOKEN` generally do not start another workflow. [GitHub event reference](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
 
 ## Before the first release
 
