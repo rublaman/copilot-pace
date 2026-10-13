@@ -7,12 +7,12 @@ This guide defines version preparation, validation and distribution. Read the wo
 Reviewed on October 13, 2026:
 
 - Public repository: `rublaman/copilot-pace`; default branch: `main`. There is no `master` branch.
-- The extension is on `feature/copilot-pace-mvp` at version `0.1.3`. Remote `main` and `develop` still contain only the initial commit.
-- No tags or GitHub Releases exist. Branch protection and rulesets are absent.
-- `ci.yml` validates and uploads production VSIX test artifacts. [CI passed on the feature branch at `e8a26cf`](https://github.com/rublaman/copilot-pace/actions/runs/38436602176). `release.yml` prepares release drafts; its end-to-end tag-triggered run is still pending.
+- The MVP is integrated into `develop`; `main` still contains the initial commit. This change prepares the `0.2.0` pilot with `preview: true`.
+- No tags or GitHub Releases exist yet. `main` and `develop` are protected; release tag rulesets are active.
+- `ci.yml` validates and uploads production VSIX test artifacts. [CI passed on `develop` at `7104271`](https://github.com/rublaman/copilot-pace/actions/runs/38438327662). `release.yml` prepares release drafts; the pilot will exercise its first tag-triggered run.
 - The project uses the MIT license. Real account/network validation and Marketplace publisher access remain unresolved.
 
-The planned first sequence is a `0.2.0` pilot, real account validation, then `1.0.0` stable. These are targets, not published versions.
+The first sequence is the `0.2.0` pilot, real account validation, then `1.0.0` stable. Candidate preparation does not mean the release has been published; check GitHub for its actual state.
 
 ## Branches and channels
 
@@ -58,11 +58,12 @@ Integrate the workflows into `develop` before the pilot. Tag pushes run the work
 
 ## Before the first release
 
-- [ ] Merge the implementation and workflow changes, then validate the final release commit remotely.
+- [x] Integrate the MVP and workflows into `develop`; CI passed at `7104271`.
+- [ ] Merge the pilot preparation PR and validate its final release commit remotely before tagging.
 - [x] Add the MIT license and align `package.json` and the lockfile. Packaging requires the license; release validation checks that it is tracked.
-- [ ] Prepare `0.2.0`, `preview: true`, a dated changelog entry, release notes and any screenshots. Verify README links and required images in the VSIX.
-- [ ] Protect `main` and `develop`: PRs, resolved conversations, required CI jobs, no force pushes or deletion. Preserve merge commits; do not require linear history. Require another review only if another reviewer is available.
-- [ ] Protect `v*` against updates/deletion and restrict creation to release maintainers. Record the actual remote configuration after applying it.
+- [x] Prepare `0.2.0`, `preview: true` and its dated changelog entry. The workflow derives draft release notes from the changelog; package validation checks README, license, identity and required images.
+- [x] Protect `main` and `develop`: PRs, resolved conversations, current branches and all five CI jobs are required, including for admins. Force pushes/deletion are blocked; merge commits remain allowed. No external approval is required while there is one maintainer.
+- [x] Protect `refs/tags/v*`: the [immutability ruleset](https://github.com/rublaman/copilot-pace/rules/25017697) blocks updates/deletion without bypass, and the [creation ruleset](https://github.com/rublaman/copilot-pace/rules/25017698) permits creation only by `rublaman`.
 - [ ] Before stable/Marketplace publication, complete the real account checks below and confirm publisher access at [Manage Publishers](https://marketplace.visualstudio.com/manage).
 
 ## Create and review a candidate
