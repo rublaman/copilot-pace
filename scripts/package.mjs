@@ -8,5 +8,4 @@ const sha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).tri
 await createVSIX({
   packagePath: `dist/${manifest.name}-${manifest.version}.vsix`,
   githubBranch: sha,
-  skipLicense: manifest.license === 'UNLICENSED',
 });

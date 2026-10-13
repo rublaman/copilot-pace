@@ -10,7 +10,7 @@ Reviewed on October 13, 2026:
 - The extension is on `feature/copilot-pace-mvp` at version `0.1.3`. Remote `main` and `develop` still contain only the initial commit.
 - No tags or GitHub Releases exist. Branch protection and rulesets are absent.
 - `ci.yml` validates and uploads production VSIX test artifacts. The local changes add reusable validation and `release.yml` for release drafts; remote execution of those changes is pending.
-- Real account/network validation, distribution terms and Marketplace publisher access remain unresolved.
+- The project uses the MIT license. Real account/network validation and Marketplace publisher access remain unresolved.
 
 The planned first sequence is a `0.2.0` pilot, real account validation, then `1.0.0` stable. These are targets, not published versions.
 
@@ -59,7 +59,7 @@ Install these workflow changes through `develop` and promote them to `main` befo
 ## Before the first release
 
 - [ ] Merge the implementation and workflow changes, then validate the final release commit remotely.
-- [ ] Choose distribution terms and add a tracked license file matching `package.json`. `UNLICENSED` and local `--skip-license` packaging do not resolve this decision. Tagged release validation blocks until it is resolved.
+- [x] Add the MIT license and align `package.json` and the lockfile. Packaging requires the license; release validation checks that it is tracked.
 - [ ] Prepare `0.2.0`, `preview: true`, a dated changelog entry, release notes and any screenshots. Verify README links and required images in the VSIX.
 - [ ] Protect `main` and `develop`: PRs, resolved conversations, required CI jobs, no force pushes or deletion. Preserve merge commits; do not require linear history. Require another review only if another reviewer is available.
 - [ ] Protect `v*` against updates/deletion and restrict creation to release maintainers. Record the actual remote configuration after applying it.
@@ -102,7 +102,7 @@ Synthetic tests cover processing and integration; the internal `copilot_internal
 
 ## Marketplace and failed releases
 
-Marketplace automation remains pending until publisher ownership, license and authentication are resolved. Use an environment with restricted publishing permissions and verify the current [secure publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace) before implementing it.
+Marketplace automation remains pending until publisher ownership and authentication are resolved. Use an environment with restricted publishing permissions and verify the current [secure publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace) before implementing it.
 
 Publish the same VSIX from the reviewed GitHub Release, through the publisher portal or `vsce publish --azure-credential --packagePath <tested.vsix>` with configured credentials. Verify the listing and an install/update before recording success. Do not rebuild or use `--skip-duplicate` to hide an existing version.
 

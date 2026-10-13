@@ -44,4 +44,4 @@ Settings apply to the application. Production packages use GitHub data and ignor
 
 VS Code manages authentication with `read:user`. The extension does not read workspace files or conversations, log tokens or response bodies, or send telemetry. Requests use HTTPS with TLS verification. Corporate proxies and certificates require testing in the target environment.
 
-The repository is public. Distribution terms are still undecided (`UNLICENSED`); Marketplace publication is pending. For development and demo scenarios, see [CONTRIBUTING.md](CONTRIBUTING.md). Report problems in [GitHub Issues](https://github.com/rublaman/copilot-pace/issues).
+Licensed under [MIT](LICENSE). Marketplace publication is pending. For development and demo scenarios, see [CONTRIBUTING.md](CONTRIBUTING.md). Report problems in [GitHub Issues](https://github.com/rublaman/copilot-pace/issues).

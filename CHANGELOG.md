@@ -4,6 +4,7 @@ No releases have been published. Versions below describe local development build
 
 ## [Unreleased]
 
+- Adopt the MIT license and add a repository social preview.
 - Add tested VSIX artifacts with checksums and build provenance.
 - Prepare tagged GitHub release drafts for pilots from `develop` and stable versions from `main`.
 - Derive the VSIX filename from the manifest version.

@@ -12,6 +12,7 @@ dist/**
 docs/**
 images/transparent/**
 images/README.md
+images/social-preview/**
 **/*.map
 **/*.vsix
 package-lock.json
