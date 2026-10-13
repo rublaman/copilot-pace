@@ -7,12 +7,12 @@ This guide defines version preparation, validation and distribution. Read the wo
 Reviewed on October 13, 2026:
 
 - Public repository: `rublaman/copilot-pace`; default branch: `main`. There is no `master` branch.
-- The MVP is integrated into `develop`; `main` still contains the initial commit. This change prepares the `0.2.0` pilot with `preview: true`.
-- No tags or GitHub Releases exist yet. `main` and `develop` are protected; release tag rulesets are active.
-- `ci.yml` validates and uploads production VSIX test artifacts. [CI passed on `develop` at `7104271`](https://github.com/rublaman/copilot-pace/actions/runs/38438327662). `release.yml` prepares release drafts; the pilot will exercise its first tag-triggered run.
+- [Copilot Pace 0.2.0](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.0) is published as a GitHub prerelease from `develop`, with `preview: true`. `main` still contains the initial commit.
+- Annotated tag `v0.2.0` identifies commit `55235c5a7e782722f28608420712219035bfc15e`. `main` and `develop` are protected; release tag rulesets are active.
+- [Branch CI](https://github.com/rublaman/copilot-pace/actions/runs/38442128376) and the [first tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/38442715674) passed. The downloaded release VSIX passed all six package tests on Windows / VS Code 1.141.0; an anonymous download matched its SHA-256.
 - The project uses the MIT license. Real account/network validation and Marketplace publisher access remain unresolved.
 
-The first sequence is the `0.2.0` pilot, real account validation, then `1.0.0` stable. Candidate preparation does not mean the release has been published; check GitHub for its actual state.
+Next: validate the pilot with real accounts before preparing `1.0.0` stable. The release notes retain the tested commit, artifact checksum and validation limits. Check GitHub for the current release state.
 
 ## Branches and channels
 
@@ -56,10 +56,11 @@ Only the draft job has `contents: write`; it does not check out or execute candi
 
 Integrate the workflows into `develop` before the pilot. Tag pushes run the workflow from the tagged commit, so the pilot does not require promoting the extension to `main`. Manual Actions dispatch requires the workflow on the default branch. Push tags with the maintainer's identity: events created using `GITHUB_TOKEN` generally do not start another workflow. [GitHub event reference](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
 
-## Before the first release
+## Release readiness
 
 - [x] Integrate the MVP and workflows into `develop`; CI passed at `7104271`.
-- [ ] Merge the pilot preparation PR and validate its final release commit remotely before tagging.
+- [x] Merge the [pilot preparation PR](https://github.com/rublaman/copilot-pace/pull/2), validate its final commit remotely and create the annotated `v0.2.0` tag.
+- [x] Exercise tag-triggered automation, inspect and test the downloaded VSIX, publish the pilot without Latest and verify anonymous downloads.
 - [x] Add the MIT license and align `package.json` and the lockfile. Packaging requires the license; release validation checks that it is tracked.
 - [x] Prepare `0.2.0`, `preview: true` and its dated changelog entry. The workflow derives draft release notes from the changelog; package validation checks README, license, identity and required images.
 - [x] Protect `main` and `develop`: PRs, resolved conversations, current branches and all five CI jobs are required, including for admins. Force pushes/deletion are blocked; merge commits remain allowed. No external approval is required while there is one maintainer.
@@ -70,7 +71,7 @@ Integrate the workflows into `develop` before the pilot. Tag pushes run the work
 
 1. Prepare version, preview flag, changelog and release notes in a PR. Run `npm ci`, `npm run check`, `npm run test:integration`, `npm run test:package` and `npm audit`. Review audit findings without automatic forced upgrades.
 2. Merge to the intended branch and wait for CI on that SHA. For stable promotion, merge `develop` into `main` first.
-3. With a clean checkout and authenticated `gh`, fetch branches/tags and tag the exact validated SHA. The following example requires a prepared `0.2.0` commit on `develop`:
+3. With a clean checkout and authenticated `gh`, fetch branches/tags and tag the exact validated SHA. This example requires a prepared pilot version on `develop` without an existing tag:
 
 ```powershell
 $ErrorActionPreference = 'Stop'
@@ -78,10 +79,15 @@ $PSNativeCommandUseErrorActionPreference = $true
 if (git status --porcelain) { throw 'Commit or preserve local changes first.' }
 git fetch origin --tags
 $releaseSha = (git rev-parse origin/develop).Trim()
+if ((git rev-parse HEAD).Trim() -cne $releaseSha) { throw 'Check out the validated release commit first.' }
+$releaseVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
+$releaseTag = "v$releaseVersion"
+if (git tag --list $releaseTag) { throw 'Version already tagged; prepare a new version.' }
 gh run list --workflow ci.yml --branch develop --commit $releaseSha
 # Review the successful run for this SHA before continuing.
-git tag -a v0.2.0 $releaseSha -m 'Copilot Pace 0.2.0 pilot'
-git push origin refs/tags/v0.2.0
+git tag -a $releaseTag $releaseSha -m "Copilot Pace $releaseVersion pilot"
+node scripts/release.mjs $releaseTag
+git push origin "refs/tags/$releaseTag"
 ```
 
 4. Wait for the tag workflow and review the draft. Download its VSIX and verify `SHA256SUMS.txt`; retain the full SHA, tag, run URL and hash.
