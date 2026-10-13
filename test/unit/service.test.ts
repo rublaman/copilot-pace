@@ -2,7 +2,7 @@ import * as assert from 'node:assert/strict';
 import { QuotaService } from '../../src/service';
 import { boundedFixture, MockSessions, MockTransport } from '../../src/mocks';
 import { demoClock } from '../fixtures';
-import { SafeError, type HttpResponse, type HttpTransport, type SessionProvider } from '../../src/transport';
+import { SafeError, type HttpResponse, type HttpTransport, type Session, type SessionProvider } from '../../src/transport';
 
 const ok = (total = 3900, used = 1950): HttpResponse => ({ status: 200, headers: {}, body: boundedFixture(total, used, demoClock.now()) });
 function setup(transport: HttpTransport, sessions: SessionProvider = new MockSessions('3900-on-track')) {
@@ -19,6 +19,73 @@ describe('Quota service', () => {
     assert.equal(first, second);
     await Promise.resolve(); assert.equal(requests, 1);
     complete(ok()); await first; assert.equal(service.current.phase, 'ready');
+  });
+  it('queues and deduplicates an explicit connection during silent authentication', async () => {
+    let complete!: (session: Session | undefined) => void;
+    const calls: boolean[] = [];
+    const { service } = setup({ request: async () => ok() }, { get: async interactive => {
+      calls.push(interactive);
+      return interactive ? { id: 'connected', accessToken: 'synthetic' } : new Promise(resolve => { complete = resolve; });
+    } });
+    const background = service.refresh();
+    const connect = service.refresh(true);
+    assert.equal(service.refresh(true), connect);
+    complete(undefined);
+    await Promise.all([background, connect]);
+    assert.deepEqual(calls, [false, true]);
+    assert.equal(service.current.phase, 'ready');
+  });
+  it('deduplicates refreshes while an interactive connection is in progress', async () => {
+    let complete!: (session: Session | undefined) => void;
+    const calls: boolean[] = [];
+    const { service } = setup({ request: async () => ok() }, { get: async interactive => {
+      calls.push(interactive); return new Promise(resolve => { complete = resolve; });
+    } });
+    const connect = service.refresh(true);
+    assert.equal(service.refresh(true), connect); assert.equal(service.refresh(), connect);
+    complete({ id: 'connected', accessToken: 'synthetic' });
+    await connect;
+    assert.deepEqual(calls, [true]); assert.equal(service.current.phase, 'ready');
+  });
+  it('keeps a queued connection when another background read starts first', async () => {
+    let complete!: (session: Session | undefined) => void;
+    const calls: boolean[] = [];
+    const { service } = setup({ request: async () => ok() }, { get: async interactive => {
+      calls.push(interactive);
+      if (calls.length === 1) return new Promise(resolve => { complete = resolve; });
+      return { id: 'session', accessToken: 'synthetic' };
+    } });
+    const background = service.refresh();
+    const nextBackground = background.then(() => service.refresh());
+    const connect = service.refresh(true);
+    complete(undefined);
+    await Promise.all([background, nextBackground, connect]);
+    assert.deepEqual(calls, [false, false, true]); assert.equal(service.current.phase, 'ready');
+  });
+  for (const action of ['reset', 'dispose'] as const) {
+    it(`cancels a queued connection on ${action}`, async () => {
+      let complete!: (session: Session | undefined) => void;
+      const calls: boolean[] = [];
+      const { service } = setup({ request: async () => assert.fail('Must not access the network') }, { get: async interactive => {
+        calls.push(interactive); return new Promise(resolve => { complete = resolve; });
+      } });
+      const background = service.refresh(); const connect = service.refresh(true);
+      service[action](); complete(undefined);
+      await Promise.all([background, connect]);
+      assert.deepEqual(calls, [false]); assert.equal(service.current.snapshot, undefined);
+    });
+  }
+  it('honors a new rate limit before running a queued connection', async () => {
+    let complete!: (response: HttpResponse) => void;
+    const calls: boolean[] = [];
+    const { service } = setup({ request: async () => new Promise(resolve => { complete = resolve; }) }, { get: async interactive => {
+      calls.push(interactive); return { id: 'session', accessToken: 'synthetic' };
+    } });
+    const background = service.refresh(); await Promise.resolve();
+    const connect = service.refresh(true);
+    complete({ status: 429, headers: { 'retry-after': '120' }, body: undefined });
+    await Promise.all([background, connect]);
+    assert.deepEqual(calls, [false]); assert.equal(service.current.failure?.code, 'rateLimited');
   });
   it('discards a late response after cancelling and clearing the session', async () => {
     let complete!: (response: HttpResponse) => void;
@@ -47,6 +114,26 @@ describe('Quota service', () => {
     const { service } = setup(new MockTransport('3900-on-track'), { get: async () => { throw new Error('secret-token'); } });
     await service.refresh(); assert.equal(service.current.failure?.code, 'auth');
     assert.ok(!JSON.stringify(service.current).includes('secret-token'));
+  });
+  it('reauthenticates after a 401 only on explicit connection and survives a cancelled login', async () => {
+    const calls: Array<[boolean, boolean | undefined]> = [];
+    let interactiveAttempts = 0;
+    const { service } = setup({ request: async token => token === 'renewed'
+      ? ok() : { status: 401, headers: {}, body: undefined } }, {
+      get: async (interactive, forceNewSession) => {
+        calls.push([interactive, forceNewSession]);
+        if (interactive && ++interactiveAttempts === 1) throw new Error('Login cancelled');
+        return { id: 'session', accessToken: interactive ? 'renewed' : 'expired' };
+      },
+    });
+    await service.refresh(); await service.refresh();
+    assert.equal(service.current.failure?.code, 'unauthorized');
+    await service.refresh(true);
+    assert.equal(service.current.failure?.code, 'auth');
+    await service.refresh(true);
+    assert.equal(service.current.phase, 'ready');
+    await service.refresh(true);
+    assert.deepEqual(calls, [[false, false], [false, false], [true, true], [true, true], [true, false]]);
   });
   for (const [status, code] of [[401, 'unauthorized'], [403, 'forbidden'], [500, 'server']] as const) {
     it(`classifies HTTP ${status} without treating the response as quota`, async () => {

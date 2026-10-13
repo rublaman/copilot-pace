@@ -2,7 +2,7 @@ import * as https from 'node:https';
 import type { ClientRequest, IncomingMessage } from 'node:http';
 
 export interface Session { id: string; accessToken: string }
-export interface SessionProvider { get(interactive: boolean): Promise<Session | undefined> }
+export interface SessionProvider { get(interactive: boolean, forceNewSession?: boolean): Promise<Session | undefined> }
 export interface HttpResponse { status: number; headers: Record<string, string | undefined>; body: unknown }
 export interface HttpTransport { request(accessToken: string, signal: AbortSignal): Promise<HttpResponse> }
 export type FailureCode = 'timeout' | 'network' | 'invalidResponse' | 'unauthorized' | 'forbidden' | 'rateLimited' | 'server' | 'cancelled' | 'auth';
@@ -20,8 +20,8 @@ export class GitHubTransport implements HttpTransport {
         method: 'GET', signal,
         headers: {
           Authorization: `Bearer ${accessToken}`, Accept: 'application/json',
-          'User-Agent': 'Copilot-Pace/0.1.1', 'Editor-Version': `vscode/${this.editorVersion}`,
-          'Editor-Plugin-Version': 'copilot-pace/0.1.1',
+          'User-Agent': `Copilot-Pace/${__EXTENSION_VERSION__}`, 'Editor-Version': `vscode/${this.editorVersion}`,
+          'Editor-Plugin-Version': `copilot-pace/${__EXTENSION_VERSION__}`,
         },
       }, response => {
         const status = response.statusCode ?? 0;
@@ -58,6 +58,10 @@ export class GitHubTransport implements HttpTransport {
   }
 }
 
+function validTimestamp(value: number): number | undefined {
+  return Number.isFinite(new Date(value).getTime()) ? value : undefined;
+}
+
 export function responseError(response: HttpResponse, now: number): SafeError | undefined {
   const { status, headers } = response;
   if (status >= 200 && status < 300) return;
@@ -66,9 +70,10 @@ export function responseError(response: HttpResponse, now: number): SafeError | 
   if (rateLimited) {
     const retry = headers['retry-after'];
     const seconds = retry !== undefined && /^\d+(\.\d+)?$/.test(retry) ? Number(retry) : undefined;
-    const date = retry !== undefined ? Date.parse(retry) : NaN;
+    const retryTime = seconds !== undefined ? now + seconds * 1000 : retry !== undefined ? Date.parse(retry) : NaN;
     const reset = Number(headers['x-ratelimit-reset']) * 1000;
-    const retryAt = Math.max(now + 1000, seconds !== undefined ? now + seconds * 1000 : Number.isFinite(date) ? date : Number.isFinite(reset) ? reset : now + 60_000);
+    // Invalid or overflowing headers must not reach the UI's date formatter.
+    const retryAt = Math.max(now + 1000, validTimestamp(retryTime) ?? validTimestamp(reset) ?? now + 60_000);
     return new SafeError('rateLimited', 'GitHub has limited requests. Usage will refresh after the waiting period.', retryAt);
   }
   if (status === 403) return new SafeError('forbidden', 'GitHub does not allow this session to read the quota.');

@@ -16,6 +16,7 @@ describe('Development build activation boundary', () => {
       const disposable = { dispose() {} };
       const settings: Record<string, unknown> = { dataSource: 'mock', mockScenario: '10000-comfortable', dayMode: 'all' };
       const host = {
+        Uri: { joinPath: (base: URL, ...parts: string[]) => new URL(parts.join('/'), base) },
         ExtensionMode: { Production: 1, Development: 2, Test: 3 },
         StatusBarAlignment: { Right: 2 },
         ThemeColor: class { constructor(public id: string) {} },
@@ -34,7 +35,7 @@ describe('Development build activation boundary', () => {
           onDidChangeSessions: () => disposable,
         },
       };
-      const context = { extensionMode: mode, subscriptions: [] as vscode.Disposable[] };
+      const context = { extensionMode: mode, extensionUri: new URL('file:///extension/'), subscriptions: [] as vscode.Disposable[] };
       const module = { exports: {} as { activate: typeof activate } };
       runInNewContext(readFileSync('out/development/dist/extension.js', 'utf8'), {
         module, exports: module.exports,

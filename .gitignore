@@ -40,11 +40,12 @@ pids/
 .env.*
 !.env.example
 
-# Local documentation drafts: keep updating them until publication cleanup.
-# Remove these exclusions when the documentation is ready to publish.
+# Local documentation drafts: review before publication.
+# Keep the release guide versioned without publishing the other drafts yet.
 # Review VSIX documentation separately: vsce always includes README.md by default.
 /README.md
-/docs/
+/docs/*
+!/docs/RELEASING.md
 
 # Personal editor settings; keep shared build/debug configuration
 /.vscode/*
@@ -62,4 +63,5 @@ Desktop.ini
 *.swp
 *.swo
 *~
-CONTRIBUTING.md
+.github/copilot-instructions.md
+docs/RELEASING.md

@@ -2,10 +2,13 @@
   "version": "0.2.0",
   "configurations": [{
     "name": "Copilot Pace: Extension",
-    "type": "extensionHost",
-    "request": "launch",
-    "args": ["--extensionDevelopmentPath=${workspaceFolder}/out/development", "--user-data-dir=${workspaceFolder}/.vscode-test/debug-profile"],
+    "type": "node",
+    "request": "attach",
+    "address": "127.0.0.1",
+    "port": 9333,
+    "timeout": 30000,
+    "autoAttachChildProcesses": false,
     "outFiles": ["${workspaceFolder}/out/development/dist/**/*.js"],
-    "preLaunchTask": "npm: build"
+    "preLaunchTask": "Copilot Pace: start debug host"
   }]
 }

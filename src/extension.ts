@@ -4,15 +4,9 @@ import { systemClock, type DayMode } from './domain';
 import { getDemoSource, registerDemoCommands } from './development';
 import { createViewModel, renderHtml, renderHover, hoverCommands, type ViewModel } from './presentation';
 import { QuotaService, type ServiceState } from './service';
-import { GitHubTransport, type SessionProvider } from './transport';
+import { GitHubSessions } from './sessions';
+import { GitHubTransport } from './transport';
 
-class GitHubSessions implements SessionProvider {
-  async get(interactive: boolean) {
-    const session = await vscode.authentication.getSession('github', ['read:user'], interactive
-      ? { createIfNone: true, clearSessionPreference: true } : { silent: true });
-    return session ? { id: session.id, accessToken: session.accessToken } : undefined;
-  }
-}
 export interface TestApi {
   getState(): ServiceState;
   getModel(): ViewModel;
@@ -27,6 +21,7 @@ export interface TestApi {
 class CopilotPace implements vscode.Disposable {
   private readonly subscriptions: vscode.Disposable[] = [];
   private readonly status = vscode.window.createStatusBarItem('copilotPace.status', vscode.StatusBarAlignment.Right, 100.05);
+  private readonly imageDirectory: vscode.Uri;
   private service!: QuotaService;
   private readonly clock = systemClock;
   private demo = false;
@@ -39,6 +34,7 @@ class CopilotPace implements vscode.Disposable {
   private timer?: ReturnType<typeof setTimeout>;
   private disposed = false;
   constructor(context: vscode.ExtensionContext) {
+    this.imageDirectory = vscode.Uri.joinPath(context.extensionUri, 'images');
     this.developmentEnabled = __DEV__ && (context.extensionMode === vscode.ExtensionMode.Development || context.extensionMode === vscode.ExtensionMode.Test);
     this.status.name = 'Copilot Pace';
     this.status.command = 'copilotPace.showDetails';
@@ -67,7 +63,7 @@ class CopilotPace implements vscode.Disposable {
       this.service?.dispose();
       this.sourceKey = key; this.demo = source !== undefined; this.scenario = source?.label ?? '';
       this.service = new QuotaService({
-        sessions: source?.sessions ?? new GitHubSessions(),
+        sessions: source?.sessions ?? new GitHubSessions(vscode.authentication),
         transport: source?.transport ?? new GitHubTransport(vscode.version),
         dataClock: this.clock,
       }, () => this.render());
@@ -89,7 +85,8 @@ class CopilotPace implements vscode.Disposable {
     if (this.disposed) return;
     const configured = vscode.workspace.getConfiguration('copilotPace').get<number>('pollIntervalMinutes', 15);
     const minutes = Number.isFinite(configured) ? Math.min(120, Math.max(5, configured)) : 15;
-    const delay = this.service.nextAllowedAt > Date.now() ? this.service.nextAllowedAt - Date.now() : minutes * 60_000;
+    const now = this.clock.now().getTime();
+    const delay = this.service.nextAllowedAt > now ? this.service.nextAllowedAt - now : minutes * 60_000;
     this.timer = setTimeout(() => { void this.refresh(); }, Math.min(delay, 2_147_483_647));
     this.timer.unref();
   }
@@ -109,10 +106,16 @@ class CopilotPace implements vscode.Disposable {
   }
   private showDetails() {
     if (this.panel) { this.panel.reveal(); this.render(); return; }
-    const panel = vscode.window.createWebviewPanel('copilotPace.details', 'Copilot Pace', vscode.ViewColumn.Beside, { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [] });
+    const iconPath = vscode.Uri.joinPath(this.imageDirectory, 'copilot-pace-ui.svg');
+    const darkIconPath = vscode.Uri.joinPath(this.imageDirectory, 'copilot-pace-ui-dark.svg');
+    const panel = vscode.window.createWebviewPanel('copilotPace.details', 'Copilot Pace', vscode.ViewColumn.Beside, {
+      enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [this.imageDirectory],
+    });
+    panel.iconPath = { light: iconPath, dark: darkIconPath };
     this.panel = panel;
     this.panelReady = false;
-    panel.webview.html = renderHtml(this.model, randomBytes(18).toString('hex'));
+    const webviewIcon = panel.webview.asWebviewUri(iconPath).toString();
+    panel.webview.html = renderHtml(this.model, randomBytes(18).toString('hex'), webviewIcon, panel.webview.cspSource);
     const receiver = panel.webview.onDidReceiveMessage((message: unknown) => { void this.receiveMessage(message); });
     panel.onDidDispose(() => { receiver.dispose(); if (this.panel === panel) { this.panel = undefined; this.panelReady = false; } });
   }

@@ -1,5 +1,5 @@
 import { build, context } from 'esbuild';
-import { readdir, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, readdir, mkdir, readFile, writeFile } from 'node:fs/promises';
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
@@ -12,7 +12,7 @@ if (manifest.contributes.commands.some(item => devCommands.has(item.command)) ||
     Object.keys(development.configuration.properties).some(key => key in manifest.contributes.configuration.properties)) {
   throw new Error('The production manifest must not contribute demo commands or settings.');
 }
-const define = { __DEV__: String(!production) };
+const define = { __DEV__: String(!production), __EXTENSION_VERSION__: JSON.stringify(manifest.version) };
 const options = {
   entryPoints: ['src/extension.ts'], bundle: true, platform: 'node', target: 'es2022', format: 'cjs',
   external: ['vscode'], outfile: production ? 'dist/extension.js' : 'out/development/dist/extension.js',
@@ -34,6 +34,7 @@ if (!production) {
   };
   // The development host gets its own manifest; package.json always describes the release.
   await mkdir('out/development', { recursive: true });
+  await cp('images', 'out/development/images', { recursive: true });
   await writeFile('out/development/package.json', JSON.stringify(devManifest, null, 2) + '\n');
 }
 if (watch) {

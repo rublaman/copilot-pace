@@ -67,7 +67,7 @@ describe('Copilot Pace in the Extension Development Host', () => {
     const tooltip = api.getTooltip(); assert.ok(tooltip instanceof vscode.MarkdownString);
     assert.equal(tooltip.supportThemeIcons, true); assert.equal(tooltip.supportHtml, false);
     assert.deepEqual(tooltip.isTrusted, { enabledCommands: ['copilotPace.showDetails', 'copilotPace.refresh', 'copilotPace.connect', 'copilotPace.demo'] });
-    assert.ok(tooltip.value.includes('| Remaining | **6,000 credits** |'));
+    assert.ok(tooltip.value.includes('Remaining: **6,000 credits**'));
     assert.ok(tooltip.value.includes('**Daily pace**'));
   });
   it('migrates a saved 0.1.0 demo scenario to the English setting', async () => {

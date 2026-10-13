@@ -44,7 +44,7 @@ describe('Presentation and demo scenarios', () => {
     const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', true, 'Demo', 0);
     model.message = '[run](command:evil) <img> | $(warning)\nextra';
     const hover = renderHover(model);
-    assert.ok(hover.includes('Your average')); assert.ok(hover.includes('6,000 credits'));
+    assert.ok(hover.includes('Average:')); assert.ok(hover.includes('6,000 credits'));
     assert.ok(hover.includes('\\[run\\]\\(command:evil\\)'));
     assert.ok(!hover.includes('[run](command:evil)'));
     assert.ok(hover.includes('\\<img\\> \\| \\$\\(warning\\) extra'));
@@ -65,6 +65,13 @@ describe('Presentation and demo scenarios', () => {
     const model = createViewModel({ phase: 'error', snapshot }, demoClock, 'all', false, '', 0);
     assert.equal(model.statusText, '40% · Out of date');
     assert.equal(model.tone, 'neutral');
+  });
+  it('shows retry availability using the injected clock', () => {
+    const retryAt = Date.parse('2001-01-01T00:01:00Z');
+    const model = (time: number) => createViewModel({ phase: 'error' }, { now: () => new Date(time) }, 'all', false, '', retryAt);
+    assert.equal(model(retryAt - 1000).retry, 'Next refresh allowed: Jan 1, 2001, 12:01 AM UTC');
+    assert.equal(model(retryAt).retry, '');
+    assert.equal(model(retryAt + 1000).retry, '');
   });
   it('assigns status tones from projected usage, including an exhausted budget', () => {
     for (const [used, tone] of [[4000, 'good'], [4500, 'watch'], [6000, 'over'], [10000, 'over']] as const) {

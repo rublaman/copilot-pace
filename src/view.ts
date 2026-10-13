@@ -1,9 +1,13 @@
+import { Buffer } from 'node:buffer';
 import { calculatePace, equivalentDays, type Clock, type DayMode } from './domain';
 import type { ServiceState } from './service';
 
-const amount = (value: number) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value);
+const amountFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+const dateFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' });
+const periodFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+const amount = (value: number) => amountFormatter.format(value);
 const percent = (value: number) => `${amount(value)}%`;
-const date = (value: number) => new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(value) + ' UTC';
+const date = (value: number) => dateFormatter.format(value) + ' UTC';
 export interface ViewModel {
   statusText: string; summary: string; message: string; demo: boolean; scenario: string;
   used: string; total: string; percentage: string; renewal: string; dailyAverage: string; projection: string;
@@ -54,39 +58,47 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
     projection: pace?.kind === 'available' ? `${amount(pace.projected)} credits (${percent(pace.projectedPercent)})` : '—',
     cycleProgress: cycleValue !== null ? percent(cycleValue) : '—',
     daysLeft: validCycle ? `${amount(daysLeft)} ${dayMode === 'weekdays' ? 'weekdays' : 'days'} left` : 'Cycle unavailable',
-    period: validCycle ? new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(cycle.start) : 'Current cycle',
+    period: validCycle ? periodFormatter.format(cycle.start) : 'Current cycle',
     usageValue: snapshot?.kind === 'bounded' ? snapshot.usedPercent : null, cycleValue,
     updated: state.updatedAt !== undefined ? date(state.updatedAt) : '—',
     referenceDate: demo ? date(now.getTime()) : '', dayMode, busy: state.phase === 'loading', canConnect: !demo,
-    retry: retryAt > Date.now() ? `Next refresh allowed: ${date(retryAt)}` : '',
+    retry: retryAt > now.getTime() ? `Next refresh allowed: ${date(retryAt)}` : '',
   };
 }
-
 function markdownText(value: string): string {
   return value.replace(/[\\`*_{}[\]()<>#+!|$]/g, '\\$&').replace(/[\r\n]+/g, ' ');
 }
 export const hoverCommands = ['copilotPace.showDetails', 'copilotPace.refresh', 'copilotPace.connect'];
+// The native horizontal rule bleeds to the edges; an image keeps a thin line and an 8px inner gutter.
+const dividerSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="2" viewBox="0 0 500 2"><path d="M8 1H492" stroke="#808080" stroke-opacity=".5"/></svg>';
+const divider = `![](data:image/svg+xml;base64,${Buffer.from(dividerSvg).toString('base64')}|width=500,height=2)`;
 export function renderHover(model: ViewModel): string {
   const text = markdownText;
+  const inset = (value: string) => `\u2002${value}\u2002`;
+  const row = (value: string) => `${inset(value)}  `;
+  // An invisible character keeps the first and last spacer lines when Markdown trims whitespace.
+  const verticalSpace = '\u200b  ';
   const icon = model.tone === 'good' ? 'pass' : model.tone === 'watch' ? 'clock' : model.tone === 'over' ? 'warning' : 'info';
   const lines = [
-    `**Copilot Pace**${__DEV__ && model.demo ? '　·　**DEMO**' : ''}`,
-    '', `$(${icon}) **${text(model.summary)}**`, '', text(model.message), '', '---', '',
-    '| This cycle | |', '| :--- | ---: |',
-    `| Used | **${text(model.used)}** |`, `| Remaining | **${text(model.remaining)}** |`,
-    `| Budget | ${text(model.total)} |`, `| Renewal | ${text(model.renewal)} |`,
-    '', '**Progress**', '', '| Credits used | Cycle elapsed | Time left |', '| :--- | :--- | :--- |',
-    `| **${text(model.percentage)}** | ${text(model.cycleProgress)} | ${text(model.daysLeft)} |`,
-    '', '**Daily pace** · credits', '', '| Rate | Amount |', '| :--- | ---: |',
-    `| Your average | ${text(model.dailyAverage)} |`, `| Available per day | **${text(model.allowance)}** |`,
-    `| Cycle baseline | ${text(model.baseRate)} |`,
-    '', `**Projected at renewal:** ${text(model.projection)}`,
-    '', `*${model.dayMode === 'weekdays' ? 'Mon–Fri' : 'Every day'} · Estimates from this cycle’s total usage.*`,
+    verticalSpace,
+    row(`**Copilot Pace**${__DEV__ && model.demo ? '　·　**DEMO**' : ''}`),
+    '', divider, '', row(`$(${icon}) **${text(model.summary)}**`), '', row(text(model.message)), '', divider, '',
+    row('**This cycle**'), '',
+    row(`Used: **${text(model.used)}**　·　Remaining: **${text(model.remaining)}**`),
+    row(`Budget: ${text(model.total)}　·　Renewal: ${text(model.renewal)}`),
+    '', divider, '', row('**Progress**'), '',
+    row(`Credits used: **${text(model.percentage)}**　·　Cycle elapsed: ${text(model.cycleProgress)}`),
+    row(`Time left: ${text(model.daysLeft)}`),
+    '', divider, '', row(`**Daily pace** · ${model.dayMode === 'weekdays' ? 'Mon–Fri' : 'Every day'}`), '',
+    row(`Average: ${text(model.dailyAverage)}　·　Available: **${text(model.allowance)}**`),
+    row(`Cycle baseline: ${text(model.baseRate)}`),
+    row(`Projected at renewal: **${text(model.projection)}**`),
   ];
-  if (__DEV__ && model.demo) lines.push('', `$(beaker) Simulated data · ${text(model.referenceDate)}`);
-  if (model.retry) lines.push('', text(model.retry));
-  lines.push('', `Updated ${text(model.updated)}`, '', '---', '',
-    '[$(graph) Open details](command:copilotPace.showDetails)　[$(refresh) Refresh](command:copilotPace.refresh)' +
-    (__DEV__ && model.demo ? '　[Change demo](command:copilotPace.demo)' : '　[Connect GitHub](command:copilotPace.connect)'));
+  if (__DEV__ && model.demo) lines.push('', row(`$(beaker) Simulated data · ${text(model.referenceDate)}`));
+  if (model.retry) lines.push('', row(text(model.retry)));
+  lines.push('', divider, '', row(`Updated ${text(model.updated)}`), '',
+    row('[$(graph) Open details](command:copilotPace.showDetails)　[$(refresh) Refresh](command:copilotPace.refresh)' +
+      (__DEV__ && model.demo ? '　[Change demo](command:copilotPace.demo)' : '　[Connect GitHub](command:copilotPace.connect)')),
+    verticalSpace);
   return lines.join('\n');
 }

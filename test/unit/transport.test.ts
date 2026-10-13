@@ -1,8 +1,10 @@
 import * as assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
+import { readFileSync } from 'node:fs';
 import type { ClientRequest, IncomingMessage } from 'node:http';
 import type { RequestOptions } from 'node:https';
-import { GitHubTransport, SafeError } from '../../src/transport';
+import { GitHubTransport, responseError, SafeError } from '../../src/transport';
+import { createViewModel } from '../../src/view';
 
 function engine(status: number, body: string, options: { pending?: boolean; failure?: Error; oversize?: boolean } = {}) {
   let capturedUrl = ''; let capturedOptions: RequestOptions = {};
@@ -31,6 +33,10 @@ describe('Real HTTP adapter with a simulated network engine', () => {
     assert.equal(fake.inspect().url, 'https://api.github.com/copilot_internal/user');
     assert.equal(fake.inspect().options.method, 'GET');
     assert.equal((fake.inspect().options.headers as Record<string, string>).Authorization, 'Bearer test-secret');
+    const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
+    const headers = fake.inspect().options.headers as Record<string, string>;
+    assert.equal(headers['User-Agent'], `Copilot-Pace/${version}`);
+    assert.equal(headers['Editor-Plugin-Version'], `copilot-pace/${version}`);
     assert.equal(fake.inspect().options.agent, undefined); assert.equal(fake.inspect().options.rejectUnauthorized, undefined);
     assert.deepEqual(response.body, { token_based_billing: true });
   });
@@ -60,5 +66,25 @@ describe('Real HTTP adapter with a simulated network engine', () => {
   it('sanitizes certificate and network errors', async () => {
     const fake = engine(200, '{}', { failure: new Error('certificate problem secret-token') });
     await assert.rejects(new GitHubTransport('1.141.0', 10000, fake.factory).request('synthetic', new AbortController().signal), error => error instanceof SafeError && error.code === 'network' && !error.message.includes('secret-token'));
+  });
+});
+
+describe('Rate limit headers', () => {
+  const now = Date.parse('2026-10-16T00:00:00Z');
+  for (const [name, headers] of [
+    ['Retry-After outside the date range', { 'retry-after': '99999999999999' }],
+    ['Retry-After overflowing to infinity', { 'retry-after': '9'.repeat(400) }],
+    ['rate limit reset outside the date range', { 'x-ratelimit-reset': '99999999999999' }],
+    ['invalid headers', { 'retry-after': 'invalid', 'x-ratelimit-reset': 'Infinity' }],
+  ] as const) {
+    it(`falls back safely for ${name}`, () => {
+      const failure = responseError({ status: 429, headers, body: undefined }, now);
+      assert.equal(failure?.retryAt, now + 60_000);
+      assert.doesNotThrow(() => createViewModel({ phase: 'error', failure }, { now: () => new Date(now) }, 'all', false, '', failure!.retryAt!));
+    });
+  }
+  it('uses a valid rate limit reset when Retry-After overflows', () => {
+    const failure = responseError({ status: 429, headers: { 'retry-after': '9'.repeat(400), 'x-ratelimit-reset': String(now / 1000 + 120) }, body: undefined }, now);
+    assert.equal(failure?.retryAt, now + 120_000);
   });
 });
