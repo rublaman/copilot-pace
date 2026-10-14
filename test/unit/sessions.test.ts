@@ -6,8 +6,14 @@ describe('GitHub session options', () => {
   for (const [interactive, forceNewSession, expected] of [
     [false, false, { silent: true }],
     [false, true, { silent: true }],
-    [true, false, { createIfNone: true, clearSessionPreference: true }],
-    [true, true, { forceNewSession: true, clearSessionPreference: true }],
+    [true, false, {
+      createIfNone: { detail: 'Connect GitHub to view your Copilot usage.' },
+      clearSessionPreference: true,
+    }],
+    [true, true, {
+      forceNewSession: { detail: 'Connect GitHub to view your Copilot usage.' },
+      clearSessionPreference: true,
+    }],
   ] as const) {
     it(`uses ${JSON.stringify(expected)} for interactive=${interactive}, forceNewSession=${forceNewSession}`, async () => {
       const sessions = new GitHubSessions({

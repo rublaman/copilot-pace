@@ -37,7 +37,7 @@ describe('Installed production VSIX', () => {
   });
   it('contains no demo adapters, scenarios or demo command identifiers', async () => {
     const bundle = await readFile(vscode.Uri.joinPath(extension.extensionUri, 'dist', 'extension.js').fsPath, 'utf8');
-    for (const marker of ['synthetic-session', 'synthetic-not-a-credential', '10000-comfortable', '3900-on-track', 'copilotPace.demo', 'copilotPace.useGitHub', 'mockScenario', 'Simulated data']) {
+    for (const marker of ['synthetic-session', 'synthetic-not-a-credential', '10000-comfortable', '10000-one-credit', '10000-two-credits', '3900-on-track', 'copilotPace.demo', 'copilotPace.useGitHub', 'mockScenario', 'Simulated data']) {
       assert.ok(!bundle.includes(marker), `Production bundle includes ${marker}`);
     }
   });

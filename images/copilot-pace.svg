@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
-  <rect width="512" height="512" fill="#FFFFFF" />
+  <circle cx="256" cy="256" r="256" fill="#FFFFFF" />
   <title id="title">Copilot Pace</title>
-  <desc id="desc">Monochrome rounded Copilot-inspired head silhouette, two empty visor lenses, and a geometric percent symbol centered below, on a solid white background.</desc>
+  <desc id="desc">Monochrome rounded Copilot-inspired head silhouette, two empty visor lenses, and a geometric percent symbol centered below, on a white circular background with transparent corners.</desc>
   <g transform="translate(24 67) scale(1.03803139)" fill="#21262D">
     <!-- True Bézier-built silhouette with transparent visor openings and face -->
     <path fill-rule="evenodd" d="
