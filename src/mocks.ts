@@ -3,6 +3,8 @@ import { SafeError, type HttpResponse, type HttpTransport, type SessionProvider 
 
 export const scenarioLabels = {
   '10000-comfortable': '10,000 credits · 40% used',
+  '10000-one-credit': '10,000 credits · 1 used (<0.1%)',
+  '10000-two-credits': '10,000 credits · 2 used (<0.1%)',
   '3900-on-track': '3,900 credits · 45% used',
   '3900-over-pace': '3,900 credits · 60% used',
   'budget-3900': 'Before: 1,950 used / 3,900',
@@ -56,7 +58,8 @@ export class MockTransport implements HttpTransport {
     if (this.scenario === 'timeout') throw new SafeError('timeout', 'Request timed out (simulated).');
     if (/^\d{3}$/.test(this.scenario)) return { status: Number(this.scenario), headers: this.scenario === '429' ? { 'retry-after': '60' } : {}, body: undefined };
     const amounts: Partial<Record<MockScenario, [number, number]>> = {
-      '10000-comfortable': [10000, 4000], '3900-on-track': [3900, 1755], '3900-over-pace': [3900, 2340],
+      '10000-comfortable': [10000, 4000], '10000-one-credit': [10000, 1], '10000-two-credits': [10000, 2],
+      '3900-on-track': [3900, 1755], '3900-over-pace': [3900, 2340],
       'budget-3900': [3900, 1950], 'budget-10000': [10000, 1950], exhausted: [3900, 3900],
     };
     const amount = amounts[this.scenario];

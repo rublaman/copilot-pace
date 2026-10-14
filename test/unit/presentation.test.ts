@@ -1,9 +1,27 @@
 import * as assert from 'node:assert/strict';
+import { runInNewContext } from 'node:vm';
 import { normalizeQuota } from '../../src/domain';
 import { boundedFixture, MockSessions, MockTransport, resolveScenario, scenarioLabels } from '../../src/mocks';
 import { demoClock } from '../fixtures';
-import { createViewModel, renderHtml, renderHover, hoverCommands } from '../../src/presentation';
+import { createViewModel, renderHtml, renderHover, hoverCommands, type ViewModel } from '../../src/presentation';
 import { QuotaService } from '../../src/service';
+
+function panelElements(model: ViewModel) {
+  const elements = new Map<string, { textContent: string; attributes: Map<string, string>; setAttribute(key: string, value: string): void; addEventListener(): void }>();
+  const html = renderHtml(model, 'safe-nonce');
+  for (const [, id] of html.matchAll(/id="([\w]+)"/g)) {
+    const attributes = new Map<string, string>();
+    elements.set(id!, { textContent: '', attributes, setAttribute: (key, value) => { attributes.set(key, value); }, addEventListener() {} });
+  }
+  const script = html.match(/<script nonce="safe-nonce">([\s\S]*?)<\/script>/)?.[1];
+  assert.ok(script);
+  runInNewContext(script, {
+    acquireVsCodeApi: () => ({ postMessage() {} }),
+    document: { getElementById: (id: string) => elements.get(id) },
+    window: { addEventListener() {} },
+  });
+  return elements;
+}
 
 describe('Presentation and demo scenarios', () => {
   const snapshot = normalizeQuota(boundedFixture(10000, 4000, demoClock.now()), demoClock.now());
@@ -60,6 +78,41 @@ describe('Presentation and demo scenarios', () => {
     const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', true, 'Demo', 0);
     assert.equal(model.statusText, '40% · Comfortable · Demo'); assert.equal(model.canConnect, false);
     assert.ok(model.referenceDate.includes('2026'));
+  });
+  for (const [used, percentage] of [[0, '0%'], [1, '<0.1%'], [2, '<0.1%'], [4, '<0.1%'], [6, '0.1%'], [10, '0.1%'], [40, '0.4%'], [1234, '12.3%'], [1950, '19.5%'], [10000, '100%']] as const) {
+    for (const source of ['native percentage', 'remaining credits'] as const) {
+      it(`shows ${used}/10000 as ${percentage} from ${source} in the status bar, hover and panel`, () => {
+        const body = boundedFixture(10000, used, demoClock.now()) as { quota_snapshots: { premium_interactions: { percent_remaining?: number } } };
+        if (source === 'remaining credits') delete body.quota_snapshots.premium_interactions.percent_remaining;
+        const snapshot = normalizeQuota(body, demoClock.now());
+        const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0);
+        assert.equal(model.percentage, percentage);
+        if (used > 0) assert.ok(!model.projection.includes('(0%)'));
+        assert.ok(model.statusText.startsWith(`${percentage} · `));
+        assert.ok(renderHover(model).includes(`Credits used: **${percentage.replace('<', '\\<')}**`));
+        const elements = panelElements(model);
+        assert.equal(elements.get('percentage')?.textContent, percentage);
+        assert.equal(elements.get('usageLabel')?.textContent, percentage);
+        assert.equal(elements.get('usageBar')?.attributes.get('aria-valuetext'), percentage.replace('%', ' percent').replace('<', 'Less than '));
+      });
+    }
+  }
+  it('does not round positive usage below the display precision to zero', () => {
+    const snapshot = normalizeQuota(boundedFixture(100000, 1, demoClock.now()), demoClock.now());
+    const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0);
+    assert.equal(model.percentage, '<0.1%');
+    assert.ok(model.projection.includes('(<0.1%)'));
+    assert.ok(model.statusText.startsWith('<0.1% · '));
+    assert.ok(renderHover(model).includes('Credits used: **\\<0.1%**'));
+    assert.ok(renderHtml(model, 'safe-nonce').includes('"percentage":"\\u003c0.1%"'));
+    const elements = panelElements(model);
+    assert.equal(elements.get('percentage')?.textContent, '<0.1%');
+    assert.equal(elements.get('usageBar')?.attributes.get('aria-valuetext'), 'Less than 0.1 percent');
+  });
+  it('explains the GitHub connection without inventing usage', () => {
+    const model = createViewModel({ phase: 'disconnected' }, demoClock, 'all', false, '', 0);
+    assert.equal(model.message, 'Connect GitHub to view your Copilot usage.');
+    assert.equal(model.percentage, '—');
   });
   it('marks the previous snapshot as out of date', () => {
     const model = createViewModel({ phase: 'error', snapshot }, demoClock, 'all', false, '', 0);

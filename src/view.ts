@@ -3,10 +3,14 @@ import { calculatePace, equivalentDays, type Clock, type DayMode } from './domai
 import type { ServiceState } from './service';
 
 const amountFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+const percentFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
 const dateFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' });
 const periodFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const amount = (value: number) => amountFormatter.format(value);
-const percent = (value: number) => `${amount(value)}%`;
+function percent(value: number): string {
+  const formatted = percentFormatter.format(value);
+  return `${value > 0 && formatted === '0' ? '<0.1' : formatted}%`;
+}
 const date = (value: number) => dateFormatter.format(value) + ' UTC';
 export interface ViewModel {
   statusText: string; summary: string; message: string; demo: boolean; scenario: string;
@@ -44,7 +48,7 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
     : pace?.kind === 'pending' ? 'A daily estimate will appear after one full eligible day.'
       : 'A known budget and billing cycle are needed to estimate your pace.';
   const message = state.failure?.message ?? (snapshot?.kind === 'unavailable' ? snapshot.reason
-    : state.phase === 'disconnected' ? 'Connect your GitHub session to see your Copilot usage.' : forecastNote);
+    : state.phase === 'disconnected' ? 'Connect GitHub to view your Copilot usage.' : forecastNote);
   return {
     statusText: `${snapshot?.kind === 'bounded' ? `${percentage} · ` : ''}${summary}${demo ? ' · Demo' : ''}`,
     summary, tone, message, demo, scenario, forecastNote,
@@ -56,7 +60,7 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
     allowance: remaining !== undefined && daysLeft > 0 ? `${amount(remaining / daysLeft)} / day` : '—',
     baseRate: snapshot?.kind === 'bounded' && totalDays > 0 ? `${amount(snapshot.total / totalDays)} / day` : '—',
     projection: pace?.kind === 'available' ? `${amount(pace.projected)} credits (${percent(pace.projectedPercent)})` : '—',
-    cycleProgress: cycleValue !== null ? percent(cycleValue) : '—',
+    cycleProgress: cycleValue !== null ? `${amount(cycleValue)}%` : '—',
     daysLeft: validCycle ? `${amount(daysLeft)} ${dayMode === 'weekdays' ? 'weekdays' : 'days'} left` : 'Cycle unavailable',
     period: validCycle ? periodFormatter.format(cycle.start) : 'Current cycle',
     usageValue: snapshot?.kind === 'bounded' ? snapshot.usedPercent : null, cycleValue,

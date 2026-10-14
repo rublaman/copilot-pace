@@ -28,6 +28,8 @@ The launcher reuses a matching host. Close its window before F5 to load rebuilt 
 
 Run **Copilot Pace: Try Demo Scenarios** in that host. **Copilot Pace: Use GitHub** returns to the real adapter. Demo usage is fixed, but dates and pace labels follow the current UTC calendar. Tests inject fixed clocks for threshold assertions.
 
+The 1-credit and 2-credit demos use a 10,000-credit budget to check that the status bar, hover and detail panel show `<0.1%` instead of rounding positive usage to zero.
+
 Restart watch after changing either manifest. `scripts/development.contributions.json` adds demo contributions to the generated development manifest. Production uses the root manifest, compiles with `__DEV__ = false` and rejects demo modules in esbuild metadata. Never distribute `out/development/`.
 
 ## Validation

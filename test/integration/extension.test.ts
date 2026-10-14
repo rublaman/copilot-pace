@@ -15,14 +15,14 @@ async function scenario(name: MockScenario) {
   await waitFor(() => api.getModel().scenario === scenarioLabels[name] && api.getState().phase !== 'loading');
   await vscode.commands.executeCommand('copilotPace.refresh');
 }
-function assertCurrentPace(percentage: number) {
+function assertCurrentPace(percentage: number, display = `${percentage}%`) {
   const now = new Date();
   const start = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
   const end = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
   const elapsed = now.getTime() - start;
   const projection = percentage * (end - start) / elapsed;
   const summary = elapsed < 86_400_000 ? 'Calculating pace' : projection > 100 ? 'Over pace' : projection >= 90 ? 'On track' : 'Comfortable';
-  assert.equal(api.getStatus().text, `${percentage}% · ${summary} · Demo`);
+  assert.equal(api.getStatus().text, `${display} · ${summary} · Demo`);
   const colors: Record<string, string> = { Comfortable: 'charts.green', 'On track': 'charts.yellow', 'Over pace': 'charts.red' };
   const color = api.getStatus().color;
   assert.equal(color instanceof vscode.ThemeColor ? color.id : color, colors[summary]);
@@ -47,6 +47,17 @@ describe('Copilot Pace in the Extension Development Host', () => {
     assert.equal(api.getStatus().priority, 100.05);
     assertCurrentPace(40);
   });
+  for (const [name, used, percentage] of [['10000-one-credit', 1, 0.01], ['10000-two-credits', 2, 0.02]] as const) {
+    it(`shows <0.1% for ${used} credit(s) out of 10000 before hovering`, async () => {
+      try {
+        await scenario(name);
+        assertCurrentPace(percentage, '<0.1%');
+        assert.equal(api.getModel().percentage, '<0.1%');
+        assert.equal(api.getModel().used, `${used} credits`);
+        assert.ok(api.getTooltip()?.value.includes('Credits used: **\\<0.1%**'));
+      } finally { await scenario('10000-comfortable'); }
+    });
+  }
   it('uses the current UTC date and month in demo mode', () => {
     const now = new Date();
     const snapshot = api.getState().snapshot; assert.ok(snapshot);

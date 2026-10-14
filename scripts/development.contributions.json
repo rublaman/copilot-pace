@@ -25,6 +25,8 @@
         "type": "string",
         "enum": [
           "10000-comfortable",
+          "10000-one-credit",
+          "10000-two-credits",
           "3900-on-track",
           "3900-over-pace",
           "budget-3900",
