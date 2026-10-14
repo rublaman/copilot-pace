@@ -4,10 +4,14 @@ Versions 0.1.x describe local development builds.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-14
+
 - Use the GitHub green for the Connect GitHub button, with theme colors in high contrast modes.
 - Add a short GitHub connection prompt to the panel and VS Code authorization dialog.
 - Show credit usage and projections with up to one decimal place in the status bar, hover and detail panel; show positive usage that would round to zero as less than 0.1%.
 - Use a circular extension icon with transparent corners while preserving the original logo.
+
+Real account and corporate network compatibility remain unverified. This is a pilot release.
 
 ## [0.2.0] - 2026-10-13
 
