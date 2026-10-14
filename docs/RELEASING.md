@@ -4,12 +4,14 @@ This guide defines version preparation, validation and distribution. Read the wo
 
 ## Current state
 
-Reviewed on October 13, 2026:
+Reviewed on October 14, 2026:
 
 - Public repository: `rublaman/copilot-pace`; default branch: `main`. There is no `master` branch.
-- [Copilot Pace 0.2.0](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.0) is published as a GitHub prerelease from `develop`, with `preview: true`. `main` still contains the initial commit.
-- Annotated tag `v0.2.0` identifies commit `55235c5a7e782722f28608420712219035bfc15e`. `main` and `develop` are protected; release tag rulesets are active.
-- [Branch CI](https://github.com/rublaman/copilot-pace/actions/runs/38442128376) and the [first tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/38442715674) passed. The downloaded release VSIX passed all six package tests on Windows / VS Code 1.141.0; an anonymous download matched its SHA-256.
+- [Copilot Pace 0.2.1](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.1) is published as a GitHub prerelease from `develop`, with `preview: true` and without Latest. It includes the connection prompt, low-usage percentage display and circular icon improvements. `main` still contains the initial commit.
+- Annotated tag `v0.2.1` identifies commit `2797c576df5abca77e99c347322bab036ca043ed`. `main` and `develop` are protected; release tag rulesets are active.
+- [Branch CI](https://github.com/rublaman/copilot-pace/actions/runs/38625421615) and the [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/38626040628) passed on that commit. The downloaded release VSIX passed all six automated package tests on Windows 11 / VS Code 1.141.0 in an isolated profile, without rebuilding; an anonymous public download matched its SHA-256.
+- Tested and published file: `copilot-pace-0.2.1.vsix`; SHA-256: `41e2f75db916e120623cf1dfde9cf588fec23c97012888ac57cb3e4ab380ffeb`. The release retains its checksum and build record.
+- The original [0.2.0 pilot](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.0), its annotated tag and its assets remain unchanged.
 - The project uses the MIT license. Real account/network validation and Marketplace publisher access remain unresolved.
 
 Next: validate the pilot with real accounts before preparing `1.0.0` stable. The release notes retain the tested commit, artifact checksum and validation limits. Check GitHub for the current release state.
@@ -61,8 +63,9 @@ Integrate the workflows into `develop` before the pilot. Tag pushes run the work
 - [x] Integrate the MVP and workflows into `develop`; CI passed at `7104271`.
 - [x] Merge the [pilot preparation PR](https://github.com/rublaman/copilot-pace/pull/2), validate its final commit remotely and create the annotated `v0.2.0` tag.
 - [x] Exercise tag-triggered automation, inspect and test the downloaded VSIX, publish the pilot without Latest and verify anonymous downloads.
+- [x] Merge the [0.2.1 preparation PR](https://github.com/rublaman/copilot-pace/pull/5), validate its final commit and tagged artifact, and publish the updated pilot without replacing `0.2.0`.
 - [x] Add the MIT license and align `package.json` and the lockfile. Packaging requires the license; release validation checks that it is tracked.
-- [x] Prepare `0.2.0`, `preview: true` and its dated changelog entry. The workflow derives draft release notes from the changelog; package validation checks README, license, identity and required images.
+- [x] Prepare `0.2.1`, `preview: true` and its dated changelog entry. The workflow derives draft release notes from the changelog; package validation checks README, license, identity and required images.
 - [x] Protect `main` and `develop`: PRs, resolved conversations, current branches and all five CI jobs are required, including for admins. Force pushes/deletion are blocked; merge commits remain allowed. No external approval is required while there is one maintainer.
 - [x] Protect `refs/tags/v*`: the [immutability ruleset](https://github.com/rublaman/copilot-pace/rules/25017697) blocks updates/deletion without bypass, and the [creation ruleset](https://github.com/rublaman/copilot-pace/rules/25017698) permits creation only by `rublaman`.
 - [ ] Before stable/Marketplace publication, complete the real account checks below and confirm publisher access at [Manage Publishers](https://marketplace.visualstudio.com/manage).
