@@ -4,6 +4,13 @@ Versions 0.1.x describe local development builds.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-15
+
+- Categorize the extension as Visualization and AI in the Marketplace.
+- Remove the earlier-pilot replacement section from the main README; migration details remain in the release documentation.
+
+Stable metadata and documentation update with `preview: false`. Runtime source is unchanged from 1.0.0. The final tagged VSIX is validated separately before publication.
+
 ## [1.0.0] - 2026-10-15
 
 - First stable release, retaining the GitHub Copilot credit tracking and pace estimates from the 0.2.3 pilot.

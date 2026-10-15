@@ -53,12 +53,6 @@ These are estimates based on your average so far. They change as your usage chan
 
 Version history and tested release packages are available in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases).
 
-### Replace an earlier pilot
-
-Starting with 0.2.3, the extension ID is `rubenblancomanzano.copilot-pace`, under the publisher **Ruben Blanco Manzano**. Pilots through 0.2.2 used `rublaman.copilot-pace`; VS Code treats the new ID as a separate extension.
-
-If you used a pilot through 0.2.2, uninstall it before installing the current extension, reload VS Code and run **Copilot Pace: Connect GitHub** again. Existing `copilotPace.*` user settings are retained. Version 0.2.3 already uses the current ID and can update to 1.0.0 with the same identity.
-
 ### Choose the right account
 
 Copilot Pace uses VS Code's GitHub authentication. Its authorization and account selection are separate from Copilot's own connection.
