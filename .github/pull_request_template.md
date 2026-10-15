@@ -9,6 +9,7 @@ List the commands run, their results, and any checks still pending. For document
 ## Applicable checks
 
 - [ ] Correct base branch: `develop` for regular changes; `main` for release promotion or hotfixes.
+- [ ] Merge method follows `docs/RELEASING.md`: squash regular PRs into `develop`; use merge commits between `develop` and `main`. Explain any regular-PR exception in the description.
 - [ ] Behavior and security boundaries preserved, with regression coverage where needed.
 - [ ] Documentation updated for changes to development, packaging, or publishing.
 

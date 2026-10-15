@@ -50,6 +50,10 @@ Host profiles live under `.vscode-test`; close leftover test windows before reru
 
 ## CI and branches
 
-Open regular PRs against `develop`. CI checks Node 24.21.0 / 26.11.1 and both VS Code versions, audits dependencies, and uploads `copilot-pace-production-vsix` with its checksum and build record. The same validation is reused for tagged release candidates.
+Open regular PRs from `feature/*`, `fix/*` or `chore/*` against `develop` and use **Squash and merge** by default: one coherent commit per PR. Keep the final PR title and description focused on the resulting change. If independently useful commits need to be preserved, explain the merge-commit exception in the PR. Start follow-up work from the updated `develop` in a new branch after a squash merge.
+
+Use **Create a merge commit** for `develop` → `main` promotions and `main` → `develop` synchronization. The [release guide](docs/RELEASING.md#merge-policy) defines the merge policy.
+
+CI checks Node 24.21.0 / 26.11.1 and both VS Code versions, audits dependencies, and uploads `copilot-pace-production-vsix` with its checksum and build record. The same validation is reused for tagged release candidates.
 
 Pushes to `develop` provide installable test artifacts without creating a release or changing the version. Tagged pilots and stable promotion follow [RELEASING.md](docs/RELEASING.md). CI results apply only to the commit and artifact tested.
