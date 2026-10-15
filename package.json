@@ -7,7 +7,7 @@
   "publisher": "rubenblancomanzano",
   "author": "Ruben Blanco Manzano",
   "private": true,
-  "preview": true,
+  "preview": false,
   "engines": {
     "vscode": "^1.120.0",
     "node": ">=24 <27"
