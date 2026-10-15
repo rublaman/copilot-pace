@@ -9,7 +9,7 @@ import { releaseMetadata } from '../../scripts/release.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const fixtures = path.join(root, '.vscode-test', 'release-fixtures');
 const manifestFor = (version = '0.2.0', preview = true) => ({
-  name: 'copilot-pace', displayName: 'Copilot Pace', publisher: 'rublaman', version, preview,
+  name: 'copilot-pace', displayName: 'Copilot Pace', publisher: 'rubenblancomanzano', version, preview,
   description: 'Release validation fixture.', license: 'MIT', private: true,
   engines: { vscode: '^1.120.0' }, repository: { type: 'git', url: 'https://github.com/rublaman/copilot-pace.git' },
   main: './dist/extension.js', icon: 'images/copilot-pace-128.png', activationEvents: ['onStartupFinished'],

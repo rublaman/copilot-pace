@@ -7,16 +7,17 @@ This guide defines version preparation, validation and distribution. Read the wo
 Reviewed on October 15, 2026:
 
 - Public repository: `rublaman/copilot-pace`; default branch: `main`. There is no `master` branch.
+- Version `0.2.3` is being prepared on `develop` with `preview: true` and the final publisher `rubenblancomanzano`. It changes the extension ID to `rubenblancomanzano.copilot-pace`, records the author as Ruben Blanco Manzano and adds the extension's issue tracker. Publication and validation evidence must be recorded after the candidate completes the workflow below.
 - [Copilot Pace 0.2.2](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.2) is published as a GitHub prerelease from `develop`, with `preview: true` and without Latest. It includes account identity, the Connect / Switch / Reconnect actions, the illustrated README and English Marketplace listing copy. `main` still contains the initial commit.
 - Annotated tag `v0.2.2` identifies commit `1f3e735de2cc19f677d8938630b96145382c2f48`. `main` and `develop` are protected; release tag rulesets are active.
 - [Branch CI](https://github.com/rublaman/copilot-pace/actions/runs/38751703782) and the [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/38752382934) passed on that commit. The downloaded release VSIX passed all six automated package tests on Windows 11 / VS Code 1.141.0 in an isolated profile, without rebuilding; an anonymous public download matched its SHA-256.
 - Tested and published file: `copilot-pace-0.2.2.vsix`; SHA-256: `f26f78d6898f3126a07cb6b6d3af147edbf18150de6c03f0f565d5f7a55e5c8d`. The release retains its checksum and build record.
 - The [0.2.0](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.0) and [0.2.1](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.1) pilots, their annotated tags and their assets remain unchanged. The 0.2.1 release retains its earlier validation record and checksum.
-- The project uses the MIT license. Real account/network validation and Marketplace publication remain pending. Ownership of the Marketplace publisher `CopilotPace` was confirmed in the portal on October 15, 2026; see [MARKETPLACE.md](MARKETPLACE.md) for the intended public name and the remaining identity setup.
+- The project uses the MIT license. Real account/network validation and Marketplace publication remain pending. The maintainer created and selected the personal Marketplace publisher `rubenblancomanzano` on October 15, 2026; see [MARKETPLACE.md](MARKETPLACE.md) for the public profile setup. The unused `CopilotPace` publisher can remain.
 
 Next: validate the pilot with real accounts before preparing `1.0.0` stable. The release notes retain the tested commit, artifact checksum and validation limits. Check GitHub for the current release state.
 
-The published `0.2.2` pilot retains the existing `rublaman.copilot-pace` identity for GitHub pilot continuity. Migration to the confirmed Marketplace publisher is a separate pending change. The public publisher name is configured independently from the technical ID; see [MARKETPLACE.md](MARKETPLACE.md).
+Pilots through `0.2.2` retain the `rublaman.copilot-pace` identity and their original assets. Starting with `0.2.3`, the identity is `rubenblancomanzano.copilot-pace`. VS Code treats it as a separate extension: uninstall the earlier pilot, install the new VSIX, reload and reconnect GitHub. Existing `copilotPace.*` user settings remain. Use this same publisher for `1.0.0` so later releases share the new identity. The public publisher name is configured independently from the technical ID; see [MARKETPLACE.md](MARKETPLACE.md).
 
 ## Branches and channels
 
@@ -81,8 +82,9 @@ Integrate the workflows into `develop` before the pilot. Tag pushes run the work
 - [x] Prepare `0.2.1`, `preview: true` and its dated changelog entry. The workflow derives draft release notes from the changelog; package validation checks README, license, identity and required images.
 - [x] Protect `main` and `develop`: PRs, resolved conversations, current branches and all five CI jobs are required, including for admins. Force pushes/deletion are blocked; merge commits remain allowed. No external approval is required while there is one maintainer.
 - [x] Protect `refs/tags/v*`: the [immutability ruleset](https://github.com/rublaman/copilot-pace/rules/25017697) blocks updates/deletion without bypass, and the [creation ruleset](https://github.com/rublaman/copilot-pace/rules/25017698) permits creation only by `rublaman`.
-- [x] Confirm owner access to the Marketplace publisher `CopilotPace` at [Manage Publishers](https://marketplace.visualstudio.com/manage/publishers/CopilotPace).
-- [ ] Before stable/Marketplace publication, complete the real account checks below, align the extension identity with `CopilotPace`, and finish publisher profile and publication setup.
+- [x] Select the personal Marketplace publisher `rubenblancomanzano`, created by the maintainer at [Manage Publishers](https://marketplace.visualstudio.com/manage/publishers/rubenblancomanzano), and align the 0.2.3 manifest, release workflow and tests with it.
+- [ ] Validate the merged and tagged 0.2.3 candidate, test replacing the old identity and publish the GitHub pilot with its checksum.
+- [ ] Before stable/Marketplace publication, complete the real account checks below and finish publisher profile and publication setup. Prepare `1.0.0` with `preview: false` through a PR, promote `develop` to `main` with a merge commit, validate the final SHA/VSIX and publish that same tested file. Synchronize `main` back into `develop` with a merge commit afterward.
 
 ## Create and review a candidate
 
@@ -119,7 +121,7 @@ An explicitly labeled pilot may leave corporate validation pending. Stable publi
 1. Install the identified VSIX in a clean profile. Check connect, refresh, hover, details, light/dark themes and Every day / Mon–Fri.
 2. Compare used credits, budget, percentage and renewal with Copilot for the intended account. Test proxy/certificate behavior without disabling TLS.
 3. Check disconnect/reconnect, cancelled login and stale data after a failure. With multiple GitHub.com accounts, verify that the hover and panel identify the selected account, the Switch action changes the displayed quota without changing Copilot's own account, and previous data disappears when the account changes. Use fixtures for 429 and special quotas rather than provoking service limits.
-4. Test an update from the pilot, including legacy settings; production must never enable demos.
+4. Test an update from the pilot, including legacy settings; production must never enable demos. For the publisher transition, first uninstall `rublaman.copilot-pace` and install `rubenblancomanzano.copilot-pace` in the same isolated profile. Check settings retention and reconnect; do not leave both identities active. Subsequent updates, including `0.2.3` to `1.0.0`, must keep the new identity.
 5. Record version, SHA, hash, editor/OS, date and results in the release notes. Use anonymized screenshots without tokens, complete responses or account identifiers.
 
 Synthetic tests cover processing and integration; the internal `copilot_internal/user` endpoint remains unsupported as a public contract.
@@ -128,7 +130,7 @@ Synthetic tests cover processing and integration; the internal `copilot_internal
 
 English listing copy is maintained in [MARKETPLACE.md](MARKETPLACE.md). The root README supplies the full overview, with the existing brand banner and [documented UI screenshots](images/README.md). Commit and push all referenced assets before packaging a publication candidate so the rewritten image URLs resolve to that commit.
 
-Marketplace automation remains pending. Owner access to `CopilotPace` is confirmed, but the current manifest, release workflow and tests still use `rublaman.copilot-pace`. Align those references and validate the identity transition before publishing there. The intended public publisher name is **Ruben Blanco Manzano**; configure it in the publisher's **Details → Name** field while retaining the `CopilotPace` ID. Use an environment with restricted publishing permissions and verify the current [secure publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace) before implementing automation.
+Marketplace automation remains pending. The selected publisher is `rubenblancomanzano`, and the manifest, release workflow and tests now use `rubenblancomanzano.copilot-pace`. The intended public publisher name is **Ruben Blanco Manzano**; configure it in the publisher's **Details → Name** field while retaining that ID. Keep the publisher profile suitable for multiple extensions; the extension manifest owns Copilot Pace's repository and issue links. The 0.2.3 release is a GitHub pilot, not a Marketplace publication or a declaration that 1.0.0 is ready. Use an environment with restricted publishing permissions and verify the current [secure publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace) before implementing automation.
 
 Publish the same VSIX from the reviewed GitHub Release, through the publisher portal or `vsce publish --azure-credential --packagePath <tested.vsix>` with configured credentials. Verify the listing and an install/update before recording success. Do not rebuild or use `--skip-duplicate` to hide an existing version.
 

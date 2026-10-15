@@ -81,7 +81,7 @@ jobs:
           $preview = $env:RELEASE_PRERELEASE -eq 'true'
           if ($info.sha -cne $env:RELEASE_SHA -or $info.dirty -ne $false -or
               $info.version -cne $env:RELEASE_VERSION -or $info.preview -ne $preview -or
-              $info.name -cne 'copilot-pace' -or $info.publisher -cne 'rublaman' -or
+              $info.name -cne 'copilot-pace' -or $info.publisher -cne 'rubenblancomanzano' -or
               $info.file -cne $expectedFile) { throw 'Artifact provenance differs from the candidate.' }
           $vsix = Join-Path 'candidate' $expectedFile
           if (@(Get-ChildItem candidate -Filter '*.vsix').Count -ne 1) { throw 'Expected exactly one VSIX.' }

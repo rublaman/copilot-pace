@@ -62,6 +62,12 @@ code --install-extension .\copilot-pace-<version>.vsix
 
 Replace `<version>` with the version in the downloaded filename.
 
+### Replace an earlier pilot
+
+Starting with 0.2.3, the extension ID is `rubenblancomanzano.copilot-pace`, under the publisher **Ruben Blanco Manzano**. Pilots through 0.2.2 used `rublaman.copilot-pace`; VS Code treats the new ID as a separate extension.
+
+Uninstall the earlier pilot before installing 0.2.3 or later, reload VS Code and run **Copilot Pace: Connect GitHub** again. Existing `copilotPace.*` user settings are retained. The GitHub repository and issue tracker are unchanged.
+
 ### Choose the right account
 
 Copilot Pace uses VS Code's GitHub authentication. Its authorization and account selection are separate from Copilot's own connection.
