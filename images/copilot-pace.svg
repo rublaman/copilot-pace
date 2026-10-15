@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <circle cx="256" cy="256" r="256" fill="#FFFFFF" />
+  <title id="title">Copilot Pace</title>
+  <desc id="desc">Monochrome rounded Copilot-inspired head silhouette, two empty visor lenses, and a geometric percent symbol centered below, on a white circular background with transparent corners.</desc>
+  <g transform="translate(24 67) scale(1.03803139)" fill="#21262D">
+    <!-- True Bézier-built silhouette with transparent visor openings and face -->
+    <path fill-rule="evenodd" d="
+      M 223,0
+      C 180,0 139,13 107,38
+      C 72,53 57,79 58,111
+      L 58,136
+      C 53,145 50,154 48,161
+      C 19,173 0,193 0,213
+      L 0,262
+      C 0,279 43,308 75,327
+      C 120,353 169,363 223,363
+      C 277,363 326,353 371,327
+      C 403,308 446,279 446,262
+      L 446,213
+      C 446,193 427,173 398,161
+      C 396,154 392,145 388,136
+      L 388,111
+      C 389,79 374,53 339,38
+      C 307,13 266,0 223,0 Z
+
+      M 155,57
+      C 131,57 112,63 101,73
+      C 86,87 85,105 85,120
+      C 85,143 88,159 103,167
+      C 117,176 151,177 167,171
+      C 191,165 204,139 207,112
+      C 210,89 207,74 196,65
+      C 187,59 173,57 155,57 Z
+
+      M 291,57
+      C 315,57 334,63 345,73
+      C 360,87 361,105 361,120
+      C 361,143 358,159 343,167
+      C 329,176 295,177 279,171
+      C 255,165 242,139 239,112
+      C 236,89 239,74 250,65
+      C 259,59 273,57 291,57 Z
+
+      M 72,175
+      C 91,194 114,200 148,199
+      C 184,199 206,185 219,164
+      C 221,161 225,161 227,164
+      C 240,185 262,199 298,199
+      C 332,200 355,194 374,175
+      L 374,288
+      C 374,298 350,308 328,318
+      C 297,332 262,337 223,337
+      C 184,337 149,332 118,318
+      C 96,308 72,298 72,288 Z
+    "/>
+    <!-- Solid, mathematically precise percent symbol -->
+    <circle cx="181" cy="239" r="25" />
+    <path d="M 188,305 L 266,227" fill="none" stroke="#21262D" stroke-width="27" stroke-linecap="round"/>
+    <circle cx="270" cy="295" r="25" />
+  </g>
+</svg>
