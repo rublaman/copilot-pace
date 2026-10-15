@@ -1,6 +1,19 @@
 # Validation
 
-**Synthetic tests passed in prior local builds; real account and corporate network validation is pending.**
+**The maintainer confirmed real-account acceptance of 0.2.3 on October 15, 2026. The unchanged runtime was promoted to 1.0.0, whose final downloaded VSIX passed separate automated validation. Corporate network validation remains outside that confirmation.**
+
+## Stable 1.0.0: October 15, 2026
+
+- Release: [v1.0.0](https://github.com/rublaman/copilot-pace/releases/tag/v1.0.0), stable with Latest and `preview: false`.
+- Commit: `9248a36bf329f11e12a18cfe1d9786c639accf85`, on `main` after a merge-commit promotion from `develop`.
+- Evidence: [main CI](https://github.com/rublaman/copilot-pace/actions/runs/38777435380), [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/38778032170), and the release's `build-info.json` / `SHA256SUMS.txt`.
+- Local preflight: Windows 11, standalone Node 26.11.1 / npm 11.20.0; lint/types, 133 unit/service tests, 8 release-script tests, 16 integration tests each on VS Code 1.120.0 / 1.141.0, and 6 installed-package tests passed. `npm audit` reported zero vulnerabilities.
+- Final file: `copilot-pace-1.0.0.vsix`; SHA-256 `6bc0c7f1d76a69ab58c9e07935f811b4ba58733359e1cb14e401e9c4239bfb4d`.
+- Downloaded artifact: all 6 installed-package tests passed on Windows 11 / VS Code 1.141.0 without rebuilding. Package identity, stable flag, content boundaries, demo exclusion and five commit-pinned README images were verified.
+- Upgrade: installing the published 0.2.3 VSIX and then the final 1.0.0 VSIX in the same isolated profile retained the calendar and polling settings. The active extension list contained only `rubenblancomanzano.copilot-pace@1.0.0` for Copilot Pace.
+- Publication: the release attachments matched the tested Actions files byte for byte; a subsequent anonymous public VSIX download matched the tested checksum.
+
+The maintainer's manual confirmation covers GitHub connection, quota and renewal comparison, refresh, details, calendar modes, light/dark themes and data after restarting VS Code on 0.2.3. See the [acceptance record and its limits](RELEASING.md#maintainer-acceptance-023). Final-artifact automation does not imply a new real-account test. Marketplace upload, store installation verification and the subsequent branch synchronization remain pending.
 
 ## Historical local records
 
