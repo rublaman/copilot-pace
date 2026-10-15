@@ -47,7 +47,8 @@ Copilot Pace is a VS Code extension that displays GitHub Copilot credits and an 
 
 ## Release workflow
 
-- Regular changes: `feature/*` → PR to `develop`. Stable promotion: PR from `develop` to `main` using a merge commit; then synchronize `main` back into `develop`.
+- Regular changes: `feature/*`, `fix/*` or `chore/*` → PR to `develop` using **Squash and merge** by default, keeping one coherent commit per PR. Use the final PR title and description to describe the resulting change. A merge commit is an exception when independently useful commits need to be preserved; explain the reason in the PR.
+- Stable promotion: PR from `develop` to `main` using a merge commit; synchronize `main` back into `develop` through a PR with a merge commit. Preserve the shared history between these permanent branches; do not squash or rebase those PRs.
 - `develop` integrates changes and supports pilots through VSIX/GitHub prereleases. `main` contains stable versions. This workflow has no `master` branch.
 - Pilot `0.2.1` is published as a GitHub prerelease; the original `0.2.0` remains unchanged. Real account validation and `1.0.0` stable remain pending. Always check the actual manifest, tags and release state.
 - Use SemVer and annotated `vMAJOR.MINOR.PATCH` tags. The tag, manifest, lockfile and manifest inside the VSIX must agree. Create the tag on the validated SHA of the release branch, after merging.

@@ -22,7 +22,7 @@ Local test preparation on October 15, 2026: `feature/github-account-selection` u
 
 | Work | Branch / event | Result |
 | --- | --- | --- |
-| Regular changes | `feature/*`, `fix/*` or `chore/*` → PR to `develop` | CI and reviewed changes |
+| Regular changes | `feature/*`, `fix/*` or `chore/*` → PR to `develop`, squash by default | One coherent commit per PR, with CI and reviewed changes |
 | Test builds | Push to `develop` | Tested production VSIX in Actions artifacts |
 | Pilot / beta | Annotated `vX.Y.Z` on `develop`, `preview: true` | Draft GitHub prerelease with tested VSIX |
 | Stable | PR `develop` → `main` with a merge commit; annotated tag, `preview: false` | Draft stable GitHub Release |
@@ -31,6 +31,16 @@ Local test preparation on October 15, 2026: `feature/github-account-selection` u
 After stable promotion, synchronize `main` → `develop` through a PR with a merge commit. Avoid squash/rebase for promotions between these permanent branches. A separate release branch is unnecessary until a candidate needs to be frozen while development continues.
 
 All VSIX artifacts are production builds. Demos belong to the development host, including when a VSIX comes from `develop`.
+
+### Merge policy
+
+Use **Squash and merge** by default for regular PRs from `feature/*`, `fix/*` or `chore/*` into `develop`. One PR should produce one coherent commit describing the final change, rather than retaining each development adjustment in `develop`. Use the final PR title as the squash commit subject and summarize the resulting behavior and relevant validation in its body.
+
+A merge commit is an exception when the PR contains independently useful commits whose history needs to be preserved. Explain the reason in the PR. After a squash merge, start follow-up work from the updated `develop` in a new branch.
+
+Use **Create a merge commit** for `develop` → `main` promotions and `main` → `develop` synchronization. These permanent branches need their shared ancestry preserved; do not squash or rebase those PRs.
+
+Keep both squash and merge commits available in GitHub so each flow can use its intended method. This policy is a contributor and agent convention; documenting it does not configure automatic enforcement or change repository settings.
 
 ### Version policy
 
