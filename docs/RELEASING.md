@@ -7,16 +7,16 @@ This guide defines version preparation, validation and distribution. Read the wo
 Reviewed on October 15, 2026:
 
 - Public repository: `rublaman/copilot-pace`; default branch: `main`. There is no `master` branch.
-- [Copilot Pace 0.2.1](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.1) is published as a GitHub prerelease from `develop`, with `preview: true` and without Latest. It includes the connection prompt, low-usage percentage display and circular icon improvements. `main` still contains the initial commit.
-- Annotated tag `v0.2.1` identifies commit `2797c576df5abca77e99c347322bab036ca043ed`. `main` and `develop` are protected; release tag rulesets are active.
-- [Branch CI](https://github.com/rublaman/copilot-pace/actions/runs/38625421615) and the [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/38626040628) passed on that commit. The downloaded release VSIX passed all six automated package tests on Windows 11 / VS Code 1.141.0 in an isolated profile, without rebuilding; an anonymous public download matched its SHA-256.
-- Tested and published file: `copilot-pace-0.2.1.vsix`; SHA-256: `41e2f75db916e120623cf1dfde9cf588fec23c97012888ac57cb3e4ab380ffeb`. The release retains its checksum and build record.
-- The original [0.2.0 pilot](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.0), its annotated tag and its assets remain unchanged.
+- [Copilot Pace 0.2.2](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.2) is published as a GitHub prerelease from `develop`, with `preview: true` and without Latest. It includes account identity, the Connect / Switch / Reconnect actions, the illustrated README and English Marketplace listing copy. `main` still contains the initial commit.
+- Annotated tag `v0.2.2` identifies commit `1f3e735de2cc19f677d8938630b96145382c2f48`. `main` and `develop` are protected; release tag rulesets are active.
+- [Branch CI](https://github.com/rublaman/copilot-pace/actions/runs/38751703782) and the [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/38752382934) passed on that commit. The downloaded release VSIX passed all six automated package tests on Windows 11 / VS Code 1.141.0 in an isolated profile, without rebuilding; an anonymous public download matched its SHA-256.
+- Tested and published file: `copilot-pace-0.2.2.vsix`; SHA-256: `f26f78d6898f3126a07cb6b6d3af147edbf18150de6c03f0f565d5f7a55e5c8d`. The release retains its checksum and build record.
+- The [0.2.0](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.0) and [0.2.1](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.1) pilots, their annotated tags and their assets remain unchanged. The 0.2.1 release retains its earlier validation record and checksum.
 - The project uses the MIT license. Real account/network validation and Marketplace publication remain pending. Ownership of the Marketplace publisher `CopilotPace` was confirmed in the portal on October 15, 2026; see [MARKETPLACE.md](MARKETPLACE.md) for the intended public name and the remaining identity setup.
 
 Next: validate the pilot with real accounts before preparing `1.0.0` stable. The release notes retain the tested commit, artifact checksum and validation limits. Check GitHub for the current release state.
 
-The `0.2.2` pilot candidate uses `preview: true` and includes account identity, the Connect / Switch / Reconnect actions, the illustrated README and English Marketplace listing copy. These changes are integrated into `develop`; [CI passed at `56828e5`](https://github.com/rublaman/copilot-pace/actions/runs/38748857521). The candidate still needs final release validation, an annotated tag and publication. The manifest retains the existing `rublaman.copilot-pace` identity for GitHub pilot continuity; migration to the confirmed Marketplace publisher is a separate pending change.
+The published `0.2.2` pilot retains the existing `rublaman.copilot-pace` identity for GitHub pilot continuity. Migration to the confirmed Marketplace publisher is a separate pending change. The public publisher name is configured independently from the technical ID; see [MARKETPLACE.md](MARKETPLACE.md).
 
 ## Branches and channels
 
@@ -76,6 +76,7 @@ Integrate the workflows into `develop` before the pilot. Tag pushes run the work
 - [x] Merge the [pilot preparation PR](https://github.com/rublaman/copilot-pace/pull/2), validate its final commit remotely and create the annotated `v0.2.0` tag.
 - [x] Exercise tag-triggered automation, inspect and test the downloaded VSIX, publish the pilot without Latest and verify anonymous downloads.
 - [x] Merge the [0.2.1 preparation PR](https://github.com/rublaman/copilot-pace/pull/5), validate its final commit and tagged artifact, and publish the updated pilot without replacing `0.2.0`.
+- [x] Merge the [0.2.2 preparation PR](https://github.com/rublaman/copilot-pace/pull/10), validate the merged and tagged commit, test the downloaded VSIX without rebuilding, and publish the pilot with a matching anonymous download checksum.
 - [x] Add the MIT license and align `package.json` and the lockfile. Packaging requires the license; release validation checks that it is tracked.
 - [x] Prepare `0.2.1`, `preview: true` and its dated changelog entry. The workflow derives draft release notes from the changelog; package validation checks README, license, identity and required images.
 - [x] Protect `main` and `develop`: PRs, resolved conversations, current branches and all five CI jobs are required, including for admins. Force pushes/deletion are blocked; merge commits remain allowed. No external approval is required while there is one maintainer.
