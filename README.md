@@ -6,7 +6,7 @@
 
 Track GitHub Copilot credits from your VS Code status bar. See what you have used, what remains, and where your current daily pace could take you by renewal.
 
-**Preview · GitHub.com · Desktop VS Code 1.120+**
+**GitHub.com · Desktop VS Code 1.120+**
 
 [Get started](#get-started) · [Commands](#commands) · [Settings](#settings) · [Report an issue](https://github.com/rublaman/copilot-pace/issues)
 
@@ -47,26 +47,17 @@ These are estimates based on your average so far. They change as your usage chan
 
 ## Get started
 
-Copilot Pace is currently distributed through [GitHub pilot releases](https://github.com/rublaman/copilot-pace/releases). Marketplace publication is pending. This README describes the current development version; check a pilot's release notes for the features included in that download.
+1. In VS Code, open **Extensions** (`Ctrl+Shift+X`) and search for **Copilot Pace** by **Ruben Blanco Manzano**. Select **Install**.
+2. Open the Command Palette (`Ctrl+Shift+P`) and run **Copilot Pace: Connect GitHub**. Authorize access through VS Code and select the account with Copilot.
+3. Find Copilot Pace on the right side of the status bar. Hover for a summary or click for details.
 
-1. Download the `.vsix` attached to the pilot release you want to try.
-2. In VS Code, open **Extensions**, choose **… → Install from VSIX…**, and select the file. Reload an open editor after upgrading.
-3. Open the Command Palette (`Ctrl+Shift+P`) and run **Copilot Pace: Connect GitHub**. Authorize access through VS Code.
-4. Find Copilot Pace on the right side of the status bar. Hover for a summary or click for details.
-
-You can also install a downloaded package from a terminal:
-
-```powershell
-code --install-extension .\copilot-pace-<version>.vsix
-```
-
-Replace `<version>` with the version in the downloaded filename.
+Version history and tested release packages are available in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases).
 
 ### Replace an earlier pilot
 
 Starting with 0.2.3, the extension ID is `rubenblancomanzano.copilot-pace`, under the publisher **Ruben Blanco Manzano**. Pilots through 0.2.2 used `rublaman.copilot-pace`; VS Code treats the new ID as a separate extension.
 
-Uninstall the earlier pilot before installing 0.2.3 or later, reload VS Code and run **Copilot Pace: Connect GitHub** again. Existing `copilotPace.*` user settings are retained. The GitHub repository and issue tracker are unchanged.
+If you used a pilot through 0.2.2, uninstall it before installing the current extension, reload VS Code and run **Copilot Pace: Connect GitHub** again. Existing `copilotPace.*` user settings are retained. Version 0.2.3 already uses the current ID and can update to 1.0.0 with the same identity.
 
 ### Choose the right account
 
@@ -123,11 +114,11 @@ Search for **Copilot Pace** in VS Code Settings, or edit these application-level
 - Usage requests go directly to GitHub over HTTPS with TLS verification.
 - The extension does not read workspace files or conversations, send telemetry, or log tokens or complete response bodies.
 
-## Preview status and compatibility
+## Compatibility
 
-The current target is **GitHub.com on desktop VS Code for Windows**. Real account and corporate network validation is still pending. GitHub Enterprise Server, GHE.com and browser-based VS Code are unsupported.
+The supported target is **GitHub.com on desktop VS Code for Windows**. The maintainer has validated the 0.2.3 pilot with a real Copilot account, including connection, quota comparison, refresh, details, calendar modes, light/dark themes and persistence after restarting VS Code. Version 1.0.0 retains that runtime behavior.
 
-Copilot Pace uses an internal GitHub endpoint that may change. Automated checks use synthetic data and do not establish compatibility with an individual plan, account or corporate proxy. Proxy and certificate behavior must be checked in the target environment.
+Copilot Pace uses an internal GitHub endpoint that may change. Validation of one account does not establish compatibility with every plan, multiple-account setup or corporate proxy. Corporate network and certificate configurations require validation in the target environment. GitHub Enterprise Server, GHE.com and browser-based VS Code are unsupported.
 
 Daily history, individual sessions and usage by model are unavailable.
 
