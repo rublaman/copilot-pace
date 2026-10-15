@@ -2,6 +2,17 @@
 
 English listing copy for the current development version. Publication and real account validation remain pending; this document does not announce a Marketplace release.
 
+## Publisher setup
+
+Owner access to the existing publisher ID `CopilotPace` was confirmed in the Marketplace portal on October 15, 2026. The requested public publisher name is **Ruben Blanco Manzano**. This is separate from the extension's display name, **Copilot Pace**.
+
+1. Open the publisher's [management page](https://marketplace.visualstudio.com/manage/publishers/CopilotPace) and select **Details**.
+2. Set **Name** to **Ruben Blanco Manzano** and save. Keep the existing, immutable **ID** `CopilotPace`.
+3. Before preparing a Marketplace package, change `package.json`'s `publisher` to `CopilotPace` and update the identity references in the release workflow and tests. The current GitHub pilots retain `rublaman.copilot-pace`; changing the publisher gives the Marketplace package a different extension identity, so test the transition explicitly.
+4. Complete real account acceptance and prepare the validated release described in [RELEASING.md](RELEASING.md), then upload that same tested VSIX through **New extension → Visual Studio Code**.
+
+The name change has not been applied by this release preparation. GitHub repository ownership and source URLs remain `rublaman/copilot-pace`.
+
 ## Display name
 
 Copilot Pace

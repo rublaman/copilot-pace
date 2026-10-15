@@ -4,7 +4,7 @@ This guide defines version preparation, validation and distribution. Read the wo
 
 ## Current state
 
-Reviewed on October 14, 2026:
+Reviewed on October 15, 2026:
 
 - Public repository: `rublaman/copilot-pace`; default branch: `main`. There is no `master` branch.
 - [Copilot Pace 0.2.1](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.1) is published as a GitHub prerelease from `develop`, with `preview: true` and without Latest. It includes the connection prompt, low-usage percentage display and circular icon improvements. `main` still contains the initial commit.
@@ -12,11 +12,11 @@ Reviewed on October 14, 2026:
 - [Branch CI](https://github.com/rublaman/copilot-pace/actions/runs/38625421615) and the [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/38626040628) passed on that commit. The downloaded release VSIX passed all six automated package tests on Windows 11 / VS Code 1.141.0 in an isolated profile, without rebuilding; an anonymous public download matched its SHA-256.
 - Tested and published file: `copilot-pace-0.2.1.vsix`; SHA-256: `41e2f75db916e120623cf1dfde9cf588fec23c97012888ac57cb3e4ab380ffeb`. The release retains its checksum and build record.
 - The original [0.2.0 pilot](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.0), its annotated tag and its assets remain unchanged.
-- The project uses the MIT license. Real account/network validation and Marketplace publisher access remain unresolved.
+- The project uses the MIT license. Real account/network validation and Marketplace publication remain pending. Ownership of the Marketplace publisher `CopilotPace` was confirmed in the portal on October 15, 2026; see [MARKETPLACE.md](MARKETPLACE.md) for the intended public name and the remaining identity setup.
 
 Next: validate the pilot with real accounts before preparing `1.0.0` stable. The release notes retain the tested commit, artifact checksum and validation limits. Check GitHub for the current release state.
 
-Local test preparation on October 15, 2026: `feature/github-account-selection` uses `0.2.2` with `preview: true` to test account identity and the Connect / Switch / Reconnect actions. Its local VSIX does not update the published pilot. Integration into `develop`, remote CI and real account validation remain pending for these changes.
+The `0.2.2` pilot candidate uses `preview: true` and includes account identity, the Connect / Switch / Reconnect actions, the illustrated README and English Marketplace listing copy. These changes are integrated into `develop`; [CI passed at `56828e5`](https://github.com/rublaman/copilot-pace/actions/runs/38748857521). The candidate still needs final release validation, an annotated tag and publication. The manifest retains the existing `rublaman.copilot-pace` identity for GitHub pilot continuity; migration to the confirmed Marketplace publisher is a separate pending change.
 
 ## Branches and channels
 
@@ -80,7 +80,8 @@ Integrate the workflows into `develop` before the pilot. Tag pushes run the work
 - [x] Prepare `0.2.1`, `preview: true` and its dated changelog entry. The workflow derives draft release notes from the changelog; package validation checks README, license, identity and required images.
 - [x] Protect `main` and `develop`: PRs, resolved conversations, current branches and all five CI jobs are required, including for admins. Force pushes/deletion are blocked; merge commits remain allowed. No external approval is required while there is one maintainer.
 - [x] Protect `refs/tags/v*`: the [immutability ruleset](https://github.com/rublaman/copilot-pace/rules/25017697) blocks updates/deletion without bypass, and the [creation ruleset](https://github.com/rublaman/copilot-pace/rules/25017698) permits creation only by `rublaman`.
-- [ ] Before stable/Marketplace publication, complete the real account checks below and confirm publisher access at [Manage Publishers](https://marketplace.visualstudio.com/manage).
+- [x] Confirm owner access to the Marketplace publisher `CopilotPace` at [Manage Publishers](https://marketplace.visualstudio.com/manage/publishers/CopilotPace).
+- [ ] Before stable/Marketplace publication, complete the real account checks below, align the extension identity with `CopilotPace`, and finish publisher profile and publication setup.
 
 ## Create and review a candidate
 
@@ -126,7 +127,7 @@ Synthetic tests cover processing and integration; the internal `copilot_internal
 
 English listing copy is maintained in [MARKETPLACE.md](MARKETPLACE.md). The root README supplies the full overview, with the existing brand banner and [documented UI screenshots](images/README.md). Commit and push all referenced assets before packaging a publication candidate so the rewritten image URLs resolve to that commit.
 
-Marketplace automation remains pending until publisher ownership and authentication are resolved. Use an environment with restricted publishing permissions and verify the current [secure publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace) before implementing it.
+Marketplace automation remains pending. Owner access to `CopilotPace` is confirmed, but the current manifest, release workflow and tests still use `rublaman.copilot-pace`. Align those references and validate the identity transition before publishing there. The intended public publisher name is **Ruben Blanco Manzano**; configure it in the publisher's **Details → Name** field while retaining the `CopilotPace` ID. Use an environment with restricted publishing permissions and verify the current [secure publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace) before implementing automation.
 
 Publish the same VSIX from the reviewed GitHub Release, through the publisher portal or `vsce publish --azure-credential --packagePath <tested.vsix>` with configured credentials. Verify the listing and an install/update before recording success. Do not rebuild or use `--skip-duplicate` to hide an existing version.
 
