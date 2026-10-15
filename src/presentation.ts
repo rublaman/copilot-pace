@@ -19,11 +19,11 @@ body.vscode-high-contrast #connect,body.vscode-high-contrast-light #connect{colo
 <div class="hero"><div class="hero-top"><span id="period" class="muted"></span><span id="summary" class="status"></span></div><div class="usage"><strong id="percentage"></strong><span>of budget used</span></div><p class="used-of"><span id="used"></span> / <span id="total"></span></p><div class="remaining"><span class="muted">Remaining this cycle</span><strong id="remaining"></strong></div><p id="message" class="muted" role="status" aria-live="polite"></p></div>
 <section aria-labelledby="progressHeading"><div class="section-head"><h2 id="progressHeading">Cycle progress</h2><span id="daysLeft"></span></div><div class="progress-row"><label for="usageBar">Credits used</label><progress id="usageBar" max="100"></progress><strong id="usageLabel"></strong></div><div class="progress-row"><label for="cycleBar">Cycle elapsed</label><progress id="cycleBar" max="100"></progress><strong id="cycleProgress"></strong></div></section>
 <section aria-labelledby="paceHeading"><div class="section-head"><h2 id="paceHeading">Daily pace</h2><div class="controls days" role="group" aria-label="Days used for the estimate"><button id="all" aria-pressed="false">Every day</button><button id="weekdays" aria-pressed="false">Mon–Fri</button></div></div><div class="metrics"><div class="metric"><span>Your average</span><strong id="dailyAverage"></strong><small>Credits used per eligible day</small></div><div class="metric"><span>Available per day</span><strong id="allowance"></strong><small>Remaining credits ÷ days left</small></div></div><div class="forecast"><span>Projected at renewal</span><strong id="projection"></strong></div><p class="explanation">Approximate monthly pace · Cycle baseline: <span id="baseRate"></span>. Weekdays exclude weekends, not public holidays.</p></section>
-<footer><dl><dt>Renews</dt><dd id="renewal"></dd><dt>Last updated</dt><dd id="updated"></dd></dl><div class="controls"><button id="refresh">Refresh usage</button><button id="connect">Connect GitHub</button></div><p id="retry"></p>${__DEV__ ? '<p id="demoNote"></p>' : ''}</footer>
+<footer><dl><dt id="accountHeading" hidden>GitHub account</dt><dd id="accountLabel" hidden></dd><dt>Renews</dt><dd id="renewal"></dd><dt>Last updated</dt><dd id="updated"></dd></dl><div class="controls"><button id="refresh">Refresh usage</button><button id="connect">Connect GitHub</button></div><p id="retry"></p>${__DEV__ ? '<p id="demoNote"></p>' : ''}</footer>
 </main><script nonce="${nonce}">
 const vscode=acquireVsCodeApi();
 function show(model){
-  for(const key of ['summary','message','used','total','percentage','remaining','renewal','dailyAverage','allowance','projection','updated','retry','cycleProgress','daysLeft','period','baseRate'])document.getElementById(key).textContent=model[key];
+  for(const key of ['summary','message','used','total','percentage','remaining','renewal','dailyAverage','allowance','projection','updated','retry','cycleProgress','daysLeft','period','baseRate','accountLabel'])document.getElementById(key).textContent=model[key];
   ${__DEV__ ? `document.getElementById('demo').hidden=!model.demo;
   const note=document.getElementById('demoNote');note.hidden=!model.demo;note.textContent='Simulated data · '+model.scenario+' · As of: '+model.referenceDate;` : ''}
   document.getElementById('usageLabel').textContent=model.percentage;
@@ -33,6 +33,8 @@ function show(model){
     bar.setAttribute('aria-valuetext',value===null?'Unavailable':label);
   }
   document.getElementById('connect').hidden=!model.canConnect;
+  document.getElementById('connect').textContent=model.connectLabel;
+  for(const id of ['accountHeading','accountLabel'])document.getElementById(id).hidden=!model.accountLabel;
   document.getElementById('refresh').disabled=model.busy;document.getElementById('connect').disabled=model.busy;
   for(const mode of ['all','weekdays'])document.getElementById(mode).setAttribute('aria-pressed',String(model.dayMode===mode));
 }

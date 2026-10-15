@@ -19,6 +19,7 @@ export interface ViewModel {
   tone: 'good' | 'watch' | 'over' | 'neutral'; remaining: string; allowance: string; baseRate: string;
   cycleProgress: string; daysLeft: string; period: string; forecastNote: string;
   usageValue: number | null; cycleValue: number | null;
+  accountLabel: string; connectLabel: 'Connect GitHub' | 'Switch GitHub account…' | 'Reconnect GitHub';
 }
 export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayMode, demo: boolean, scenario: string, retryAt: number): ViewModel {
   const snapshot = state.snapshot;
@@ -49,6 +50,7 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
       : 'A known budget and billing cycle are needed to estimate your pace.';
   const message = state.failure?.message ?? (snapshot?.kind === 'unavailable' ? snapshot.reason
     : state.phase === 'disconnected' ? 'Connect GitHub to view your Copilot usage.' : forecastNote);
+  const reconnect = state.failure?.code === 'unauthorized' || (state.failure?.code === 'auth' && state.account !== undefined);
   return {
     statusText: `${snapshot?.kind === 'bounded' ? `${percentage} · ` : ''}${summary}${demo ? ' · Demo' : ''}`,
     summary, tone, message, demo, scenario, forecastNote,
@@ -66,6 +68,8 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
     usageValue: snapshot?.kind === 'bounded' ? snapshot.usedPercent : null, cycleValue,
     updated: state.updatedAt !== undefined ? date(state.updatedAt) : '—',
     referenceDate: demo ? date(now.getTime()) : '', dayMode, busy: state.phase === 'loading', canConnect: !demo,
+    accountLabel: demo ? '' : state.account?.label ?? '',
+    connectLabel: reconnect ? 'Reconnect GitHub' : state.account ? 'Switch GitHub account…' : 'Connect GitHub',
     retry: retryAt > now.getTime() ? `Next refresh allowed: ${date(retryAt)}` : '',
   };
 }
@@ -86,6 +90,7 @@ export function renderHover(model: ViewModel): string {
   const lines = [
     verticalSpace,
     row(`**Copilot Pace**${__DEV__ && model.demo ? '　·　**DEMO**' : ''}`),
+    ...(model.accountLabel ? ['', row(`GitHub account: **${text(model.accountLabel)}**`)] : []),
     '', divider, '', row(`$(${icon}) **${text(model.summary)}**`), '', row(text(model.message)), '', divider, '',
     row('**This cycle**'), '',
     row(`Used: **${text(model.used)}**　·　Remaining: **${text(model.remaining)}**`),
@@ -102,7 +107,7 @@ export function renderHover(model: ViewModel): string {
   if (model.retry) lines.push('', row(text(model.retry)));
   lines.push('', divider, '', row(`Updated ${text(model.updated)}`), '',
     row('[$(graph) Open details](command:copilotPace.showDetails)　[$(refresh) Refresh](command:copilotPace.refresh)' +
-      (__DEV__ && model.demo ? '　[Change demo](command:copilotPace.demo)' : '　[Connect GitHub](command:copilotPace.connect)')),
+      (__DEV__ && model.demo ? '　[Change demo](command:copilotPace.demo)' : `　[${text(model.connectLabel)}](command:copilotPace.connect)`)),
     verticalSpace);
   return lines.join('\n');
 }

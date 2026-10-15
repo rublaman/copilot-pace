@@ -1,11 +1,12 @@
 import { normalizeQuota, systemClock, type Clock, type Snapshot } from './domain';
-import { responseError, SafeError, type HttpTransport, type SessionProvider } from './transport';
+import { responseError, SafeError, type HttpTransport, type SessionAccount, type SessionProvider } from './transport';
 
 export interface ServiceState {
   phase: 'loading' | 'ready' | 'disconnected' | 'error';
   snapshot?: Snapshot;
   updatedAt?: number;
   failure?: SafeError;
+  account?: SessionAccount;
 }
 export interface ServiceDependencies { sessions: SessionProvider; transport: HttpTransport; dataClock: Clock; wallClock?: Clock }
 
@@ -75,7 +76,10 @@ export class QuotaService {
       catch { throw new SafeError('auth', 'GitHub authorization failed. Try connecting again.'); }
       if (!active()) return;
       if (!session) { this.sessionId = undefined; this.publish({ phase: 'disconnected' }); return; }
-      if (session.id !== this.sessionId) { this.sessionId = session.id; this.reauthenticate = false; this.publish({ phase: 'loading' }); }
+      if (session.id !== this.sessionId || session.account.id !== this.state.account?.id) {
+        this.sessionId = session.id; this.reauthenticate = false;
+        this.publish({ phase: 'loading', account: session.account });
+      } else { this.publish({ ...this.state, account: session.account }); }
       const response = await this.deps.transport.request(session.accessToken, signal);
       if (!active()) return;
       const failure = responseError(response, this.wallClock.now().getTime());
@@ -84,7 +88,7 @@ export class QuotaService {
       this.failures = 0;
       this.retryAt = 0;
       this.reauthenticate = false;
-      this.publish({ phase: 'ready', snapshot, updatedAt: this.wallClock.now().getTime() });
+      this.publish({ phase: 'ready', snapshot, updatedAt: this.wallClock.now().getTime(), account: session.account });
     } catch (error) {
       if (!active()) return;
       const failure = error instanceof SafeError ? error : new SafeError('network', 'Could not refresh your usage.');
@@ -95,7 +99,7 @@ export class QuotaService {
         this.retryAt = this.wallClock.now().getTime() + Math.min(15 * 60_000, 30_000 * 2 ** Math.min(5, this.failures - 1));
       }
       const discard = ['unauthorized', 'forbidden', 'auth'].includes(failure.code);
-      this.publish({ phase: 'error', failure, snapshot: discard ? undefined : this.state.snapshot, updatedAt: discard ? undefined : this.state.updatedAt });
+      this.publish({ phase: 'error', failure, account: this.state.account, snapshot: discard ? undefined : this.state.snapshot, updatedAt: discard ? undefined : this.state.updatedAt });
     }
   }
   dispose() { this.disposed = true; this.reset(); }

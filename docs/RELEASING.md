@@ -16,6 +16,8 @@ Reviewed on October 14, 2026:
 
 Next: validate the pilot with real accounts before preparing `1.0.0` stable. The release notes retain the tested commit, artifact checksum and validation limits. Check GitHub for the current release state.
 
+Local test preparation on October 15, 2026: `feature/github-account-selection` uses `0.2.2` with `preview: true` to test account identity and the Connect / Switch / Reconnect actions. Its local VSIX does not update the published pilot. Integration into `develop`, remote CI and real account validation remain pending for these changes.
+
 ## Branches and channels
 
 | Work | Branch / event | Result |
@@ -104,7 +106,7 @@ An explicitly labeled pilot may leave corporate validation pending. Stable publi
 
 1. Install the identified VSIX in a clean profile. Check connect, refresh, hover, details, light/dark themes and Every day / Mon–Fri.
 2. Compare used credits, budget, percentage and renewal with Copilot for the intended account. Test proxy/certificate behavior without disabling TLS.
-3. Check disconnect/reconnect, cancelled login and stale data after a failure. Use fixtures for 429 and special quotas rather than provoking service limits.
+3. Check disconnect/reconnect, cancelled login and stale data after a failure. With multiple GitHub.com accounts, verify that the hover and panel identify the selected account, the Switch action changes the displayed quota without changing Copilot's own account, and previous data disappears when the account changes. Use fixtures for 429 and special quotas rather than provoking service limits.
 4. Test an update from the pilot, including legacy settings; production must never enable demos.
 5. Record version, SHA, hash, editor/OS, date and results in the release notes. Use anonymized screenshots without tokens, complete responses or account identifiers.
 

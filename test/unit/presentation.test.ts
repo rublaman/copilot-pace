@@ -5,9 +5,10 @@ import { boundedFixture, MockSessions, MockTransport, resolveScenario, scenarioL
 import { demoClock } from '../fixtures';
 import { createViewModel, renderHtml, renderHover, hoverCommands, type ViewModel } from '../../src/presentation';
 import { QuotaService } from '../../src/service';
+import { SafeError } from '../../src/transport';
 
-function panelElements(model: ViewModel) {
-  const elements = new Map<string, { textContent: string; attributes: Map<string, string>; setAttribute(key: string, value: string): void; addEventListener(): void }>();
+function panelElements(model: ViewModel, updates: ViewModel[] = []) {
+  const elements = new Map<string, { textContent: string; hidden?: boolean; disabled?: boolean; attributes: Map<string, string>; setAttribute(key: string, value: string): void; addEventListener(): void }>();
   const html = renderHtml(model, 'safe-nonce');
   for (const [, id] of html.matchAll(/id="([\w]+)"/g)) {
     const attributes = new Map<string, string>();
@@ -15,11 +16,13 @@ function panelElements(model: ViewModel) {
   }
   const script = html.match(/<script nonce="safe-nonce">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script);
+  let update!: (event: { data: { type: string; model: ViewModel } }) => void;
   runInNewContext(script, {
     acquireVsCodeApi: () => ({ postMessage() {} }),
     document: { getElementById: (id: string) => elements.get(id) },
-    window: { addEventListener() {} },
+    window: { addEventListener: (_event: string, listener: typeof update) => { update = listener; } },
   });
+  for (const next of updates) update({ data: { type: 'state', model: next } });
   return elements;
 }
 
@@ -113,6 +116,62 @@ describe('Presentation and demo scenarios', () => {
     const model = createViewModel({ phase: 'disconnected' }, demoClock, 'all', false, '', 0);
     assert.equal(model.message, 'Connect GitHub to view your Copilot usage.');
     assert.equal(model.percentage, '—');
+  });
+  it('uses the same account action in the hover and panel for each connection state', () => {
+    const account = { id: 'account', label: 'Test' };
+    for (const [state, label, displayedAccount] of [
+      [{ phase: 'disconnected' }, 'Connect GitHub', ''],
+      [{ phase: 'loading' }, 'Connect GitHub', ''],
+      [{ phase: 'error', failure: new SafeError('auth', 'Cancelled') }, 'Connect GitHub', ''],
+      [{ phase: 'ready', snapshot, account }, 'Switch GitHub account…', 'Test'],
+      [{ phase: 'loading', snapshot, account }, 'Switch GitHub account…', 'Test'],
+      [{ phase: 'error', snapshot, account, failure: new SafeError('timeout', 'Timeout') }, 'Switch GitHub account…', 'Test'],
+      [{ phase: 'error', account, failure: new SafeError('forbidden', 'Forbidden') }, 'Switch GitHub account…', 'Test'],
+      [{ phase: 'error', account, failure: new SafeError('unauthorized', 'Expired') }, 'Reconnect GitHub', 'Test'],
+      [{ phase: 'error', account, failure: new SafeError('auth', 'Cancelled') }, 'Reconnect GitHub', 'Test'],
+    ] as const) {
+      const model = createViewModel(state, demoClock, 'all', false, '', 0);
+      assert.equal(model.connectLabel, label); assert.equal(model.accountLabel, displayedAccount);
+      assert.ok(renderHover(model).includes(`[${label}](command:copilotPace.connect)`));
+      assert.equal(renderHover(model).includes('GitHub account:'), !!displayedAccount);
+      const elements = panelElements(model);
+      assert.equal(elements.get('connect')?.textContent, label);
+      assert.equal(elements.get('connect')?.disabled, state.phase === 'loading');
+      assert.equal(elements.get('accountLabel')?.textContent, displayedAccount);
+      assert.equal(elements.get('accountLabel')?.hidden, !displayedAccount);
+      assert.equal(elements.get('accountHeading')?.hidden, !displayedAccount);
+    }
+  });
+  it('updates account identity and actions in an already open panel', () => {
+    const disconnected = createViewModel({ phase: 'disconnected' }, demoClock, 'all', false, '', 0);
+    const first = createViewModel({ phase: 'ready', snapshot, account: { id: 'first', label: 'First' } }, demoClock, 'all', false, '', 0);
+    const second = createViewModel({ phase: 'ready', snapshot, account: { id: 'second', label: 'Second' } }, demoClock, 'all', false, '', 0);
+    let elements = panelElements(disconnected, [first, second]);
+    assert.equal(elements.get('accountLabel')?.textContent, 'Second');
+    assert.equal(elements.get('accountLabel')?.hidden, false);
+    assert.equal(elements.get('connect')?.textContent, 'Switch GitHub account…');
+    elements = panelElements(first, [second, disconnected]);
+    assert.equal(elements.get('accountLabel')?.textContent, '');
+    assert.equal(elements.get('accountLabel')?.hidden, true);
+    assert.equal(elements.get('connect')?.textContent, 'Connect GitHub');
+  });
+  it('escapes account labels in the hover and renders them as text in the panel', () => {
+    const label = '[run](command:evil) </script><img src=x onerror=alert(1)> $(warning)\nOther';
+    const model = createViewModel({ phase: 'ready', snapshot, account: { id: 'account', label } }, demoClock, 'all', false, '', 0);
+    const hover = renderHover(model);
+    assert.ok(!hover.includes('[run](command:evil)')); assert.ok(!hover.includes('$(warning)'));
+    assert.ok(hover.includes('\\[run\\]\\(command:evil\\)'));
+    assert.ok(!renderHtml(model, 'safe-nonce').includes('</script><img'));
+    assert.equal(panelElements(model).get('accountLabel')?.textContent, label);
+  });
+  it('hides account identity and connection controls for synthetic demos', () => {
+    const model = createViewModel({ phase: 'ready', snapshot, account: { id: 'synthetic', label: 'Demo' } }, demoClock, 'all', true, 'Demo', 0);
+    assert.equal(model.accountLabel, ''); assert.equal(model.canConnect, false);
+    assert.ok(!renderHover(model).includes('GitHub account:'));
+    assert.ok(renderHover(model).includes('[Change demo](command:copilotPace.demo)'));
+    const elements = panelElements(model);
+    assert.equal(elements.get('accountLabel')?.hidden, true);
+    assert.equal(elements.get('connect')?.hidden, true);
   });
   it('marks the previous snapshot as out of date', () => {
     const model = createViewModel({ phase: 'error', snapshot }, demoClock, 'all', false, '', 0);
