@@ -4,7 +4,11 @@ Versions 0.1.x describe local development builds.
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-10-15
+
 - Identify the selected GitHub account in the hover and detail panel, and label the account action as Connect, Switch account or Reconnect according to the current state.
+
+Real account and corporate network compatibility remain unverified. This is a pilot build for local testing.
 
 ## [0.2.1] - 2026-10-14
 

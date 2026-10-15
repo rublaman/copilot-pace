@@ -3,7 +3,7 @@
   "displayName": "Copilot Pace",
   "description": "GitHub Copilot credit usage and daily pace, right in your status bar.",
   "icon": "images/copilot-pace-128.png",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "rublaman",
   "private": true,
   "preview": true,

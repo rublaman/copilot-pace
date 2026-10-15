@@ -16,6 +16,8 @@ Reviewed on October 14, 2026:
 
 Next: validate the pilot with real accounts before preparing `1.0.0` stable. The release notes retain the tested commit, artifact checksum and validation limits. Check GitHub for the current release state.
 
+Local test preparation on October 15, 2026: `feature/github-account-selection` uses `0.2.2` with `preview: true` to test account identity and the Connect / Switch / Reconnect actions. Its local VSIX does not update the published pilot. Integration into `develop`, remote CI and real account validation remain pending for these changes.
+
 ## Branches and channels
 
 | Work | Branch / event | Result |
