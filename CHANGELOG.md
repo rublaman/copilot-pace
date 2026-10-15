@@ -4,6 +4,15 @@ Versions 0.1.x describe local development builds.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-15
+
+- First stable release, retaining the GitHub Copilot credit tracking and pace estimates from the 0.2.3 pilot.
+- Set `preview: false` and keep the `rubenblancomanzano.copilot-pace` identity for updates from 0.2.3.
+- Replace pilot VSIX installation instructions with Marketplace installation steps and update compatibility information.
+- Record the maintainer's successful real-account checks: GitHub connection, credits and renewal compared with GitHub, manual refresh, details, Every day / Mon–Fri, light/dark themes and data after restarting VS Code. The publisher profile name was also confirmed as Ruben Blanco Manzano.
+
+Real-account acceptance was reported for 0.2.3 on October 15, 2026. No runtime code changed for 1.0.0. Other accounts and corporate networks are not covered by that confirmation. Marketplace publication is a separate manual step after the final GitHub release artifact is validated.
+
 ## [0.2.3] - 2026-10-15
 
 - Align the extension, installed-package tests and release workflow with the final Marketplace publisher, `rubenblancomanzano` (Ruben Blanco Manzano).

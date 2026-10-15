@@ -1,15 +1,15 @@
 # Visual Studio Marketplace listing
 
-English listing copy for the current development version. Publication and real account validation remain pending; this document does not announce a Marketplace release.
+English listing copy for 1.0.0. The maintainer confirmed real-account acceptance of 0.2.3 and the publisher profile on October 15, 2026. Marketplace upload and installation verification remain manual steps; this document does not announce a Marketplace release.
 
 ## Publisher setup
 
-On October 15, 2026, the maintainer created and selected the personal publisher ID `rubenblancomanzano` for this and future extensions. The intended public publisher name is **Ruben Blanco Manzano**, separate from this extension's display name, **Copilot Pace**. The unused `CopilotPace` publisher does not need to be deleted to continue.
+On October 15, 2026, the maintainer created and selected the personal publisher ID `rubenblancomanzano` for this and future extensions, and confirmed that **Details → Name** is saved as **Ruben Blanco Manzano**. This is separate from the extension's display name, **Copilot Pace**. The unused `CopilotPace` publisher does not need to be deleted to continue.
 
 1. Open the selected publisher's [management page](https://marketplace.visualstudio.com/manage/publishers/rubenblancomanzano) and select **Details**.
 2. Set **Name** to **Ruben Blanco Manzano** and save. Keep the immutable **ID** `rubenblancomanzano`. The publisher profile represents the developer across extensions: use a personal website or GitHub profile, a general contact if desired, and leave the source repository empty unless there is a shared repository. Copilot Pace's own repository and issue tracker belong in its extension manifest.
 3. Version 0.2.3 uses `rubenblancomanzano.copilot-pace`; its manifest, release workflow and installed-package tests use this identity. Pilots through 0.2.2 retain `rublaman.copilot-pace`. Follow the [replacement instructions](../README.md#replace-an-earlier-pilot), since this is a separate extension rather than an automatic update.
-4. Complete real account acceptance with the new pilot. Prepare `1.0.0`, `preview: false`, promote it to `main` and validate the final candidate as described in [RELEASING.md](RELEASING.md).
+4. Real-account acceptance of 0.2.3 is confirmed by the maintainer. Prepare `1.0.0`, `preview: false`, promote it to `main` and validate the final candidate as described in [RELEASING.md](RELEASING.md).
 5. Upload that same tested `1.0.0` VSIX through **New extension → Visual Studio Code** under `rubenblancomanzano`, then verify the listing and installation. The 0.2.3 GitHub pilot does not publish to Marketplace.
 
 This repository change does not edit or save the online publisher profile. GitHub repository ownership and source URLs remain `rublaman/copilot-pace`. The manifest's `bugs` URL points to this extension's issue tracker.
@@ -34,7 +34,7 @@ Connect through VS Code's GitHub authentication, see which account is selected, 
 
 No workspace access or telemetry. Figures represent credits, and estimates depend on the quota and monthly cycle reported by GitHub.
 
-**Preview:** targets GitHub.com on desktop VS Code for Windows, version 1.120 or later. Real account and corporate network validation is pending. The extension uses an internal GitHub endpoint that may change. GitHub Enterprise Server, GHE.com and browser-based VS Code are unsupported.
+Targets GitHub.com on desktop VS Code for Windows, version 1.120 or later. The maintainer validated the 0.2.3 runtime with a real Copilot account; 1.0.0 retains that behavior. Other accounts and corporate networks require separate validation. The extension uses an internal GitHub endpoint that may change. GitHub Enterprise Server, GHE.com and browser-based VS Code are unsupported.
 
 ## Marketplace overview and images
 
