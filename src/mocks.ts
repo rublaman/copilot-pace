@@ -49,7 +49,7 @@ export function boundedFixture(total: number, used: number, now: Date): unknown 
 }
 export class MockSessions implements SessionProvider {
   constructor(private readonly scenario: MockScenario) {}
-  async get() { return this.scenario === 'disconnected' ? undefined : { id: 'synthetic-session', accessToken: 'synthetic-not-a-credential' }; }
+  async get() { return this.scenario === 'disconnected' ? undefined : { id: 'synthetic-session', accessToken: 'synthetic-not-a-credential', account: { id: 'synthetic-account', label: 'Demo' } }; }
 }
 export class MockTransport implements HttpTransport {
   constructor(private readonly scenario: MockScenario, private readonly clock: Clock = systemClock) {}

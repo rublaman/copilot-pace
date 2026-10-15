@@ -80,6 +80,9 @@ describe('Copilot Pace in the Extension Development Host', () => {
     assert.deepEqual(tooltip.isTrusted, { enabledCommands: ['copilotPace.showDetails', 'copilotPace.refresh', 'copilotPace.connect', 'copilotPace.demo'] });
     assert.ok(tooltip.value.includes('Remaining: **6,000 credits**'));
     assert.ok(tooltip.value.includes('**Daily pace**'));
+    assert.ok(!tooltip.value.includes('GitHub account:'));
+    assert.equal(api.getModel().accountLabel, '');
+    assert.equal(api.getModel().canConnect, false);
   });
   it('migrates a saved 0.1.0 demo scenario to the English setting', async () => {
     const config = vscode.workspace.getConfiguration('copilotPace');
@@ -143,6 +146,9 @@ describe('Copilot Pace in the Extension Development Host', () => {
     await vscode.commands.executeCommand('copilotPace.useGitHub');
     await waitFor(() => !api.getModel().demo && api.getState().phase === 'disconnected');
     assert.equal(api.getState().snapshot, undefined); assert.ok(!api.getStatus().text.includes('Demo'));
+    assert.equal(api.getModel().accountLabel, '');
+    assert.equal(api.getModel().connectLabel, 'Connect GitHub');
+    assert.ok(api.getTooltip()?.value.includes('[Connect GitHub](command:copilotPace.connect)'));
     assert.equal(api.getStatus().color, undefined);
     await vscode.workspace.getConfiguration('copilotPace').update('dataSource', 'mock', vscode.ConfigurationTarget.Global);
     await waitFor(() => api.getModel().demo && api.getState().phase === 'ready' && api.getModel().percentage === '40%');

@@ -7,13 +7,16 @@ export class GitHubSessions implements SessionProvider {
   async get(interactive: boolean, forceNewSession = false) {
     const options: vscode.AuthenticationGetSessionOptions = !interactive ? { silent: true }
       : forceNewSession ? {
-        forceNewSession: { detail: 'Connect GitHub to view your Copilot usage.' },
+        forceNewSession: { detail: 'Reconnect GitHub to view your Copilot usage.' },
         clearSessionPreference: true,
       } : {
-        createIfNone: { detail: 'Connect GitHub to view your Copilot usage.' },
+        createIfNone: { detail: 'Choose a GitHub account to view its Copilot usage.' },
         clearSessionPreference: true,
       };
     const session = await this.authentication.getSession('github', ['read:user'], options);
-    return session ? { id: session.id, accessToken: session.accessToken } : undefined;
+    return session ? {
+      id: session.id, accessToken: session.accessToken,
+      account: { id: session.account.id, label: session.account.label },
+    } : undefined;
   }
 }

@@ -14,6 +14,8 @@ code --install-extension .\copilot-pace-<version>.vsix
 
 Reload an open editor after upgrading. Run **Copilot Pace: Connect GitHub** and authorize access through VS Code. This authorization is separate from Copilot's own connection.
 
+The hover and detail panel identify the GitHub account being queried. Use **Switch GitHub account…** to choose another account through VS Code, or **Reconnect GitHub** when authorization needs renewing. Copilot Pace displays one account at a time; selecting it does not change Copilot's own account.
+
 Hover over the status item for remaining credits, daily allowance and projected usage. Click for details, or run **Copilot Pace: Show Details**. Use **Copilot Pace: Refresh Usage** to refresh manually.
 
 ## Reading the estimate

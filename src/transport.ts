@@ -1,7 +1,8 @@
 import * as https from 'node:https';
 import type { ClientRequest, IncomingMessage } from 'node:http';
 
-export interface Session { id: string; accessToken: string }
+export interface SessionAccount { id: string; label: string }
+export interface Session { id: string; accessToken: string; account: SessionAccount }
 export interface SessionProvider { get(interactive: boolean, forceNewSession?: boolean): Promise<Session | undefined> }
 export interface HttpResponse { status: number; headers: Record<string, string | undefined>; body: unknown }
 export interface HttpTransport { request(accessToken: string, signal: AbortSignal): Promise<HttpResponse> }

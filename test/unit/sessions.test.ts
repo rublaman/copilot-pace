@@ -7,11 +7,11 @@ describe('GitHub session options', () => {
     [false, false, { silent: true }],
     [false, true, { silent: true }],
     [true, false, {
-      createIfNone: { detail: 'Connect GitHub to view your Copilot usage.' },
+      createIfNone: { detail: 'Choose a GitHub account to view its Copilot usage.' },
       clearSessionPreference: true,
     }],
     [true, true, {
-      forceNewSession: { detail: 'Connect GitHub to view your Copilot usage.' },
+      forceNewSession: { detail: 'Reconnect GitHub to view your Copilot usage.' },
       clearSessionPreference: true,
     }],
   ] as const) {
@@ -22,7 +22,14 @@ describe('GitHub session options', () => {
           return { id: 'session', accessToken: 'synthetic', account: { id: 'account', label: 'Test' }, scopes: ['read:user'] };
         },
       });
-      assert.deepEqual(await sessions.get(interactive, forceNewSession), { id: 'session', accessToken: 'synthetic' });
+      assert.deepEqual(await sessions.get(interactive, forceNewSession), {
+        id: 'session', accessToken: 'synthetic', account: { id: 'account', label: 'Test' },
+      });
     });
   }
+  it('returns no identity when VS Code has no authorized session', async () => {
+    const getSession = (async () => undefined) as unknown as typeof vscode.authentication.getSession;
+    const sessions = new GitHubSessions({ getSession });
+    assert.equal(await sessions.get(false), undefined);
+  });
 });

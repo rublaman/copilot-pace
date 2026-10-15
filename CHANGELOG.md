@@ -4,6 +4,8 @@ Versions 0.1.x describe local development builds.
 
 ## [Unreleased]
 
+- Identify the selected GitHub account in the hover and detail panel, and label the account action as Connect, Switch account or Reconnect according to the current state.
+
 ## [0.2.1] - 2026-10-14
 
 - Use the GitHub green for the Connect GitHub button, with theme colors in high contrast modes.
