@@ -22,7 +22,8 @@
   },
   "license": "MIT",
   "categories": [
-    "Visualization"
+    "Visualization",
+    "AI"
   ],
   "extensionKind": [
     "ui"

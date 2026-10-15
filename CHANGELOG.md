@@ -6,7 +6,7 @@ Versions 0.1.x describe local development builds.
 
 ## [1.0.1] - 2026-10-15
 
-- Categorize the extension as Visualization in the Marketplace.
+- Categorize the extension as Visualization and AI in the Marketplace.
 - Remove the earlier-pilot replacement section from the main README; migration details remain in the release documentation.
 
 Prepared as a GitHub prerelease with `preview: true`. Runtime behavior is unchanged from 1.0.0; validation and publication of the final tagged artifact remain pending.
