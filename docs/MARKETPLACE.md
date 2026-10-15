@@ -4,14 +4,15 @@ English listing copy for the current development version. Publication and real a
 
 ## Publisher setup
 
-Owner access to the existing publisher ID `CopilotPace` was confirmed in the Marketplace portal on October 15, 2026. The requested public publisher name is **Ruben Blanco Manzano**. This is separate from the extension's display name, **Copilot Pace**.
+On October 15, 2026, the maintainer created and selected the personal publisher ID `rubenblancomanzano` for this and future extensions. The intended public publisher name is **Ruben Blanco Manzano**, separate from this extension's display name, **Copilot Pace**. The unused `CopilotPace` publisher does not need to be deleted to continue.
 
-1. Open the publisher's [management page](https://marketplace.visualstudio.com/manage/publishers/CopilotPace) and select **Details**.
-2. Set **Name** to **Ruben Blanco Manzano** and save. Keep the existing, immutable **ID** `CopilotPace`.
-3. Before preparing a Marketplace package, change `package.json`'s `publisher` to `CopilotPace` and update the identity references in the release workflow and tests. The current GitHub pilots retain `rublaman.copilot-pace`; changing the publisher gives the Marketplace package a different extension identity, so test the transition explicitly.
-4. Complete real account acceptance and prepare the validated release described in [RELEASING.md](RELEASING.md), then upload that same tested VSIX through **New extension → Visual Studio Code**.
+1. Open the selected publisher's [management page](https://marketplace.visualstudio.com/manage/publishers/rubenblancomanzano) and select **Details**.
+2. Set **Name** to **Ruben Blanco Manzano** and save. Keep the immutable **ID** `rubenblancomanzano`. The publisher profile represents the developer across extensions: use a personal website or GitHub profile, a general contact if desired, and leave the source repository empty unless there is a shared repository. Copilot Pace's own repository and issue tracker belong in its extension manifest.
+3. Version 0.2.3 uses `rubenblancomanzano.copilot-pace`; its manifest, release workflow and installed-package tests use this identity. Pilots through 0.2.2 retain `rublaman.copilot-pace`. Follow the [replacement instructions](../README.md#replace-an-earlier-pilot), since this is a separate extension rather than an automatic update.
+4. Complete real account acceptance with the new pilot. Prepare `1.0.0`, `preview: false`, promote it to `main` and validate the final candidate as described in [RELEASING.md](RELEASING.md).
+5. Upload that same tested `1.0.0` VSIX through **New extension → Visual Studio Code** under `rubenblancomanzano`, then verify the listing and installation. The 0.2.3 GitHub pilot does not publish to Marketplace.
 
-The name change has not been applied by this release preparation. GitHub repository ownership and source URLs remain `rublaman/copilot-pace`.
+This repository change does not edit or save the online publisher profile. GitHub repository ownership and source URLs remain `rublaman/copilot-pace`. The manifest's `bugs` URL points to this extension's issue tracker.
 
 ## Display name
 

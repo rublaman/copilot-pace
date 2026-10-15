@@ -34,7 +34,7 @@ describe('Copilot Pace in the Extension Development Host', () => {
     await config.update('mockScenario', '10000-comfortable', vscode.ConfigurationTarget.Global);
     await config.update('dayMode', 'all', vscode.ConfigurationTarget.Global);
     await config.update('dataSource', 'mock', vscode.ConfigurationTarget.Global);
-    const extension = vscode.extensions.getExtension<TestApi>('rublaman.copilot-pace');
+    const extension = vscode.extensions.getExtension<TestApi>('rubenblancomanzano.copilot-pace');
     assert.ok(extension); api = await extension.activate();
     await waitFor(() => api.getModel().demo && api.getState().phase === 'ready' && api.getModel().percentage === '40%');
   });

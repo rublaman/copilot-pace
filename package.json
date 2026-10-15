@@ -3,8 +3,9 @@
   "displayName": "Copilot Pace",
   "description": "Track GitHub Copilot credits, daily allowance and projected usage in your VS Code status bar.",
   "icon": "images/copilot-pace-128.png",
-  "version": "0.2.2",
-  "publisher": "rublaman",
+  "version": "0.2.3",
+  "publisher": "rubenblancomanzano",
+  "author": "Ruben Blanco Manzano",
   "private": true,
   "preview": true,
   "engines": {
@@ -15,6 +16,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/rublaman/copilot-pace.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rublaman/copilot-pace/issues"
   },
   "license": "MIT",
   "categories": [

@@ -19,7 +19,7 @@ describe('Installed production VSIX', () => {
     originalSettings = await readFile(settingsPath, 'utf8');
     assert.equal(vscode.workspace.getConfiguration('copilotPace').get('dataSource'), 'mock');
     assert.equal(vscode.workspace.getConfiguration('copilotPace').get('mockScenario'), '3900-justo');
-    const installed = vscode.extensions.getExtension<TestApi>('rublaman.copilot-pace');
+    const installed = vscode.extensions.getExtension<TestApi>('rubenblancomanzano.copilot-pace');
     assert.ok(installed); extension = installed;
     api = await extension.activate();
     await waitFor(() => api.getState().phase !== 'loading');

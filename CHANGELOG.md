@@ -4,6 +4,14 @@ Versions 0.1.x describe local development builds.
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-10-15
+
+- Align the extension, installed-package tests and release workflow with the final Marketplace publisher, `rubenblancomanzano` (Ruben Blanco Manzano).
+- Add author and issue-reporting metadata while retaining the existing GitHub repository.
+- Document replacing earlier pilots and the remaining validation before `1.0.0` stable.
+
+This changes the extension ID from `rublaman.copilot-pace` to `rubenblancomanzano.copilot-pace`. Uninstall the earlier pilot before installing this VSIX, then reconnect GitHub. Existing `copilotPace.*` user settings are retained. This is a GitHub pilot release; Marketplace publication and real account/network validation remain pending.
+
 ## [0.2.2] - 2026-10-15
 
 - Identify the selected GitHub account in the hover and detail panel, and label the account action as Connect, Switch account or Reconnect according to the current state.
