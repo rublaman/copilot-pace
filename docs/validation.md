@@ -64,3 +64,13 @@ Use F5 and the Extension Development Host described in [CONTRIBUTING.md](../CONT
 ## Release evidence
 
 For each candidate, retain its full commit SHA, tag, CI URL, tested VSIX and SHA-256. Complete the [real account acceptance checks](RELEASING.md#real-account-acceptance) on that artifact before stable publication. Store anonymized results without credentials or complete responses.
+
+### Stable 1.0.1 — October 15, 2026
+
+- Commit: `12d1d03cc893eec706df212930af5bece07b2609`; annotated tag: `v1.0.1`.
+- [Main CI](https://github.com/rublaman/copilot-pace/actions/runs/38786619309) and the [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/38787282587) passed both pinned Node versions and both VS Code versions. Lint/types, 133 unit/service tests, 8 release-script tests, 16 integration tests per editor version, 6 package tests and the dependency audit passed.
+- Tested and published [copilot-pace-1.0.1.vsix](https://github.com/rublaman/copilot-pace/releases/download/v1.0.1/copilot-pace-1.0.1.vsix); SHA-256: `30ff515ce5b5f2ab42c3efb73500597f7f0c5c59a5e6e3b437129bb24b3f8630`.
+- The release's VSIX, checksum and build record match the tag workflow artifact byte for byte. The downloaded VSIX passed all six package tests on Windows 11 / VS Code 1.141.0 without rebuilding. An update from the original published 1.0.0 VSIX retained the calendar and refresh settings. Packaged categories `Visualization` and `AI`, the removed README section and all five README image URLs were checked.
+- An anonymous public GitHub download matched the tested SHA-256. All earlier release asset identities/digests and annotated tags remain unchanged. The GitHub Release is stable and Latest; main-to-develop synchronization completed through [PR #20](https://github.com/rublaman/copilot-pace/pull/20).
+- Runtime source and dependencies are unchanged from 1.0.0. The production JavaScript also matches after normalizing the build-time version value. Prior maintainer acceptance of the unchanged runtime is distinct from these automated checks; no new real-account or corporate-network acceptance is claimed.
+- Marketplace upload of this same VSIX and store installation/package verification remain pending.
