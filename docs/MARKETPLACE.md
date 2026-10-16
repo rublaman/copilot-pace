@@ -46,13 +46,11 @@ The [root README](../README.md) is the full Marketplace overview, including inst
 | --- | --- |
 | [Brand banner](../images/social-preview/copilot-pace.png) | GitHub Copilot credits and daily usage pace. |
 | [Hover · dark](images/hover-dark.gif) | Watch the tooltip and status bar change from Comfortable to On track to Over pace. Simulated data. |
-| [Hover · light](images/hover-light.gif) | The same three pace states in the light theme. Simulated data. |
 | [Detail panel · dark](images/details-dark.gif) | Compare average consumption, daily allowance and renewal projections across all three pace colors. Simulated data. |
-| [Detail panel · light](images/details-light.gif) | The same three pace states in the light detail panel. Simulated data. |
 | [Command Palette](images/commands.png) | Connect GitHub, refresh usage or open details from the Command Palette. |
 
-Screenshot provenance and capture notes are in [images/README.md](images/README.md).
+The overview displays only the dark-theme GIFs on separate lines and centers both animations for readability. Light-theme captures remain available in the repository as reference assets. Screenshot provenance and capture notes are in [images/README.md](images/README.md).
 
 The README uses relative PNG and GIF paths for local and GitHub viewing. The existing packaging script rewrites them to HTTPS URLs for the packaged commit. Commit and push the referenced assets before preparing a publication candidate, then verify those exact URLs resolve. The banner and documentation captures are hosted in the repository and excluded from the VSIX by the existing ignore rules.
 
-The updated GIFs are documentation changes captured from the 1.1.1 UI; they are not included in the immutable published 1.1.1 package. Updating this README on GitHub does not update the Marketplace overview. Publish a new validated version containing the updated README to deliver these GIFs to the listing; do not rebuild or replace a published 1.1.1 artifact.
+The animated GIFs are documentation captures from the 1.1.1 UI. The published [1.1.2 VSIX](https://github.com/rublaman/copilot-pace/releases/download/v1.1.2/copilot-pace-1.1.2.vsix) carries the updated README with HTTPS links to these repository assets; the GIF files themselves remain excluded from the package. Updating the GitHub README alone does not update the Marketplace overview. Upload the exact tested 1.1.2 VSIX from the [stable release](https://github.com/rublaman/copilot-pace/releases/tag/v1.1.2) to refresh the listing; do not rebuild or replace any published artifact. Store upload and verification remain pending.

@@ -4,6 +4,11 @@ Versions 0.1.x describe local development builds.
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-10-16
+
+- Show only the dark-theme tooltip and detail-panel GIFs in the README, centered for readability.
+- Keep the two animations on the same six-second cycle; no extension runtime code changed.
+
 ## [1.1.2] - 2026-10-16
 
 - Refresh the README and Marketplace overview with looping dark- and light-theme GIFs of the tooltip and detail panel, showing green, yellow and red pace states.
