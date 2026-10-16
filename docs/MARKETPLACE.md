@@ -49,7 +49,7 @@ The [root README](../README.md) is the full Marketplace overview, including inst
 | [Detail panel · dark](images/details-dark.gif) | Compare average consumption, daily allowance and renewal projections across all three pace colors. Simulated data. |
 | [Command Palette](images/commands.png) | Connect GitHub, refresh usage or open details from the Command Palette. |
 
-The overview displays only the dark-theme GIFs, each on its own line, so the animations remain large and readable. Light-theme captures remain available in the repository as reference assets. Screenshot provenance and capture notes are in [images/README.md](images/README.md).
+The overview displays only the dark-theme GIFs on separate lines and centers the tooltip animation for readability. Light-theme captures remain available in the repository as reference assets. Screenshot provenance and capture notes are in [images/README.md](images/README.md).
 
 The README uses relative PNG and GIF paths for local and GitHub viewing. The existing packaging script rewrites them to HTTPS URLs for the packaged commit. Commit and push the referenced assets before preparing a publication candidate, then verify those exact URLs resolve. The banner and documentation captures are hosted in the repository and excluded from the VSIX by the existing ignore rules.
 
