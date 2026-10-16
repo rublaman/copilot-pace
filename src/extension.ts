@@ -6,6 +6,7 @@ import { createViewModel, renderHtml, renderHover, hoverCommands, type ViewModel
 import { QuotaService, type ServiceState } from './service';
 import { GitHubSessions } from './sessions';
 import { GitHubTransport } from './transport';
+import { resolveLanguage, type Language } from './i18n';
 
 export interface TestApi {
   getState(): ServiceState;
@@ -28,6 +29,7 @@ class CopilotPace implements vscode.Disposable {
   private scenario = '';
   private readonly developmentEnabled: boolean;
   private dayMode: DayMode = 'all';
+  private language: Language = 'en';
   private sourceKey = '';
   private panel?: vscode.WebviewPanel;
   private panelReady = false;
@@ -49,7 +51,7 @@ class CopilotPace implements vscode.Disposable {
     );
     if (__DEV__ && this.developmentEnabled) {
       void vscode.commands.executeCommand('setContext', 'copilotPace.development', true);
-      this.subscriptions.push(...registerDemoCommands(vscode, (key, value) => this.updateConfig(key, value)));
+      this.subscriptions.push(...registerDemoCommands(vscode, (key, value) => this.updateConfig(key, value), () => this.language));
     }
     this.configure();
     this.status.show();
@@ -57,13 +59,14 @@ class CopilotPace implements vscode.Disposable {
   private configure() {
     const config = vscode.workspace.getConfiguration('copilotPace');
     this.dayMode = config.get<string>('dayMode') === 'weekdays' ? 'weekdays' : 'all';
+    this.language = resolveLanguage(config.get('language'));
     const source = __DEV__ && this.developmentEnabled ? getDemoSource(vscode, config, this.clock) : undefined;
     const key = source?.key ?? 'github';
     if (key !== this.sourceKey) {
       this.service?.dispose();
       this.sourceKey = key; this.demo = source !== undefined; this.scenario = source?.label ?? '';
       this.service = new QuotaService({
-        sessions: source?.sessions ?? new GitHubSessions(vscode.authentication),
+        sessions: source?.sessions ?? new GitHubSessions(vscode.authentication, () => this.language),
         transport: source?.transport ?? new GitHubTransport(vscode.version),
         dataClock: this.clock,
       }, () => this.render());
@@ -90,7 +93,7 @@ class CopilotPace implements vscode.Disposable {
     this.timer = setTimeout(() => { void this.refresh(); }, Math.min(delay, 2_147_483_647));
     this.timer.unref();
   }
-  get model(): ViewModel { return createViewModel(this.service.current, this.clock, this.dayMode, this.demo, this.scenario, this.service.nextAllowedAt); }
+  get model(): ViewModel { return createViewModel(this.service.current, this.clock, this.dayMode, this.demo, this.scenario, this.service.nextAllowedAt, this.language); }
   private render() {
     if (this.disposed) return;
     const model = this.model;
@@ -99,7 +102,8 @@ class CopilotPace implements vscode.Disposable {
     this.status.color = color ? new vscode.ThemeColor(color) : undefined;
     const tooltip = new vscode.MarkdownString(renderHover(model), true);
     tooltip.isTrusted = { enabledCommands: __DEV__ && this.developmentEnabled ? [...hoverCommands, 'copilotPace.demo'] : hoverCommands };
-    tooltip.supportHtml = false;
+    // Native Markdown sanitizes this HTML; renderHover only adds a fixed theme-colored status span.
+    tooltip.supportHtml = true;
     this.status.tooltip = tooltip;
     this.status.accessibilityInformation = { label: `Copilot Pace: ${model.statusText}` };
     if (this.panel) void this.panel.webview.postMessage({ type: 'state', model });
@@ -126,6 +130,7 @@ class CopilotPace implements vscode.Disposable {
     else if (data.action === 'refresh') await this.refresh();
     else if (data.action === 'connect') await this.refresh(!this.demo);
     else if (data.action === 'dayMode' && (data.value === 'all' || data.value === 'weekdays')) await this.updateConfig('dayMode', data.value);
+    else if (data.action === 'language' && (data.value === 'en' || data.value === 'es-ES')) await this.updateConfig('language', data.value);
   }
   get testApi(): TestApi {
     return {

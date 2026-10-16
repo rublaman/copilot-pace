@@ -53,13 +53,29 @@ Calendar regressions include partial days, weekdays, year rollover, leap years a
 
 Use F5 and the Extension Development Host described in [CONTRIBUTING.md](../CONTRIBUTING.md). Production VSIX packages exclude the demo commands.
 
-1. Run **Copilot Pace: Try Demo Scenarios**. Confirm `Demo` appears and the UI is English.
+1. Run **Copilot Pace: Try Demo Scenarios**. Confirm `Demo` appears and the UI defaults to English. Use **Spanish** in the detail panel: check Spanish (Spain) labels, comma decimals, accessible labels and a live hover update. Confirm no language action appears in the hover. The panel button becomes **Inglés**. Restart with Spanish selected to check persistence, then switch back to English. Usage, calendar and status color must be preserved.
 2. Inspect the hover and detail panel. Open details twice to confirm the panel is reused.
-3. Check the 10,000 / 3,900 credit scenarios. Pace labels depend on the current UTC date; the panel stays neutral.
+3. Check the 10,000 / 3,900 credit scenarios. Pace labels depend on the current UTC date. Verify green for Comfortable, yellow for On track and red for Over pace in the status bar, native hover and detail panel. Switch between Dark Modern, Light Modern, Dark High Contrast and Light High Contrast without reopening the panel; check the state label, percentage, usage bar, forecast, logo and hover check alignment. Missing or stale data must clear the pace colors.
 4. Switch **Every day / Mon–Fri** and check allowance, cycle progress and projection.
 5. Compare the budget scenarios: usage remains 1,950 while the percentage changes from 50% to 19.5%.
 6. Try exhausted, unknown-budget, incomplete, disconnected, timeout and HTTP error states. Check the 429 cooldown and its reset after changing scenarios.
 7. Run **Copilot Pace: Use GitHub**. Demo values disappear; without a session, the status becomes **Connect GitHub**.
+
+## October 16: local pace-color validation
+
+Uncommitted development working tree based on `94c708ec092581b4a8811d53c9252c3675c2a8a9`, on Windows 11 with standalone Node 26.11.1 / npm 11.20.0:
+
+- `npm run check`: lint/types, 149 unit/service tests and 8 release-script regressions passed.
+- `npm run test:integration`: 17 tests passed on each of VS Code 1.120.0 and 1.141.0, including colored native hover output, restricted commands, language changes and neutral recovery states.
+- Manual desktop review on VS Code 1.142.0: all three demo pace states checked in Dark Modern, Light Modern, Dark High Contrast and Light High Contrast. Both the open detail panel and visible native hover followed live theme and scenario changes. Status text, percentage, usage bar and forecast used the expected state color; the native check stayed aligned.
+- The light high-contrast review found an invisible panel logo. A theme-specific override was added, the host was rebuilt/restarted, and the logo was visibly verified. An incomplete response cleared the panel's pace colors. The isolated demo profile's original settings were restored byte for byte afterward.
+- These are synthetic UI checks, not a new real-account acceptance or release-artifact validation. At the time of that UI review, the installed-package suite had not been rerun; pilot packaging is validated separately.
+
+## 1.1.0 pilot preparation
+
+Local preflight on Windows 11 / standalone Node 26.11.1 / npm 11.20.0 passed `npm ci`, lint/types, 149 unit/service tests, 8 release-script regressions, 17 integration tests on each of VS Code 1.120.0 and 1.141.0, 7 installed-production-VSIX tests and package inspection. `npm audit` reported zero vulnerabilities. English hover calendar labels are Mon–Sun / Mon–Fr; Spanish keeps the explicit day ranges.
+
+The locally generated preflight VSIX identifies an uncommitted working tree and is not the publication artifact. The release workflow must validate the merged/tagged commit with both pinned Node versions and both VS Code versions, then retain the final VSIX, checksum, commit and run URL in the GitHub prerelease. Install and test that downloaded artifact without rebuilding before publishing. Real-account acceptance of the changed UI and corporate-network validation remain pending for this pilot.
 
 ## Release evidence
 

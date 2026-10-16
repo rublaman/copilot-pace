@@ -13,9 +13,11 @@ Track GitHub Copilot credits from your VS Code status bar. See what you have use
 ## Your usage, at a glance
 
 - **Status bar:** budget used and a color-coded pace indicator while you work.
-- **Hover summary:** remaining credits, time left, daily allowance and projected usage.
+- **Hover summary:** pace status, remaining credits, daily allowance, projected usage and last update.
 - **Detail panel:** compare credits used with cycle progress and see the numbers behind the estimate.
+- **Consistent pace colors:** green for Comfortable, yellow for On track and red for Over pace in the status bar, hover and detail panel, following your VS Code theme.
 - **Flexible calendar:** switch between Every day and Mon–Fri to match your working week.
+- **Display language:** English by default, with Spanish (Spain) available from the detail panel.
 - **Account controls:** see which GitHub account is being queried, switch accounts or reconnect when needed.
 - **Automatic refresh:** check every 15 minutes by default, with a manual refresh whenever you need it.
 
@@ -73,6 +75,8 @@ Open the Command Palette and type **Copilot Pace**:
 
 The panel also offers **Refresh usage** and the appropriate account action. **Every day / Mon–Fri** changes the calendar used for the estimate.
 
+Use **Spanish** in the detail panel's header to switch to Spanish (Spain); the button becomes **Inglés** to switch back. The preference is saved across VS Code restarts and is independent of the editor's display language. Status, hover, panel text, numbers and dates update immediately. The language switch appears only in the detail panel, not in the hover. Calculations continue to use UTC.
+
 ## How the estimate works
 
 All amounts represent **credits**. The budget and used percentage come from GitHub's Copilot quota snapshot; Copilot Pace does not guess your budget from a plan name.
@@ -86,17 +90,21 @@ All amounts represent **credits**. The budget and used percentage come from GitH
 
 Calculations use **UTC**, include partial days and require a known budget and a recognized monthly cycle. **Mon–Fri** excludes Saturdays and Sundays, without a public holiday calendar. Before one eligible day has elapsed, the extension shows **Calculating pace**.
 
+The hover reuses **Available per day** as **Daily allowance**, following the selected calendar. It is the sustainable daily average for the remaining cycle, not today's consumption or the average already used. All amounts are credits, not tokens. The quota connection supplies a monthly total without a daily breakdown, even for a connected account, so today's consumption is omitted rather than inferred from the monthly average.
+
 ## Settings
 
 Search for **Copilot Pace** in VS Code Settings, or edit these application-level settings:
 
 | Setting | Default | Options |
 | --- | --- | --- |
+| `copilotPace.language` | `"en"` | `"en"` for English; `"es-ES"` for Spanish (Spain) |
 | `copilotPace.dayMode` | `"all"` | `"all"` for every day; `"weekdays"` for Monday–Friday |
 | `copilotPace.pollIntervalMinutes` | `15` | Automatic refresh interval, from 5 to 120 minutes |
 
 ```json
 {
+  "copilotPace.language": "en",
   "copilotPace.dayMode": "weekdays",
   "copilotPace.pollIntervalMinutes": 15
 }
@@ -115,6 +123,8 @@ The supported target is **GitHub.com on desktop VS Code for Windows**. The maint
 Copilot Pace uses an internal GitHub endpoint that may change. Validation of one account does not establish compatibility with every plan, multiple-account setup or corporate proxy. Corporate network and certificate configurations require validation in the target environment. GitHub Enterprise Server, GHE.com and browser-based VS Code are unsupported.
 
 Daily history, individual sessions and usage by model are unavailable.
+
+The panel omits model usage because the quota connection supplies no per-model breakdown. GitHub's separate [billing API](https://docs.github.com/en/rest/billing/usage) provides model-level credit quantities with billing access; its [AI usage reports](https://docs.github.com/en/billing/reference/billing-reports) include token counts by model. Neither is integrated here. Saving quota totals locally cannot recover model identities or token counts, and credits are not converted into token estimates.
 
 ### When a value is unavailable
 

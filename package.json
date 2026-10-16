@@ -3,11 +3,11 @@
   "displayName": "Copilot Pace",
   "description": "Track GitHub Copilot credits, daily allowance and projected usage in your VS Code status bar.",
   "icon": "images/copilot-pace-128.png",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "publisher": "rubenblancomanzano",
   "author": "Ruben Blanco Manzano",
   "private": true,
-  "preview": false,
+  "preview": true,
   "engines": {
     "vscode": "^1.120.0",
     "node": ">=24 <27"
@@ -58,6 +58,20 @@
     "configuration": {
       "title": "Copilot Pace",
       "properties": {
+        "copilotPace.language": {
+          "type": "string",
+          "enum": [
+            "en",
+            "es-ES"
+          ],
+          "enumDescriptions": [
+            "English",
+            "Español (España)"
+          ],
+          "default": "en",
+          "scope": "application",
+          "description": "Display language for Copilot Pace. Independent of the VS Code display language."
+        },
         "copilotPace.dayMode": {
           "type": "string",
           "enum": [
