@@ -3,7 +3,7 @@
   "displayName": "Copilot Pace",
   "description": "Track GitHub Copilot credits, daily allowance and projected usage in your VS Code status bar.",
   "icon": "images/copilot-pace-128.png",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "publisher": "rubenblancomanzano",
   "author": "Ruben Blanco Manzano",
   "private": true,
