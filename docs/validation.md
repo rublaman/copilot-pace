@@ -77,9 +77,19 @@ Local preflight on Windows 11 / standalone Node 26.11.1 / npm 11.20.0 passed `np
 
 The locally generated preflight VSIX identifies an uncommitted working tree and is not the publication artifact. The release workflow must validate the merged/tagged commit with both pinned Node versions and both VS Code versions, then retain the final VSIX, checksum, commit and run URL in the GitHub prerelease. Install and test that downloaded artifact without rebuilding before publishing. Real-account acceptance of the changed UI and corporate-network validation remain pending for this pilot.
 
+## Stable 1.1.2 — October 16, 2026
+
+- Stable GitHub release: [v1.1.2](https://github.com/rublaman/copilot-pace/releases/tag/v1.1.2), `preview: false`, Latest. Annotated tag points to `e63792f5e4e0949d13ec20a765b793098bbf09c0` on `main`.
+- [Main CI](https://github.com/rublaman/copilot-pace/actions/runs/38939301667) and the [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/38940066771) passed both pinned Node versions and both VS Code versions, package inspection and dependency audit. Local validation passed `npm ci`, `npm run check`, 17 integration tests per editor version, 7 installed-package tests and `npm audit` with zero vulnerabilities.
+- Tested and published [copilot-pace-1.1.2.vsix](https://github.com/rublaman/copilot-pace/releases/download/v1.1.2/copilot-pace-1.1.2.vsix) (82,864 bytes); SHA-256: `43c99b3cc0cd6c73a7572dd5435a0c2f7adbe29facb238d507b2203cf0e3f23c`. The checksum and build record match the tag workflow artifact. The tagged VSIX passed all 7 installed-package tests without rebuilding, and an anonymous public download matched the tested hash.
+- Reviewed the packaged README: all four GIF links point to commit `e63792f5e4e0949d13ec20a765b793098bbf09c0`, resolve publicly and return bytes matching the committed GIF files.
+- The release changes documentation and version metadata only; runtime source is unchanged from 1.1.1. It adds no new real-account or corporate-network acceptance.
+- The release was prepared in [PR #28](https://github.com/rublaman/copilot-pace/pull/28), promoted through [PR #29](https://github.com/rublaman/copilot-pace/pull/29), and synchronized back through [PR #30](https://github.com/rublaman/copilot-pace/pull/30), preserving shared branch history. Prior release tags and assets remain unchanged.
+- Marketplace upload of this same VSIX and isolated store verification remain pending.
+
 ## Stable 1.1.1 — October 16, 2026
 
-- Stable GitHub release: [v1.1.1](https://github.com/rublaman/copilot-pace/releases/tag/v1.1.1), `preview: false`, Latest. Annotated tag points to `ae4de23a0b8f032ec438f85cda75cb6e77bd447a` on `main`.
+- Stable GitHub release: [v1.1.1](https://github.com/rublaman/copilot-pace/releases/tag/v1.1.1), `preview: false`, no longer Latest. Annotated tag points to `ae4de23a0b8f032ec438f85cda75cb6e77bd447a` on `main`.
 - [Main CI](https://github.com/rublaman/copilot-pace/actions/runs/38900515937) and the [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/38900964228) passed both pinned Node versions and both VS Code versions, package inspection and dependency audit. Local validation passed `npm ci`, lint/types, 149 unit/service tests, 8 release-script tests, 17 integration tests per editor version, 7 installed-package tests and `npm audit` with zero vulnerabilities.
 - Tested and published [copilot-pace-1.1.1.vsix](https://github.com/rublaman/copilot-pace/releases/download/v1.1.1/copilot-pace-1.1.1.vsix); SHA-256: `0d88f21d977824eddd9cd656cf26d5be6b44e192bf57e3686e07bf23cadb60c6`. The checksum and build record match the tag workflow artifact. The exact downloaded VSIX passed all 7 installed-package tests on Windows 11 / VS Code 1.141.0 without rebuilding, and an anonymous public download matched.
 - The maintainer reviewed the visual presentation in the published 1.1.0 pilot and approved stable promotion. This records visual approval; new real-account flow, quota comparison, reconnection and corporate-network checks were not recorded for the changed UI.
