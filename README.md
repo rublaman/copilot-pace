@@ -39,7 +39,7 @@ The panel puts your remaining budget and daily allowance next to your average co
 
 ### What the colors mean
 
-The color follows **projected usage at renewal**, calculated from your average consumption so far. In these captures, 45%, 50% and 60% used project to approximately 89.3%, 99.2% and 119% of the budget respectively. The same used percentage can have a different color at another point in the cycle.
+The color follows **projected usage at renewal**, calculated from your average consumption so far. In these captures, 45%, 50% and 60% used project to approximately 89.2%, 99.1% and 118.9% of the budget respectively. The same used percentage can have a different color at another point in the cycle.
 
 | Status | Projected usage at renewal | Meaning |
 | --- | --- | --- |
