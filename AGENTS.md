@@ -2,7 +2,7 @@
 
 ## Context and references
 
-Copilot Pace is a VS Code extension that displays GitHub Copilot credits and an estimated monthly usage pace. Keep the extension UI, Markdown and pull request content in English. Respond to each contributor in their preferred language; the current maintainer prefers Spanish.
+Copilot Pace is a VS Code extension that displays GitHub Copilot credits and an estimated monthly usage pace. English is the default extension UI language; Spanish (Spain) is an explicit user preference. Keep Markdown and pull request content in English. Respond to each contributor in their preferred language; the current maintainer prefers Spanish.
 
 - Read [CONTRIBUTING.md](CONTRIBUTING.md) for development and testing.
 - Before changing versions, packaging, CI, branches, tags or publishing, read [docs/RELEASING.md](docs/RELEASING.md). It is the reference for the release workflow and outstanding work.
@@ -24,7 +24,7 @@ Copilot Pace is a VS Code extension that displays GitHub Copilot credits and an 
 - `src/sessions.ts`: authentication through VS Code's `github` provider with `read:user`. Do not store credentials independently. Silent refresh must not open dialogs; interactive reconnection requires a user action.
 - `src/transport.ts`: HTTPS to the fixed endpoint `https://api.github.com/copilot_internal/user`. Preserve TLS, timeouts, response limits and cancellation. Header versions come from `__EXTENSION_VERSION__`, defined from the manifest at build time.
 - `src/service.ts`: concurrency, cancellation, sessions, refresh and retry backoff. Preserve stale response invalidation, the interactive connection queue and respect for `Retry-After`. Use the injected clock for testable time-dependent logic.
-- `src/extension.ts`, `src/view.ts` and `src/presentation.ts`: VS Code integration and presentation. Preserve the nonce-based CSP, restricted local resources, explicit webview action allowlist, Markdown escaping and hover command allowlist. Do not insert network responses as HTML or expose tokens to the panel.
+- `src/extension.ts`, `src/view.ts`, `src/presentation.ts` and `src/i18n.ts`: VS Code integration, presentation and English/Spanish (Spain) localization. The language switch belongs only in the detail panel, labeled Spanish in English and Inglés in Spanish. Keep UTC calculations independent of presentation language. Preserve the nonce-based CSP, restricted local resources, explicit webview action allowlist, Markdown escaping and hover command allowlist. Do not insert network responses as HTML or expose tokens to the panel.
 - The endpoint is internal to GitHub. Synthetic tests do not demonstrate compatibility with corporate accounts or networks. Do not claim support for GitHub Enterprise Server, GHE.com, web or other systems without implementing and validating it.
 - Do not log tokens, complete response bodies or account data. Do not add telemetry or workspace access as a side effect of refactoring.
 

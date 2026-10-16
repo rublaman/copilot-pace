@@ -1,6 +1,6 @@
 # Contributing to Copilot Pace
 
-Keep the UI, Markdown and pull request content in English. Read [AGENTS.md](AGENTS.md) for project rules and [the release guide](docs/RELEASING.md) before changing versions, packaging or workflows.
+Keep English as the default UI language and maintain the explicit Spanish (Spain) option in `src/i18n.ts`. Keep Markdown and pull request content in English. Read [AGENTS.md](AGENTS.md) for project rules and [the release guide](docs/RELEASING.md) before changing versions, packaging or workflows.
 
 ## Setup
 

@@ -3,6 +3,17 @@ import type * as vscode from 'vscode';
 import { GitHubSessions } from '../../src/sessions';
 
 describe('GitHub session options', () => {
+  it('uses the current Spanish preference for interactive prompts without changing scopes or silent behavior', async () => {
+    const calls: unknown[][] = [];
+    const getSession = (async (...args: unknown[]) => { calls.push(args); return undefined; }) as unknown as typeof vscode.authentication.getSession;
+    const sessions = new GitHubSessions({ getSession }, () => 'es-ES');
+    await sessions.get(false); await sessions.get(true); await sessions.get(true, true);
+    assert.deepEqual(calls, [
+      ['github', ['read:user'], { silent: true }],
+      ['github', ['read:user'], { createIfNone: { detail: 'Elige una cuenta de GitHub para consultar su consumo de Copilot.' }, clearSessionPreference: true }],
+      ['github', ['read:user'], { forceNewSession: { detail: 'Vuelve a conectar con GitHub para consultar tu consumo de Copilot.' }, clearSessionPreference: true }],
+    ]);
+  });
   for (const [interactive, forceNewSession, expected] of [
     [false, false, { silent: true }],
     [false, true, { silent: true }],

@@ -28,6 +28,8 @@ Pilots through `0.2.2` retain the `rublaman.copilot-pace` identity and their ori
 
 ## Branches and channels
 
+The 1.1.0 pilot uses a numeric `v1.1.0` tag from `develop`, manifest `preview: true` and the GitHub prerelease channel without Latest. It introduces English/Spanish (Spain) localization, a compact hover and theme-aware pace colors. Stable 1.0.1 remains on `main`; this pilot does not authorize a Marketplace upload or stable promotion. Final-artifact automated checks and the development-host UI review must be kept separate from real-account and corporate-network acceptance, which remain pending for the new UI.
+
 | Work | Branch / event | Result |
 | --- | --- | --- |
 | Regular changes | `feature/*`, `fix/*` or `chore/*` → PR to `develop`, squash by default | One coherent commit per PR, with CI and reviewed changes |

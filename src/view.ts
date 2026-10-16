@@ -1,38 +1,59 @@
 import { Buffer } from 'node:buffer';
 import { calculatePace, equivalentDays, type Clock, type DayMode } from './domain';
+import { getStrings, type Language, type Strings } from './i18n';
+import { localizeDemoScenario } from './development';
 import type { ServiceState } from './service';
+import type { SafeError } from './transport';
 
-const amountFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
-const percentFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
-const dateFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' });
-const periodFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
-const amount = (value: number) => amountFormatter.format(value);
-function percent(value: number): string {
-  const formatted = percentFormatter.format(value);
-  return `${value > 0 && formatted === '0' ? '<0.1' : formatted}%`;
+const formatters = Object.fromEntries((['en', 'es-ES'] as const).map(language => {
+  const locale = language === 'en' ? 'en-US' : language;
+  return [language, {
+    number: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }),
+    date: new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }),
+    period: new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }),
+  }];
+})) as Record<Language, { number: Intl.NumberFormat; date: Intl.DateTimeFormat; period: Intl.DateTimeFormat }>;
+
+function failureMessage(failure: SafeError, language: Language, text: Strings): string {
+  if (language === 'en') return failure.message;
+  if (failure.code === 'server') {
+    const status = failure.message.match(/\bHTTP (\d{3})\b/)?.[1];
+    return `${text.errorServer}${status ? ` (HTTP ${status})` : ''}.`;
+  }
+  return {
+    timeout: text.errorTimeout, network: text.errorNetwork, invalidResponse: text.errorInvalidResponse,
+    unauthorized: text.errorUnauthorized, forbidden: text.errorForbidden, rateLimited: text.errorRateLimited,
+    cancelled: text.errorCancelled, auth: text.errorAuth,
+  }[failure.code];
 }
-const date = (value: number) => dateFormatter.format(value) + ' UTC';
 export interface ViewModel {
+  language: Language; text: Strings;
   statusText: string; summary: string; message: string; demo: boolean; scenario: string;
   used: string; total: string; percentage: string; renewal: string; dailyAverage: string; projection: string;
   updated: string; referenceDate: string; dayMode: DayMode; busy: boolean; canConnect: boolean; retry: string;
   tone: 'good' | 'watch' | 'over' | 'neutral'; remaining: string; allowance: string; baseRate: string;
   cycleProgress: string; daysLeft: string; period: string; forecastNote: string;
   usageValue: number | null; cycleValue: number | null;
-  accountLabel: string; connectLabel: 'Connect GitHub' | 'Switch GitHub account…' | 'Reconnect GitHub';
+  accountLabel: string; connectLabel: string;
 }
-export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayMode, demo: boolean, scenario: string, retryAt: number): ViewModel {
+export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayMode, demo: boolean, scenario: string, retryAt: number, language: Language = 'en'): ViewModel {
+  const text = getStrings(language);
+  const formatter = formatters[language];
+  const amount = (value: number) => formatter.number.format(value);
+  const percent = (value: number) => `${value > 0 && amount(value) === '0' ? `<${amount(0.1)}` : amount(value)}%`;
+  const date = (value: number) => formatter.date.format(value) + ' UTC';
   const snapshot = state.snapshot;
   const now = clock.now();
   const pace = snapshot ? calculatePace(snapshot, now, dayMode) : undefined;
-  let summary = 'Reading usage…';
+  let summary = text.readingUsage;
   let tone: ViewModel['tone'] = 'neutral';
-  if (state.phase === 'disconnected') summary = 'Connect GitHub';
-  else if (state.phase === 'error') summary = snapshot ? 'Out of date' : state.failure?.code === 'rateLimited' ? 'Waiting' : 'Unavailable';
-  else if (snapshot?.kind === 'unavailable') summary = 'Quota unavailable';
-  else if (snapshot?.kind === 'usageOnly') summary = 'No known limit';
+  if (state.phase === 'disconnected') summary = text.connect;
+  else if (state.phase === 'error') summary = snapshot ? text.outOfDate : state.failure?.code === 'rateLimited' ? text.waiting : text.unavailable;
+  else if (snapshot?.kind === 'unavailable') summary = text.quotaUnavailable;
+  else if (snapshot?.kind === 'usageOnly') summary = text.noKnownLimit;
   else if (snapshot?.kind === 'bounded') {
-    summary = pace?.label ?? 'Pace unavailable';
+    summary = pace?.kind === 'available' ? { Comfortable: text.comfortable, 'On track': text.onTrack, 'Over pace': text.overPace }[pace.label]
+      : pace?.kind === 'pending' ? text.calculatingPace : text.paceUnavailable;
     if (pace?.kind === 'available') tone = pace.label === 'Comfortable' ? 'good' : pace.label === 'On track' ? 'watch' : 'over';
   }
   const cycle = snapshot?.cycle;
@@ -43,34 +64,34 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
   const remaining = snapshot?.kind === 'bounded' ? Math.max(0, snapshot.total - snapshot.used) : undefined;
   const percentage = snapshot?.kind === 'bounded' ? percent(snapshot.usedPercent) : '—';
   const forecastNote = pace?.kind === 'available'
-    ? pace.label === 'Comfortable' ? 'Your current pace leaves room in this cycle’s budget.'
-      : pace.label === 'On track' ? 'Your projected usage is close to this cycle’s budget.'
-      : 'At this pace, you may exceed your budget before renewal.'
-    : pace?.kind === 'pending' ? 'A daily estimate will appear after one full eligible day.'
-      : 'A known budget and billing cycle are needed to estimate your pace.';
-  const message = state.failure?.message ?? (snapshot?.kind === 'unavailable' ? snapshot.reason
-    : state.phase === 'disconnected' ? 'Connect GitHub to view your Copilot usage.' : forecastNote);
+    ? pace.label === 'Comfortable' ? text.comfortableNote : pace.label === 'On track' ? text.onTrackNote : text.overPaceNote
+    : pace?.kind === 'pending' ? text.pendingNote : text.unavailableNote;
+  const quotaReason = snapshot?.kind === 'unavailable' ? language === 'en' ? snapshot.reason
+    : snapshot.reason === 'No supported credit quota was returned.' ? text.unsupportedQuota : text.missingQuota : undefined;
+  const message = state.failure ? failureMessage(state.failure, language, text)
+    : quotaReason ?? (state.phase === 'disconnected' ? text.connectNote : forecastNote);
   const reconnect = state.failure?.code === 'unauthorized' || (state.failure?.code === 'auth' && state.account !== undefined);
   return {
+    language, text,
     statusText: `${snapshot?.kind === 'bounded' ? `${percentage} · ` : ''}${summary}${demo ? ' · Demo' : ''}`,
-    summary, tone, message, demo, scenario, forecastNote,
-    used: snapshot && snapshot.kind !== 'unavailable' ? `${amount(snapshot.used)} credits` : '—',
-    total: snapshot?.kind === 'bounded' ? `${amount(snapshot.total)} credits` : '—',
-    remaining: remaining !== undefined ? `${amount(remaining)} credits` : '—',
+    summary, tone, message, demo, scenario: __DEV__ ? localizeDemoScenario(scenario, language) : scenario, forecastNote,
+    used: snapshot && snapshot.kind !== 'unavailable' ? `${amount(snapshot.used)} ${text.credits}` : '—',
+    total: snapshot?.kind === 'bounded' ? `${amount(snapshot.total)} ${text.credits}` : '—',
+    remaining: remaining !== undefined ? `${amount(remaining)} ${text.credits}` : '—',
     percentage, renewal: cycle ? date(cycle.end) : '—',
-    dailyAverage: pace?.kind === 'available' ? `${amount(pace.dailyAverage)} / day` : '—',
-    allowance: remaining !== undefined && daysLeft > 0 ? `${amount(remaining / daysLeft)} / day` : '—',
-    baseRate: snapshot?.kind === 'bounded' && totalDays > 0 ? `${amount(snapshot.total / totalDays)} / day` : '—',
-    projection: pace?.kind === 'available' ? `${amount(pace.projected)} credits (${percent(pace.projectedPercent)})` : '—',
+    dailyAverage: pace?.kind === 'available' ? `${amount(pace.dailyAverage)} ${text.perDay}` : '—',
+    allowance: remaining !== undefined && daysLeft > 0 ? `${amount(remaining / daysLeft)} ${text.perDay}` : '—',
+    baseRate: snapshot?.kind === 'bounded' && totalDays > 0 ? `${amount(snapshot.total / totalDays)} ${text.perDay}` : '—',
+    projection: pace?.kind === 'available' ? `${amount(pace.projected)} ${text.credits} (${percent(pace.projectedPercent)})` : '—',
     cycleProgress: cycleValue !== null ? `${amount(cycleValue)}%` : '—',
-    daysLeft: validCycle ? `${amount(daysLeft)} ${dayMode === 'weekdays' ? 'weekdays' : 'days'} left` : 'Cycle unavailable',
-    period: validCycle ? periodFormatter.format(cycle.start) : 'Current cycle',
+    daysLeft: validCycle ? `${amount(daysLeft)} ${dayMode === 'weekdays' ? text.weekdaysLeft : text.daysLeft}` : text.cycleUnavailable,
+    period: validCycle ? formatter.period.format(cycle.start) : text.currentCycle,
     usageValue: snapshot?.kind === 'bounded' ? snapshot.usedPercent : null, cycleValue,
     updated: state.updatedAt !== undefined ? date(state.updatedAt) : '—',
     referenceDate: demo ? date(now.getTime()) : '', dayMode, busy: state.phase === 'loading', canConnect: !demo,
     accountLabel: demo ? '' : state.account?.label ?? '',
-    connectLabel: reconnect ? 'Reconnect GitHub' : state.account ? 'Switch GitHub account…' : 'Connect GitHub',
-    retry: retryAt > now.getTime() ? `Next refresh allowed: ${date(retryAt)}` : '',
+    connectLabel: reconnect ? text.reconnect : state.account ? text.switchAccount : text.connect,
+    retry: retryAt > now.getTime() ? `${text.nextRefresh} ${date(retryAt)}` : '',
   };
 }
 function markdownText(value: string): string {
@@ -82,32 +103,34 @@ const dividerSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="
 const divider = `![](data:image/svg+xml;base64,${Buffer.from(dividerSvg).toString('base64')}|width=500,height=2)`;
 export function renderHover(model: ViewModel): string {
   const text = markdownText;
+  const label = model.text;
   const inset = (value: string) => `\u2002${value}\u2002`;
   const row = (value: string) => `${inset(value)}  `;
   // An invisible character keeps the first and last spacer lines when Markdown trims whitespace.
   const verticalSpace = '\u200b  ';
-  const icon = model.tone === 'good' ? 'pass' : model.tone === 'watch' ? 'clock' : model.tone === 'over' ? 'warning' : 'info';
+  // A text check shares the label's baseline; hover codicons use vertical-align: middle.
+  const icon = model.tone === 'good' ? '✓' : model.tone === 'watch' ? '$(clock)' : model.tone === 'over' ? '$(warning)' : '$(info)';
+  const color = { good: 'green', watch: 'yellow', over: 'red', neutral: undefined }[model.tone];
+  const summary = `${icon} **${text(model.summary)}**`;
+  // Only this fixed span uses HTML; every dynamic label still passes through Markdown escaping.
+  const status = color ? `<span style="color:var(--vscode-charts-${color});">${summary}</span>` : summary;
   const lines = [
     verticalSpace,
     row(`**Copilot Pace**${__DEV__ && model.demo ? '　·　**DEMO**' : ''}`),
-    ...(model.accountLabel ? ['', row(`GitHub account: **${text(model.accountLabel)}**`)] : []),
-    '', divider, '', row(`$(${icon}) **${text(model.summary)}**`), '', row(text(model.message)), '', divider, '',
-    row('**This cycle**'), '',
-    row(`Used: **${text(model.used)}**　·　Remaining: **${text(model.remaining)}**`),
-    row(`Budget: ${text(model.total)}　·　Renewal: ${text(model.renewal)}`),
-    '', divider, '', row('**Progress**'), '',
-    row(`Credits used: **${text(model.percentage)}**　·　Cycle elapsed: ${text(model.cycleProgress)}`),
-    row(`Time left: ${text(model.daysLeft)}`),
-    '', divider, '', row(`**Daily pace** · ${model.dayMode === 'weekdays' ? 'Mon–Fri' : 'Every day'}`), '',
-    row(`Average: ${text(model.dailyAverage)}　·　Available: **${text(model.allowance)}**`),
-    row(`Cycle baseline: ${text(model.baseRate)}`),
-    row(`Projected at renewal: **${text(model.projection)}**`),
+    ...(model.accountLabel ? ['', row(`${label.accountHeading}: **${text(model.accountLabel)}**`)] : []),
+    '', divider, '',
+    row(`${status}${model.usageValue !== null ? ` · ${text(model.percentage)} ${label.usedSuffix}` : ''}`),
+    ...(model.message !== model.forecastNote || model.projection === '—' ? ['', row(text(model.message))] : []),
+    '', row(`${label.remainingHover}: **${text(model.remaining)}**`),
+    ...(model.allowance !== '—' ? [row(`${label.allowanceHover}: **${text(model.allowance)}** · ${model.dayMode === 'weekdays' ? label.allowanceCalendarWeekdays : label.allowanceCalendarAll}`)] : []),
+    row(`${label.projectionLabel}: **${text(model.projection)}**`),
+    row(`${label.updatedHover} ${text(model.updated)}`),
   ];
-  if (__DEV__ && model.demo) lines.push('', row(`$(beaker) Simulated data · ${text(model.referenceDate)}`));
+  if (__DEV__ && model.demo) lines.push('', row(`$(beaker) ${label.simulatedData} · ${text(model.referenceDate)}`));
   if (model.retry) lines.push('', row(text(model.retry)));
-  lines.push('', divider, '', row(`Updated ${text(model.updated)}`), '',
-    row('[$(graph) Open details](command:copilotPace.showDetails)　[$(refresh) Refresh](command:copilotPace.refresh)' +
-      (__DEV__ && model.demo ? '　[Change demo](command:copilotPace.demo)' : `　[${text(model.connectLabel)}](command:copilotPace.connect)`)),
+  lines.push('', divider, '',
+    row(`[$(graph) ${label.openDetails}](command:copilotPace.showDetails)　[$(refresh) ${label.refreshHover}](command:copilotPace.refresh)` +
+      (__DEV__ && model.demo ? `　[${label.changeDemo}](command:copilotPace.demo)` : `　[${text(model.connectLabel)}](command:copilotPace.connect)`)),
     verticalSpace);
   return lines.join('\n');
 }
