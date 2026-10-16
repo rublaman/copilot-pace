@@ -4,6 +4,12 @@ Versions 0.1.x describe local development builds.
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-10-16
+
+- Refresh the README and Marketplace overview with looping dark- and light-theme GIFs of the tooltip and detail panel, showing green, yellow and red pace states.
+- Keep each state visible for two seconds in matching six-second cycles.
+- No extension runtime code changed.
+
 ## [1.1.1] - 2026-10-16
 
 Promote the 1.1.0 pilot to stable after the maintainer reviewed and approved its visual presentation.
