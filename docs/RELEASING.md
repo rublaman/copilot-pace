@@ -8,7 +8,7 @@ Reviewed on October 16, 2026:
 
 - Public repository: `rublaman/copilot-pace`; default branch: `main`. There is no `master` branch.
 - [Copilot Pace 1.1.3](https://github.com/rublaman/copilot-pace/releases/tag/v1.1.3) is published from `main` as the stable GitHub Release with Latest and `preview: false`, using publisher `rubenblancomanzano`. Annotated tag `v1.1.3` identifies validated commit `04fe7d7c1e67664d605c324f5cbb82e916694808`.
-- Preparation PR [#33](https://github.com/rublaman/copilot-pace/pull/33) was squash-merged into `develop`; promotion PR [#34](https://github.com/rublaman/copilot-pace/pull/34) merged `develop` into `main` with a merge commit. The main-to-develop synchronization for this release is tracked by PR #36 and uses a merge commit.
+- Preparation PR [#33](https://github.com/rublaman/copilot-pace/pull/33) was squash-merged into `develop`; promotion PR [#34](https://github.com/rublaman/copilot-pace/pull/34) merged `develop` into `main` with a merge commit. The main-to-develop synchronization for this release is tracked by PR #37 and uses a merge commit.
 - [1.1.3 main CI](https://github.com/rublaman/copilot-pace/actions/runs/38969894818) and the [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/38970336298) passed on the release commit, covering both Node and VS Code versions, production package inspection and dependency audit.
 - Tested and published artifact: [copilot-pace-1.1.3.vsix](https://github.com/rublaman/copilot-pace/releases/download/v1.1.3/copilot-pace-1.1.3.vsix); SHA-256: `ea05b0d27efd4e71cce85ae161df7ace984b9a415d7f7d25493ff5a785039c2d`. The VSIX, checksum and build record match the tag workflow artifact. The downloaded VSIX installed in an isolated Windows 11 / VS Code 1.142.0 profile; its manifest confirms version 1.1.3, the expected publisher and `preview: false`. Its packaged README references the two dark GIFs pinned to the release commit. No extension runtime code changed, and this release adds no new real-account or corporate-network acceptance; see [validation evidence](validation.md).
 - [Copilot Pace 1.1.2](https://github.com/rublaman/copilot-pace/releases/tag/v1.1.2) remains a published stable GitHub Release with `preview: false`, using publisher `rubenblancomanzano`. Annotated tag `v1.1.2` identifies validated commit `e63792f5e4e0949d13ec20a765b793098bbf09c0`; it is no longer Latest.
@@ -119,7 +119,7 @@ Integrate the workflows into `develop` before the pilot. Tag pushes run the work
 - [x] Prepare 1.1.2 with `preview: false` through PR #28, promote `develop` to `main` through PR #29 with a merge commit, validate the tagged VSIX and publish the stable GitHub Release with Latest. Preserve the 1.1.1 release and all earlier assets.
 - [x] Synchronize `main` back into `develop` with a merge commit through PR #30.
 - [x] Prepare 1.1.3 with `preview: false` through [PR #33](https://github.com/rublaman/copilot-pace/pull/33), promote `develop` to `main` through [PR #34](https://github.com/rublaman/copilot-pace/pull/34) with a merge commit, validate the tagged VSIX and publish the stable GitHub Release with Latest. Preserve the 1.1.2 release and all earlier assets.
-- [x] Synchronize `main` back into `develop` with a merge commit through PR #36.
+- [x] Synchronize `main` back into `develop` with a merge commit through PR #37.
 - [ ] Upload the exact tested 1.1.3 VSIX to Marketplace and verify the listing, package hash and isolated store installation.
 
 ## Create and review a candidate
