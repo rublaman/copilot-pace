@@ -21,23 +21,25 @@ Track GitHub Copilot credits from your VS Code status bar. See what you have use
 - **Account controls:** see which GitHub account is being queried, switch accounts or reconnect when needed.
 - **Automatic refresh:** check every 15 minutes by default, with a manual refresh whenever you need it.
 
-![Copilot Pace status bar showing 40% used and Comfortable, with a Demo label](docs/images/status-bar.png)
-
 Hover over the status item for a quick summary. Click it to open the detail panel beside your editor.
+
+| Hover · dark theme | Hover · light theme |
+| --- | --- |
+| [![Animated dark tooltip and status bar: 45% used is green, 50% is yellow and 60% is red as projected usage increases](docs/images/hover-dark.gif)](docs/images/hover-dark.gif) | [![Animated light tooltip and status bar showing Comfortable, On track and Over pace with simulated usage](docs/images/hover-light.gif)](docs/images/hover-light.gif) |
 
 ## See your pace
 
 The panel puts your remaining budget and daily allowance next to your average consumption. Usage and cycle progress have separate bars, so you can compare how quickly you are spending credits with how much of the cycle has elapsed.
 
-| Comfortable · dark theme | Over pace · light theme |
+| Detail panel · dark theme | Detail panel · light theme |
 | --- | --- |
-| [![Dark theme detail panel: 4,000 of 10,000 credits used, 6,000 remaining and approximately 85% projected at renewal](docs/images/details-dark.png)](docs/images/details-dark.png) | [![Light theme detail panel: 2,340 of 3,900 credits used, 1,560 remaining and approximately 128% projected at renewal](docs/images/details-light.png)](docs/images/details-light.png) |
+| [![Animated dark detail panel: 45%, 50% and 60% of a 3,900-credit budget used, with green, yellow and red pace indicators](docs/images/details-dark.gif)](docs/images/details-dark.gif) | [![Animated light detail panel showing usage, remaining credits, daily averages and renewal projections across all three pace colors](docs/images/details-light.gif)](docs/images/details-light.gif) |
 
-*Actual extension screenshots with simulated data, captured in the development host. Click either image to inspect it at full size. Demo tools are available only during development; distributed packages use GitHub data.*
+*Actual extension screenshots with simulated data, captured from version 1.1.1 in an isolated development host. Each GIF cycles through Comfortable, On track and Over pace. Click an image to inspect it at full size. Demo tools are available only during development; distributed packages use GitHub data.*
 
 ### What the colors mean
 
-The status bar color follows **projected usage at renewal**, rather than the percentage already used. In the examples above, 40% used projects to about 85% of the budget; 60% used projects to about 128%.
+The color follows **projected usage at renewal**, calculated from your average consumption so far. In these captures, 45%, 50% and 60% used project to approximately 89.2%, 99.1% and 118.9% of the budget respectively. The same used percentage can have a different color at another point in the cycle.
 
 | Status | Projected usage at renewal | Meaning |
 | --- | --- | --- |

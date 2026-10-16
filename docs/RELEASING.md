@@ -29,6 +29,8 @@ Reviewed on October 16, 2026:
 
 Next: upload the exact tested 1.1.1 VSIX to Marketplace and verify its listing, package hash and isolated store installation. The main-to-develop synchronization is complete through PR #25. Keep all published artifacts unchanged and check the remote state before any further publication.
 
+The source README now uses animated tooltip and detail-panel captures of the 1.1.1 UI in both themes. These assets were added after the 1.1.1 release and are not in its published package. Delivering the refreshed Marketplace overview requires a new version with the updated README, committed image URLs and its own validation. Keep that documentation publication separate from verification of the existing 1.1.1 package; do not replace its tag or assets.
+
 Pilots through `0.2.2` retain the `rublaman.copilot-pace` identity and their original assets. Starting with `0.2.3`, the identity is `rubenblancomanzano.copilot-pace`. VS Code treats it as a separate extension: uninstall the earlier pilot, install the new VSIX, reload and reconnect GitHub. Existing `copilotPace.*` user settings remain. Version `1.0.0` keeps the new identity for updates from `0.2.3` and future releases. The public publisher name is configured independently from the technical ID; see [MARKETPLACE.md](MARKETPLACE.md).
 
 ## Branches and channels
