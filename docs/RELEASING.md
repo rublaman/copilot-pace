@@ -4,9 +4,10 @@ This guide defines version preparation, validation and distribution. Read the wo
 
 ## Current state
 
-Reviewed on October 15, 2026:
+Reviewed on October 16, 2026:
 
 - Public repository: `rublaman/copilot-pace`; default branch: `main`. There is no `master` branch.
+- The published [1.1.0 pilot](https://github.com/rublaman/copilot-pace/releases/tag/v1.1.0) uses the immutable `v1.1.0` tag and remains a prerelease with `preview: true`. Stable promotion is being prepared as `1.1.1`; do not move the pilot tag or replace its assets. The maintainer approved the visual presentation of the pilot on October 16. This records visual approval only; new real-account flow, quota-comparison and corporate-network checks were not recorded for these UI changes.
 - [Copilot Pace 1.0.1](https://github.com/rublaman/copilot-pace/releases/tag/v1.0.1) is published as a stable GitHub Release with Latest and `preview: false`, using publisher `rubenblancomanzano` and author Ruben Blanco Manzano. Annotated tag `v1.0.1` identifies the validated `main` commit `12d1d03cc893eec706df212930af5bece07b2609`.
 - [Preparation PR #17](https://github.com/rublaman/copilot-pace/pull/17) was squash-merged into `develop`; [PR #19](https://github.com/rublaman/copilot-pace/pull/19) restored the prior main release ancestry. [Promotion PR #18](https://github.com/rublaman/copilot-pace/pull/18) merged `develop` into `main`, and [PR #20](https://github.com/rublaman/copilot-pace/pull/20) synchronized `main` back into `develop`. Synchronization and promotion used merge commits.
 - [1.0.1 main CI](https://github.com/rublaman/copilot-pace/actions/runs/38786619309) and the [1.0.1 tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/38787282587) passed on that commit, including both Node and VS Code versions, production package inspection and dependency audit. The downloaded tag artifact passed all six package tests again on Windows 11 / VS Code 1.141.0 without rebuilding. An isolated update from the original 1.0.0 VSIX retained the calendar and refresh settings. Both categories, the shortened README and its five image URLs were verified.
@@ -28,7 +29,7 @@ Pilots through `0.2.2` retain the `rublaman.copilot-pace` identity and their ori
 
 ## Branches and channels
 
-The 1.1.0 pilot uses a numeric `v1.1.0` tag from `develop`, manifest `preview: true` and the GitHub prerelease channel without Latest. It introduces English/Spanish (Spain) localization, a compact hover and theme-aware pace colors. Stable 1.0.1 remains on `main`; this pilot does not authorize a Marketplace upload or stable promotion. Final-artifact automated checks and the development-host UI review must be kept separate from real-account and corporate-network acceptance, which remain pending for the new UI.
+The 1.1.0 pilot uses the immutable numeric `v1.1.0` tag from `develop`, manifest `preview: true` and the GitHub prerelease channel without Latest. It introduces English/Spanish (Spain) localization, a compact hover and theme-aware pace colors. Stable promotion is authorized as `1.1.1` because `v1.1.0` already has published assets. The maintainer accepted the visual presentation; this does not record new real-account flow, quota-comparison or corporate-network checks. Do not claim those checks from automated tests or visual review.
 
 | Work | Branch / event | Result |
 | --- | --- | --- |
