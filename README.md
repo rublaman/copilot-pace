@@ -31,9 +31,11 @@ Hover over the status item for a quick summary. Click it to open the detail pane
 
 The panel puts your remaining budget and daily allowance next to your average consumption. Usage and cycle progress have separate bars, so you can compare how quickly you are spending credits with how much of the cycle has elapsed.
 
-[![Animated dark detail panel: 45%, 50% and 60% of a 3,900-credit budget used, with green, yellow and red pace indicators](docs/images/details-dark.gif)](docs/images/details-dark.gif)
+<p align="center">
+  <img src="docs/images/details-dark.gif" alt="Animated dark detail panel: 45%, 50% and 60% of a 3,900-credit budget used, with green, yellow and red pace indicators" />
+</p>
 
-*Actual extension screenshots with simulated data, captured from version 1.1.1 in an isolated development host. Each GIF cycles through Comfortable, On track and Over pace. Click the detail-panel GIF to inspect it at full size. Demo tools are available only during development; distributed packages use GitHub data.*
+*Actual extension screenshots with simulated data, captured from version 1.1.1 in an isolated development host. Both GIFs cycle through Comfortable, On track and Over pace. Demo tools are available only during development; distributed packages use GitHub data.*
 
 ### What the colors mean
 

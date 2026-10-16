@@ -10,7 +10,7 @@ The animated usage examples were captured on October 16, 2026, on Windows 11 wit
 | `details-light.gif` | Actual detail panel opened by clicking the status item, Default Light Modern. | 660 × 916 |
 | `commands.png` | Production bundle loaded in an isolated development host, filtered Command Palette. Captured on October 15 with VS Code 1.141.2 and extension 0.2.2 at `d19b28211df5e727dbca62ed21f92047504777bd`; the production commands are unchanged. | Static PNG |
 
-Each GIF contains three screenshots, held for two seconds each, and loops every six seconds. All four GIFs use the same frame order and timing. The README and Marketplace overview display only the dark-theme GIFs on separate lines and center the tooltip animation; the light-theme files remain available here as reference assets. All examples use the same 3,900-credit budget, the Every day calendar and English UI:
+Each GIF contains three screenshots, held for two seconds each, and loops every six seconds. All four GIFs use the same frame order and timing. The README and Marketplace overview display only the dark-theme GIFs on separate lines and center both animations; the light-theme files remain available here as reference assets. All examples use the same 3,900-credit budget, the Every day calendar and English UI:
 
 | Frame | Development scenario | Used | Projected at renewal | Pace |
 | --- | --- | --- | --- | --- |
