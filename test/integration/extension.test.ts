@@ -5,7 +5,7 @@ import { scenarioLabels, type MockScenario } from '../../src/mocks';
 
 let api: TestApi;
 const original = new Map<string, unknown>();
-const keys = ['dataSource', 'mockScenario', 'dayMode', 'pollIntervalMinutes'];
+const keys = ['dataSource', 'mockScenario', 'dayMode', 'pollIntervalMinutes', 'language'];
 async function waitFor(check: () => boolean) {
   const end = Date.now() + 5000;
   while (!check()) { if (Date.now() > end) throw new Error('The extension did not reach the expected state'); await new Promise(resolve => setTimeout(resolve, 20)); }
@@ -31,6 +31,7 @@ describe('Copilot Pace in the Extension Development Host', () => {
   before(async () => {
     const config = vscode.workspace.getConfiguration('copilotPace');
     for (const key of keys) original.set(key, config.inspect(key)?.globalValue);
+    await config.update('language', 'en', vscode.ConfigurationTarget.Global);
     await config.update('mockScenario', '10000-comfortable', vscode.ConfigurationTarget.Global);
     await config.update('dayMode', 'all', vscode.ConfigurationTarget.Global);
     await config.update('dataSource', 'mock', vscode.ConfigurationTarget.Global);
@@ -54,7 +55,7 @@ describe('Copilot Pace in the Extension Development Host', () => {
         assertCurrentPace(percentage, '<0.1%');
         assert.equal(api.getModel().percentage, '<0.1%');
         assert.equal(api.getModel().used, `${used} credits`);
-        assert.ok(api.getTooltip()?.value.includes('Credits used: **\\<0.1%**'));
+        assert.ok(api.getTooltip()?.value.includes(' · \\<0.1% used'));
       } finally { await scenario('10000-comfortable'); }
     });
   }
@@ -74,12 +75,20 @@ describe('Copilot Pace in the Extension Development Host', () => {
     const commands = await vscode.commands.getCommands(true);
     for (const command of ['showDetails', 'refresh', 'connect', 'demo', 'useGitHub']) assert.ok(commands.includes(`copilotPace.${command}`));
   });
-  it('renders a rich native hover with a restricted command allowlist', () => {
+  it('renders a compact native hover with a restricted command allowlist', () => {
     const tooltip = api.getTooltip(); assert.ok(tooltip instanceof vscode.MarkdownString);
-    assert.equal(tooltip.supportThemeIcons, true); assert.equal(tooltip.supportHtml, false);
+    assert.equal(tooltip.supportThemeIcons, true); assert.equal(tooltip.supportHtml, true);
     assert.deepEqual(tooltip.isTrusted, { enabledCommands: ['copilotPace.showDetails', 'copilotPace.refresh', 'copilotPace.connect', 'copilotPace.demo'] });
     assert.ok(tooltip.value.includes('Remaining: **6,000 credits**'));
-    assert.ok(tooltip.value.includes('**Daily pace**'));
+    assert.ok(!tooltip.value.includes('Today:'));
+    assert.ok(!tooltip.value.includes('$(pass)'));
+    assert.ok(tooltip.value.includes(`Daily allowance: **${api.getModel().allowance}** · Mon–Sun`));
+    assert.ok(!tooltip.value.includes('Every day'));
+    assert.equal(tooltip.value.match(/Daily allowance/g)?.length, 1);
+    assert.ok(tooltip.value.includes('Projected at renewal:'));
+    assert.ok(tooltip.value.includes(`Updated ${api.getModel().updated}`));
+    assert.ok(!tooltip.value.includes('**Daily pace**'));
+    assert.ok(!tooltip.value.includes('Cycle baseline:'));
     assert.ok(!tooltip.value.includes('GitHub account:'));
     assert.equal(api.getModel().accountLabel, '');
     assert.equal(api.getModel().canConnect, false);
@@ -106,6 +115,10 @@ describe('Copilot Pace in the Extension Development Host', () => {
     assert.ok(api.getModel().daysLeft.endsWith('weekdays left'));
     assert.ok(Number.parseFloat(api.getModel().daysLeft) <= Number.parseFloat(old.daysLeft));
     assert.equal(api.getModel().used, old.used);
+    const hover = api.getTooltip()?.value ?? '';
+    assert.ok(hover.includes(`Daily allowance: **${api.getModel().allowance}** · Mon–Fr`));
+    assert.equal(hover.match(/Daily allowance/g)?.length, 1);
+    assert.equal(hover.match(/Mon–Fr/g)?.length, 1);
     await api.receiveMessage({ action: 'dayMode', value: 'all' });
     await waitFor(() => api.getModel().dayMode === 'all');
   });
@@ -113,11 +126,44 @@ describe('Copilot Pace in the Extension Development Host', () => {
     await api.receiveMessage({ action: 'dayMode', value: 'invalid' });
     await api.receiveMessage({ action: 'executeCommand', value: 'workbench.action.closeWindow' });
     await api.receiveMessage(null); assert.equal(api.getModel().dayMode, 'all');
+    await api.receiveMessage({ action: 'language', value: 'fr' });
+    await api.receiveMessage({ action: 'language', value: ['es-ES'] });
+    assert.equal(api.getModel().language, 'en');
   });
-  it('colors the status according to the current pace for each budget', async () => {
-    await scenario('3900-on-track'); assertCurrentPace(45);
-    await scenario('3900-over-pace'); assertCurrentPace(60);
-    await scenario('budget-10000'); assertCurrentPace(19.5);
+  it('persists Spanish from the detail panel and updates the existing view without refreshing usage', async () => {
+    const panel = api.getPanel(); assert.ok(panel);
+    const snapshot = api.getState().snapshot;
+    const updatedAt = api.getState().updatedAt;
+    const color = api.getStatus().color;
+    try {
+      await api.receiveMessage({ action: 'language', value: 'es-ES' });
+      await waitFor(() => api.getModel().language === 'es-ES');
+      assert.equal(vscode.workspace.getConfiguration('copilotPace').inspect('language')?.globalValue, 'es-ES');
+      assert.equal(api.getPanel(), panel);
+      assert.equal(api.isPanelReady(), true);
+      assert.equal(api.getState().snapshot, snapshot);
+      assert.equal(api.getState().updatedAt, updatedAt);
+      assert.deepEqual(api.getStatus().color, color);
+      assert.equal(api.getModel().text.switchLanguage, 'Inglés');
+      assert.ok(api.getModel().used.endsWith(' créditos'));
+      assert.ok(api.getTooltip()?.value.includes('[$(graph) Ver detalles]'));
+      assert.ok(api.getTooltip()?.value.includes(api.getModel().dayMode === 'weekdays' ? 'De lunes a viernes' : 'De lunes a domingo'));
+      assert.ok(!api.getTooltip()?.value.includes('[Inglés]'));
+      assert.ok(!api.getTooltip()?.value.includes('[Spanish]'));
+      await api.receiveMessage({ action: 'language', value: 'en' });
+      await waitFor(() => api.getModel().language === 'en');
+      assert.equal(api.getModel().text.switchLanguage, 'Spanish');
+      assert.equal(api.getState().snapshot, snapshot);
+    } finally { await api.receiveMessage({ action: 'language', value: 'en' }); }
+  });
+  it('colors the status and native hover according to the current pace for each budget', async () => {
+    for (const [name, used] of [['3900-on-track', 45], ['3900-over-pace', 60], ['budget-10000', 19.5]] as const) {
+      await scenario(name); assertCurrentPace(used);
+      const color = api.getStatus().color;
+      if (color instanceof vscode.ThemeColor) {
+        assert.ok(api.getTooltip()?.value.includes(`color:var(--vscode-${color.id.replace('.', '-')});`));
+      } else assert.ok(!api.getTooltip()?.value.includes('<span'));
+    }
   });
   it('changes the budget without increasing accumulated usage', async () => {
     await scenario('budget-3900'); const used = api.getModel().used;
@@ -129,6 +175,7 @@ describe('Copilot Pace in the Extension Development Host', () => {
     for (const [name, phase] of Object.entries(expected)) {
       await scenario(name as MockScenario); assert.equal(api.getState().phase, phase, name); assert.ok(api.getStatus().text.endsWith('Demo'));
       if (name !== 'exhausted') assert.equal(api.getStatus().color, undefined, name);
+      if (name !== 'exhausted') assert.ok(!api.getTooltip()?.value.includes('<span'), name);
     }
   });
   it('recovers from an error without retaining previous data or cooldown', async () => {

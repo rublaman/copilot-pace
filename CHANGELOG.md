@@ -4,6 +4,26 @@ Versions 0.1.x describe local development builds.
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-16
+
+Promote the 1.1.0 pilot to stable after the maintainer reviewed and approved its visual presentation.
+
+- Set `preview: false` for the stable GitHub release. The published `v1.1.0` pilot and its assets remain unchanged.
+- Carry forward the localization, compact hover, daily allowance labels and theme-aware pace colors from the pilot; no feature changes were made after that review.
+- This visual approval does not record new real-account flow, quota-comparison or corporate-network checks.
+
+## [1.1.0] - 2026-10-16
+
+GitHub pilot with `preview: true`. The maintainer reviewed and approved the visual presentation on October 16 before requesting stable promotion. New real-account flow, quota-comparison and corporate-network checks were not recorded for these UI changes.
+
+- Add Spanish (Spain) with English as the default and a saved application-level language preference. Switch only from the detail panel using Spanish or Inglés; localize status, hover, panel, accessible labels, dates, numbers and connection guidance without refreshing usage.
+- Simplify the hover to pace status, remaining credits, daily allowance, projected usage and last update, keeping account actions and recovery messages. Reuse the daily allowance from the panel with the selected Every day or Mon–Fri calendar.
+- Align the Comfortable check with its label in the native hover.
+- Apply the green, yellow and red pace colors to the hover status and the detail panel using VS Code theme colors; clear pace colors for unavailable or stale data.
+- Keep the panel logo visible in the light high-contrast theme.
+- Omit today's usage because the quota connection supplies no daily breakdown, including for connected accounts; do not substitute the monthly average or label credits as tokens.
+- Label the hover's selected calendar as Mon–Sun or Mon–Fr in English and De lunes a domingo or De lunes a viernes in Spanish.
+
 ## [1.0.1] - 2026-10-15
 
 - Categorize the extension as Visualization and AI in the Marketplace.

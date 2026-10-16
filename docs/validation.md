@@ -53,14 +53,44 @@ Calendar regressions include partial days, weekdays, year rollover, leap years a
 
 Use F5 and the Extension Development Host described in [CONTRIBUTING.md](../CONTRIBUTING.md). Production VSIX packages exclude the demo commands.
 
-1. Run **Copilot Pace: Try Demo Scenarios**. Confirm `Demo` appears and the UI is English.
+1. Run **Copilot Pace: Try Demo Scenarios**. Confirm `Demo` appears and the UI defaults to English. Use **Spanish** in the detail panel: check Spanish (Spain) labels, comma decimals, accessible labels and a live hover update. Confirm no language action appears in the hover. The panel button becomes **Inglés**. Restart with Spanish selected to check persistence, then switch back to English. Usage, calendar and status color must be preserved.
 2. Inspect the hover and detail panel. Open details twice to confirm the panel is reused.
-3. Check the 10,000 / 3,900 credit scenarios. Pace labels depend on the current UTC date; the panel stays neutral.
+3. Check the 10,000 / 3,900 credit scenarios. Pace labels depend on the current UTC date. Verify green for Comfortable, yellow for On track and red for Over pace in the status bar, native hover and detail panel. Switch between Dark Modern, Light Modern, Dark High Contrast and Light High Contrast without reopening the panel; check the state label, percentage, usage bar, forecast, logo and hover check alignment. Missing or stale data must clear the pace colors.
 4. Switch **Every day / Mon–Fri** and check allowance, cycle progress and projection.
 5. Compare the budget scenarios: usage remains 1,950 while the percentage changes from 50% to 19.5%.
 6. Try exhausted, unknown-budget, incomplete, disconnected, timeout and HTTP error states. Check the 429 cooldown and its reset after changing scenarios.
 7. Run **Copilot Pace: Use GitHub**. Demo values disappear; without a session, the status becomes **Connect GitHub**.
 
+## October 16: local pace-color validation
+
+Uncommitted development working tree based on `94c708ec092581b4a8811d53c9252c3675c2a8a9`, on Windows 11 with standalone Node 26.11.1 / npm 11.20.0:
+
+- `npm run check`: lint/types, 149 unit/service tests and 8 release-script regressions passed.
+- `npm run test:integration`: 17 tests passed on each of VS Code 1.120.0 and 1.141.0, including colored native hover output, restricted commands, language changes and neutral recovery states.
+- Manual desktop review on VS Code 1.142.0: all three demo pace states checked in Dark Modern, Light Modern, Dark High Contrast and Light High Contrast. Both the open detail panel and visible native hover followed live theme and scenario changes. Status text, percentage, usage bar and forecast used the expected state color; the native check stayed aligned.
+- The light high-contrast review found an invisible panel logo. A theme-specific override was added, the host was rebuilt/restarted, and the logo was visibly verified. An incomplete response cleared the panel's pace colors. The isolated demo profile's original settings were restored byte for byte afterward.
+- These are synthetic UI checks, not a new real-account acceptance or release-artifact validation. At the time of that UI review, the installed-package suite had not been rerun; pilot packaging is validated separately.
+
+## 1.1.0 pilot preparation
+
+Local preflight on Windows 11 / standalone Node 26.11.1 / npm 11.20.0 passed `npm ci`, lint/types, 149 unit/service tests, 8 release-script regressions, 17 integration tests on each of VS Code 1.120.0 and 1.141.0, 7 installed-production-VSIX tests and package inspection. `npm audit` reported zero vulnerabilities. English hover calendar labels are Mon–Sun / Mon–Fr; Spanish keeps the explicit day ranges.
+
+The locally generated preflight VSIX identifies an uncommitted working tree and is not the publication artifact. The release workflow must validate the merged/tagged commit with both pinned Node versions and both VS Code versions, then retain the final VSIX, checksum, commit and run URL in the GitHub prerelease. Install and test that downloaded artifact without rebuilding before publishing. Real-account acceptance of the changed UI and corporate-network validation remain pending for this pilot.
+
+## 1.1.1 stable preparation
+
+The maintainer reviewed the published 1.1.0 pilot's visual presentation and approved stable promotion on October 16, 2026. This records visual approval only; new real-account flow, quota comparison, reconnection, and corporate-network checks are not recorded for the changed UI. Version 1.1.1 changes the release metadata to `preview: false` and carries forward the pilot behavior. Validate and retain the exact tagged 1.1.1 VSIX and its checksum before publishing.
+
 ## Release evidence
 
 For each candidate, retain its full commit SHA, tag, CI URL, tested VSIX and SHA-256. Complete the [real account acceptance checks](RELEASING.md#real-account-acceptance) on that artifact before stable publication. Store anonymized results without credentials or complete responses.
+
+### Stable 1.0.1 — October 15, 2026
+
+- Commit: `12d1d03cc893eec706df212930af5bece07b2609`; annotated tag: `v1.0.1`.
+- [Main CI](https://github.com/rublaman/copilot-pace/actions/runs/38786619309) and the [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/38787282587) passed both pinned Node versions and both VS Code versions. Lint/types, 133 unit/service tests, 8 release-script tests, 16 integration tests per editor version, 6 package tests and the dependency audit passed.
+- Tested and published [copilot-pace-1.0.1.vsix](https://github.com/rublaman/copilot-pace/releases/download/v1.0.1/copilot-pace-1.0.1.vsix); SHA-256: `30ff515ce5b5f2ab42c3efb73500597f7f0c5c59a5e6e3b437129bb24b3f8630`.
+- The release's VSIX, checksum and build record match the tag workflow artifact byte for byte. The downloaded VSIX passed all six package tests on Windows 11 / VS Code 1.141.0 without rebuilding. An update from the original published 1.0.0 VSIX retained the calendar and refresh settings. Packaged categories `Visualization` and `AI`, the removed README section and all five README image URLs were checked.
+- An anonymous public GitHub download matched the tested SHA-256. All earlier release asset identities/digests and annotated tags remain unchanged. The GitHub Release is stable and Latest; main-to-develop synchronization completed through [PR #20](https://github.com/rublaman/copilot-pace/pull/20).
+- Runtime source and dependencies are unchanged from 1.0.0. The production JavaScript also matches after normalizing the build-time version value. Prior maintainer acceptance of the unchanged runtime is distinct from these automated checks; no new real-account or corporate-network acceptance is claimed.
+- Marketplace upload of this same VSIX and store installation/package verification remain pending.

@@ -33,7 +33,9 @@ describe('Installed production VSIX', () => {
     assert.deepEqual(manifest.contributes.commands.map((item: { command: string }) => item.command), [
       'copilotPace.showDetails', 'copilotPace.refresh', 'copilotPace.connect',
     ]);
-    assert.deepEqual(Object.keys(manifest.contributes.configuration.properties).sort(), ['copilotPace.dayMode', 'copilotPace.pollIntervalMinutes']);
+    assert.deepEqual(Object.keys(manifest.contributes.configuration.properties).sort(), ['copilotPace.dayMode', 'copilotPace.language', 'copilotPace.pollIntervalMinutes']);
+    assert.equal(manifest.contributes.configuration.properties['copilotPace.language'].default, 'en');
+    assert.deepEqual(manifest.contributes.configuration.properties['copilotPace.language'].enum, ['en', 'es-ES']);
   });
   it('contains no demo adapters, scenarios or demo command identifiers', async () => {
     const bundle = await readFile(vscode.Uri.joinPath(extension.extensionUri, 'dist', 'extension.js').fsPath, 'utf8');
@@ -81,5 +83,23 @@ describe('Installed production VSIX', () => {
     await api.receiveMessage({ action: 'dayMode', value: 'weekdays' });
     await waitFor(() => api.getModel().dayMode === 'weekdays');
     assert.equal(api.getModel().demo, false);
+  });
+  it('switches the production language through the panel and saves the preference', async () => {
+    const panel = api.getPanel(); assert.ok(panel);
+    assert.equal(api.getModel().language, 'en');
+    assert.equal(api.getModel().text.switchLanguage, 'Spanish');
+    try {
+      await api.receiveMessage({ action: 'language', value: 'es-ES' });
+      await waitFor(() => api.getModel().language === 'es-ES');
+      assert.equal(vscode.workspace.getConfiguration('copilotPace').inspect('language')?.globalValue, 'es-ES');
+      assert.equal(api.getStatus().text, 'Conectar con GitHub');
+      assert.equal(api.getModel().text.switchLanguage, 'Inglés');
+      assert.equal(api.getPanel(), panel);
+      assert.equal(api.getModel().demo, false);
+      assert.ok(!api.getTooltip()?.value.includes('[Inglés]'));
+      await api.receiveMessage({ action: 'language', value: 'en' });
+      await waitFor(() => api.getModel().language === 'en');
+      assert.equal(api.getStatus().text, 'Connect GitHub');
+    } finally { await api.receiveMessage({ action: 'language', value: 'en' }); }
   });
 });
