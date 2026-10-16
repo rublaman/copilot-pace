@@ -46,12 +46,10 @@ The [root README](../README.md) is the full Marketplace overview, including inst
 | --- | --- |
 | [Brand banner](../images/social-preview/copilot-pace.png) | GitHub Copilot credits and daily usage pace. |
 | [Hover · dark](images/hover-dark.gif) | Watch the tooltip and status bar change from Comfortable to On track to Over pace. Simulated data. |
-| [Hover · light](images/hover-light.gif) | The same three pace states in the light theme. Simulated data. |
 | [Detail panel · dark](images/details-dark.gif) | Compare average consumption, daily allowance and renewal projections across all three pace colors. Simulated data. |
-| [Detail panel · light](images/details-light.gif) | The same three pace states in the light detail panel. Simulated data. |
 | [Command Palette](images/commands.png) | Connect GitHub, refresh usage or open details from the Command Palette. |
 
-Screenshot provenance and capture notes are in [images/README.md](images/README.md).
+The overview displays only the dark-theme GIFs on separate lines and centers both animations for readability. Light-theme captures remain available in the repository as reference assets. Screenshot provenance and capture notes are in [images/README.md](images/README.md).
 
 The README uses relative PNG and GIF paths for local and GitHub viewing. The existing packaging script rewrites them to HTTPS URLs for the packaged commit. Commit and push the referenced assets before preparing a publication candidate, then verify those exact URLs resolve. The banner and documentation captures are hosted in the repository and excluded from the VSIX by the existing ignore rules.
 
