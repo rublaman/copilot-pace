@@ -23,17 +23,13 @@ Track GitHub Copilot credits from your VS Code status bar. See what you have use
 
 Hover over the status item for a quick summary. Click it to open the detail panel beside your editor.
 
-| Hover · dark theme | Hover · light theme |
-| --- | --- |
-| [![Animated dark tooltip and status bar: 45% used is green, 50% is yellow and 60% is red as projected usage increases](docs/images/hover-dark.gif)](docs/images/hover-dark.gif) | [![Animated light tooltip and status bar showing Comfortable, On track and Over pace with simulated usage](docs/images/hover-light.gif)](docs/images/hover-light.gif) |
+[![Animated dark tooltip and status bar: 45% used is green, 50% is yellow and 60% is red as projected usage increases](docs/images/hover-dark.gif)](docs/images/hover-dark.gif)
 
 ## See your pace
 
 The panel puts your remaining budget and daily allowance next to your average consumption. Usage and cycle progress have separate bars, so you can compare how quickly you are spending credits with how much of the cycle has elapsed.
 
-| Detail panel · dark theme | Detail panel · light theme |
-| --- | --- |
-| [![Animated dark detail panel: 45%, 50% and 60% of a 3,900-credit budget used, with green, yellow and red pace indicators](docs/images/details-dark.gif)](docs/images/details-dark.gif) | [![Animated light detail panel showing usage, remaining credits, daily averages and renewal projections across all three pace colors](docs/images/details-light.gif)](docs/images/details-light.gif) |
+[![Animated dark detail panel: 45%, 50% and 60% of a 3,900-credit budget used, with green, yellow and red pace indicators](docs/images/details-dark.gif)](docs/images/details-dark.gif)
 
 *Actual extension screenshots with simulated data, captured from version 1.1.1 in an isolated development host. Each GIF cycles through Comfortable, On track and Over pace. Click an image to inspect it at full size. Demo tools are available only during development; distributed packages use GitHub data.*
 
