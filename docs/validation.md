@@ -77,6 +77,10 @@ Local preflight on Windows 11 / standalone Node 26.11.1 / npm 11.20.0 passed `np
 
 The locally generated preflight VSIX identifies an uncommitted working tree and is not the publication artifact. The release workflow must validate the merged/tagged commit with both pinned Node versions and both VS Code versions, then retain the final VSIX, checksum, commit and run URL in the GitHub prerelease. Install and test that downloaded artifact without rebuilding before publishing. Real-account acceptance of the changed UI and corporate-network validation remain pending for this pilot.
 
+## 1.1.1 stable preparation
+
+The maintainer reviewed the published 1.1.0 pilot's visual presentation and approved stable promotion on October 16, 2026. This records visual approval only; new real-account flow, quota comparison, reconnection, and corporate-network checks are not recorded for the changed UI. Version 1.1.1 changes the release metadata to `preview: false` and carries forward the pilot behavior. Validate and retain the exact tagged 1.1.1 VSIX and its checksum before publishing.
+
 ## Release evidence
 
 For each candidate, retain its full commit SHA, tag, CI URL, tested VSIX and SHA-256. Complete the [real account acceptance checks](RELEASING.md#real-account-acceptance) on that artifact before stable publication. Store anonymized results without credentials or complete responses.
