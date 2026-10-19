@@ -36,7 +36,7 @@ Connect through VS Code's GitHub authentication, see which account is selected, 
 
 No workspace access or telemetry. Figures represent credits, and estimates depend on the quota and monthly cycle reported by GitHub.
 
-Targets GitHub.com on desktop VS Code for Windows, version 1.120 or later. The maintainer validated the 0.2.3 runtime with a real Copilot account; 1.0.0 retains that behavior. Other accounts and corporate networks require separate validation. The extension uses an internal GitHub endpoint that may change. GitHub Enterprise Server, GHE.com and browser-based VS Code are unsupported.
+Targets GitHub.com on desktop VS Code for Windows, version 1.120 or later. The maintainer validated the 0.2.3 runtime with a real Copilot account; 1.0.0 retains that behavior. Other accounts and corporate networks require separate validation. The extension uses an internal GitHub endpoint that may change. The GitHub 1.2.0 pilot adds experimental Enterprise provider selection and single-instance quota routing; real corporate acceptance remains pending, so do not advertise GHE.com or GitHub Enterprise Server compatibility from synthetic tests. Browser-based VS Code is unsupported.
 
 ## Marketplace overview and images
 

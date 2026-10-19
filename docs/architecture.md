@@ -2,6 +2,8 @@
 
 Synthetic fixtures exercise the response contract; they are not captured corporate traffic.
 
+The [corporate authentication implementation](corporate-authentication.md) documents provider selection, experimental Enterprise routing, stable-API constraints and pending real-account validation.
+
 ## Data flow
 
 `VS Code session → HTTPS transport → normalizer → snapshot → pace calculation → view model → status bar / hover / panel`
@@ -9,8 +11,9 @@ Synthetic fixtures exercise the response contract; they are not captured corpora
 | Module | Responsibility |
 | --- | --- |
 | `domain.ts` | Quota normalization, UTC cycles and pure pace calculations |
-| `sessions.ts` | VS Code GitHub authentication with `read:user` |
-| `transport.ts` | Fixed HTTPS endpoint, cancellation, 10-second total timeout and 1 MiB response limit |
+| `connection.ts` | Provider resolution, validated Enterprise origins and matched quota destinations |
+| `sessions.ts` | VS Code GitHub/GitHub Enterprise authentication with `read:user` |
+| `transport.ts` | Matched HTTPS endpoint, cancellation, 10-second total timeout and 1 MiB response limit |
 | `service.ts` | Deduplication, session changes, stale response rejection, retained snapshots and retry cooldowns |
 | `view.ts` | Localized values and escaped Markdown hover |
 | `i18n.ts` | English defaults and Spanish (Spain) strings |

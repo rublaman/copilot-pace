@@ -6,7 +6,8 @@ import { createViewModel, renderHtml, renderHover, hoverCommands, type ViewModel
 import { QuotaService, type ServiceState } from './service';
 import { GitHubSessions } from './sessions';
 import { GitHubTransport } from './transport';
-import { resolveLanguage, type Language } from './i18n';
+import { getStrings, resolveLanguage, type Language } from './i18n';
+import { defaultConnection, resolveConnection, type AuthProvider } from './connection';
 
 export interface TestApi {
   getState(): ServiceState;
@@ -31,6 +32,10 @@ class CopilotPace implements vscode.Disposable {
   private dayMode: DayMode = 'all';
   private language: Language = 'en';
   private sourceKey = '';
+  private connection = defaultConnection;
+  private enterpriseConfigurationKey?: string;
+  private enterpriseRequiresReload = false;
+  private connecting?: Promise<void>;
   private panel?: vscode.WebviewPanel;
   private panelReady = false;
   private timer?: ReturnType<typeof setTimeout>;
@@ -43,10 +48,13 @@ class CopilotPace implements vscode.Disposable {
     this.subscriptions.push(this.status,
       vscode.commands.registerCommand('copilotPace.showDetails', () => this.showDetails()),
       vscode.commands.registerCommand('copilotPace.refresh', () => this.refresh()),
-      vscode.commands.registerCommand('copilotPace.connect', () => this.refresh(!this.demo)),
-      vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration('copilotPace')) this.configure(); }),
+      vscode.commands.registerCommand('copilotPace.connect', () => this.connect()),
+      vscode.workspace.onDidChangeConfiguration(event => {
+        if (!this.disposed && ['copilotPace', 'github.copilot.advanced', 'github-enterprise'].some(key => event.affectsConfiguration(key))) this.configure();
+      }),
+      vscode.workspace.onDidGrantWorkspaceTrust(() => { if (!this.disposed) this.configure(); }),
       vscode.authentication.onDidChangeSessions(event => {
-        if (event.provider.id === 'github' && !this.demo) { this.service.reset(); void this.refresh(); }
+        if (!this.disposed && event.provider.id === this.connection.provider && !this.demo) { this.service.reset(); void this.refresh(); }
       }),
     );
     if (__DEV__ && this.developmentEnabled) {
@@ -60,18 +68,66 @@ class CopilotPace implements vscode.Disposable {
     const config = vscode.workspace.getConfiguration('copilotPace');
     this.dayMode = config.get<string>('dayMode') === 'weekdays' ? 'weekdays' : 'all';
     this.language = resolveLanguage(config.get('language'));
+    const enterprise = vscode.workspace.getConfiguration('github-enterprise');
+    const trusted = vscode.workspace.isTrusted;
+    const contributions = vscode.extensions?.getExtension('vscode.github-authentication')?.packageJSON?.contributes?.configuration;
+    const supportsPlural = (Array.isArray(contributions) ? contributions : [contributions])
+      .some(contribution => contribution?.properties && Object.hasOwn(contribution.properties, 'github-enterprise.uris'));
+    const plural = enterprise.inspect<unknown>('uris');
+    const hasPlural = supportsPlural && plural && (plural.globalValue !== undefined || (trusted && (plural.workspaceValue !== undefined || plural.workspaceFolderValue !== undefined)));
+    const instanceValue = (key: string) => trusted ? enterprise.get<unknown>(key) : enterprise.inspect<unknown>(key)?.globalValue;
+    const copilot = vscode.workspace.getConfiguration('github.copilot');
+    const connection = resolveConnection({
+      provider: config.get('authProvider'),
+      copilotProvider: copilot.get<{ authProvider?: unknown }>('advanced')?.authProvider,
+      enterpriseUri: instanceValue('uri'),
+      enterpriseUris: hasPlural ? instanceValue('uris') : undefined,
+    });
+    const enterpriseKey = JSON.stringify([connection.invalid, connection.origins]);
+    if (this.enterpriseConfigurationKey !== undefined && enterpriseKey !== this.enterpriseConfigurationKey) this.enterpriseRequiresReload = true;
+    this.enterpriseConfigurationKey = enterpriseKey;
+    // A provider may still expose its old instance while applying settings asynchronously.
+    // Stable sessions have no issuer metadata: do not pair that old token with a new host.
+    this.connection = connection.provider === 'github-enterprise' && this.enterpriseRequiresReload
+      ? Object.freeze({ ...connection, requiresReload: true, key: `${connection.key}:reload` }) : connection;
     const source = __DEV__ && this.developmentEnabled ? getDemoSource(vscode, config, this.clock) : undefined;
-    const key = source?.key ?? 'github';
+    const key = source?.key ?? this.connection.key;
     if (key !== this.sourceKey) {
       this.service?.dispose();
       this.sourceKey = key; this.demo = source !== undefined; this.scenario = source?.label ?? '';
       this.service = new QuotaService({
-        sessions: source?.sessions ?? new GitHubSessions(vscode.authentication, () => this.language),
-        transport: source?.transport ?? new GitHubTransport(vscode.version),
+        sessions: source?.sessions ?? new GitHubSessions(vscode.authentication, () => this.language, this.connection),
+        transport: source?.transport ?? new GitHubTransport(vscode.version, undefined, undefined, this.connection),
         dataClock: this.clock,
       }, () => this.render());
       void this.refresh();
     } else { this.render(); this.schedule(); }
+  }
+  private connect(): Promise<void> {
+    if (this.disposed) return Promise.resolve();
+    if (this.connecting) return this.connecting;
+    const operation = this.chooseAndConnect().finally(() => { if (this.connecting === operation) this.connecting = undefined; });
+    this.connecting = operation;
+    return operation;
+  }
+  private async chooseAndConnect() {
+    if (this.demo) { await this.refresh(); return; }
+    const originalService = this.service;
+    if (this.connection.enterpriseAvailable) {
+      const text = getStrings(this.language);
+      const choices: Array<vscode.QuickPickItem & { provider: AuthProvider }> = [
+        { label: 'GitHub.com', description: text.githubAccounts, provider: 'github' },
+        { label: 'GitHub Enterprise', description: text.enterpriseAccounts, provider: 'github-enterprise' },
+      ];
+      choices.sort((a, b) => Number(b.provider === this.connection.provider) - Number(a.provider === this.connection.provider));
+      const selected = await vscode.window.showQuickPick(choices, { title: text.chooseConnection, ignoreFocusOut: true });
+      if (!selected || this.disposed || this.service !== originalService) return;
+      // This application preference belongs to Pace; never change Copilot's settings.
+      if (vscode.workspace.getConfiguration('copilotPace').get('authProvider') !== selected.provider) {
+        await this.updateConfig('authProvider', selected.provider);
+      }
+    }
+    if (!this.disposed) await this.refresh(true);
   }
   private async updateConfig(key: string, value: string) {
     await vscode.workspace.getConfiguration('copilotPace').update(key, value, vscode.ConfigurationTarget.Global);
@@ -128,7 +184,7 @@ class CopilotPace implements vscode.Disposable {
     const data = message as { action?: unknown; value?: unknown };
     if (data.action === 'ready') { this.panelReady = true; this.render(); }
     else if (data.action === 'refresh') await this.refresh();
-    else if (data.action === 'connect') await this.refresh(!this.demo);
+    else if (data.action === 'connect') await this.connect();
     else if (data.action === 'dayMode' && (data.value === 'all' || data.value === 'weekdays')) await this.updateConfig('dayMode', data.value);
     else if (data.action === 'language' && (data.value === 'en' || data.value === 'es-ES')) await this.updateConfig('language', data.value);
   }

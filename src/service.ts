@@ -73,7 +73,7 @@ export class QuotaService {
     try {
       let session;
       try { session = await this.deps.sessions.get(interactive, interactive && this.reauthenticate); }
-      catch { throw new SafeError('auth', 'GitHub authorization failed. Try connecting again.'); }
+      catch (error) { throw error instanceof SafeError && ['configuration', 'configurationChanged'].includes(error.code) ? error : new SafeError('auth', 'GitHub authorization failed. Try connecting again.'); }
       if (!active()) return;
       if (!session) { this.sessionId = undefined; this.publish({ phase: 'disconnected' }); return; }
       if (session.id !== this.sessionId || session.account.id !== this.state.account?.id) {
@@ -98,7 +98,7 @@ export class QuotaService {
       else if (['server', 'network', 'timeout', 'invalidResponse'].includes(failure.code)) {
         this.retryAt = this.wallClock.now().getTime() + Math.min(15 * 60_000, 30_000 * 2 ** Math.min(5, this.failures - 1));
       }
-      const discard = ['unauthorized', 'forbidden', 'auth'].includes(failure.code);
+      const discard = ['unauthorized', 'forbidden', 'auth', 'configuration', 'configurationChanged'].includes(failure.code);
       this.publish({ phase: 'error', failure, account: this.state.account, snapshot: discard ? undefined : this.state.snapshot, updatedAt: discard ? undefined : this.state.updatedAt });
     }
   }

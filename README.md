@@ -57,11 +57,19 @@ These are estimates based on your average so far. They change as your usage chan
 
 Version history and tested release packages are available in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases).
 
+To test the experimental Enterprise connection, download `copilot-pace-1.2.0.vsix` from the [1.2.0 pilot](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.0). In Extensions, choose **Install from VSIX…**, select that file and reload VS Code. This pilot is distributed through GitHub; the stable Marketplace channel is separate.
+
 ### Choose the right account
 
 Copilot Pace uses VS Code's GitHub authentication. Its authorization and account selection are separate from Copilot's own connection.
 
 The hover and detail panel identify the account being queried. Use **Switch GitHub account…** to select another account through VS Code, or **Reconnect GitHub** to renew authorization. Copilot Pace shows one account at a time; switching it does not change the account used by Copilot itself.
+
+By default, Copilot Pace follows Copilot's configured authentication provider and otherwise uses GitHub.com. Personal and Business accounts on GitHub.com keep the same sign-in flow and `read:user` permission. When a corporate instance is configured, **Connect GitHub** also offers a choice between **GitHub.com** and **GitHub Enterprise**, then delegates account selection and login to VS Code. The choice is saved only for Copilot Pace; use `copilotPace.authProvider: "auto"` to follow Copilot again.
+
+Enterprise connection is experimental in the 1.2.0 pilot. Configure one HTTPS instance origin in VS Code's GitHub Enterprise settings, such as `https://company.ghe.com`, without a login, project or repository path. Copilot Pace uses the plural `github-enterprise.uris` setting only when the installed authentication provider supports it; an explicit empty list takes precedence over the legacy `github-enterprise.uri`. Multiple instances can use VS Code's login selection, but quota queries are blocked because this version cannot reliably identify the selected instance through the stable API. Corporate quota and network validation remain pending.
+
+After changing Enterprise instance settings while Pace is active, reload VS Code before reconnecting to Enterprise. Pace cancels old queries and pauses corporate authentication until reload so a session from the old instance cannot be sent to the new quota host. GitHub.com login remains available.
 
 ## Commands
 
@@ -100,6 +108,7 @@ Search for **Copilot Pace** in VS Code Settings, or edit these application-level
 
 | Setting | Default | Options |
 | --- | --- | --- |
+| `copilotPace.authProvider` | `"auto"` | `"auto"` follows Copilot; `"github"` uses GitHub.com; `"github-enterprise"` uses the configured corporate instance |
 | `copilotPace.language` | `"en"` | `"en"` for English; `"es-ES"` for Spanish (Spain) |
 | `copilotPace.dayMode` | `"all"` | `"all"` for every day; `"weekdays"` for Monday–Friday |
 | `copilotPace.pollIntervalMinutes` | `15` | Automatic refresh interval, from 5 to 120 minutes |
@@ -114,7 +123,7 @@ Search for **Copilot Pace** in VS Code Settings, or edit these application-level
 
 ## Privacy
 
-- Authentication stays with VS Code's built-in GitHub provider, using the `read:user` scope.
+- Authentication stays with VS Code's built-in GitHub or GitHub Enterprise provider, using the `read:user` scope.
 - Usage requests go directly to GitHub over HTTPS with TLS verification.
 - The extension does not read workspace files or conversations, send telemetry, or log tokens or complete response bodies.
 
@@ -122,7 +131,7 @@ Search for **Copilot Pace** in VS Code Settings, or edit these application-level
 
 The supported target is **GitHub.com on desktop VS Code for Windows**. The maintainer has validated the 0.2.3 pilot with a real Copilot account, including connection, quota comparison, refresh, details, calendar modes, light/dark themes and persistence after restarting VS Code. Version 1.0.0 retains that runtime behavior.
 
-Copilot Pace uses an internal GitHub endpoint that may change. Validation of one account does not establish compatibility with every plan, multiple-account setup or corporate proxy. Corporate network and certificate configurations require validation in the target environment. GitHub Enterprise Server, GHE.com and browser-based VS Code are unsupported.
+Copilot Pace uses an internal GitHub endpoint that may change. Validation of one account does not establish compatibility with every plan, multiple-account setup or corporate proxy. The 1.2.0 pilot adds experimental Enterprise authentication and quota routing for a single HTTPS instance, following Copilot's `https://api.<instance-host>/copilot_internal/user` mapping. This is not verified support for GHE.com or GitHub Enterprise Server: real account, quota, proxy and certificate validation in the target environment remain pending. Browser-based VS Code is unsupported.
 
 Daily history, individual sessions and usage by model are unavailable.
 

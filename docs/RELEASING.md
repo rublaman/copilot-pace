@@ -2,6 +2,10 @@
 
 This guide defines version preparation, validation and distribution. Read the workflows and scripts before using it; documentation alone does not publish a release.
 
+## Enterprise pilot 1.2.0 preparation
+
+Feature [#39](https://github.com/rublaman/copilot-pace/issues/39) adds provider selection and experimental single-instance Enterprise quota routing; see the [implementation and acceptance scope](corporate-authentication.md). The maintainer requested a downloadable GitHub prerelease on October 19. Version 1.2.0 is prepared with `preview: true` on `feature/corporate-authentication` for integration into `develop`, final CI, an annotated `v1.2.0` tag and publication of the tested draft as a prerelease without Latest. Stable 1.1.3 and Marketplace publication are unchanged. Retain the exact tagged VSIX/SHA in the release notes. Real corporate login, quota comparison, cancellation/reconnection and proxy/certificate checks remain pending; synthetic personal/Business regression tests do not replace real-account acceptance or establish GHE.com/GHES compatibility.
+
 ## Current state
 
 Reviewed on October 16, 2026:

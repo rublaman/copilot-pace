@@ -4,6 +4,14 @@ Versions 0.1.x describe local development builds.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-19
+
+GitHub pilot with `preview: true`. Enterprise login, quota comparison and corporate proxy/certificate validation remain pending in the target environment.
+
+- Follow Copilot's configured GitHub.com or GitHub Enterprise provider by default, with an independent account-service preference for Copilot Pace.
+- Offer corporate/GitHub.com selection when an Enterprise connection is configured, using VS Code's native authentication with the existing `read:user` scope. Keep the normal GitHub.com flow for personal and Business accounts.
+- Add experimental quota routing for a single configured HTTPS Enterprise origin, cancellation on connection changes and localized guidance for invalid or ambiguous configuration. Real corporate account/network acceptance remains pending.
+
 ## [1.1.3] - 2026-10-16
 
 - Show only the dark-theme tooltip and detail-panel GIFs in the README, centered for readability.
