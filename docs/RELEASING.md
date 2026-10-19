@@ -2,9 +2,15 @@
 
 This guide defines version preparation, validation and distribution. Read the workflows and scripts before using it; documentation alone does not publish a release.
 
-## Enterprise pilot 1.2.0 preparation
+## Stable 1.2.1 promotion
 
-Feature [#39](https://github.com/rublaman/copilot-pace/issues/39) adds provider selection and experimental single-instance Enterprise quota routing; see the [implementation and acceptance scope](corporate-authentication.md). The maintainer requested a downloadable GitHub prerelease on October 19. Version 1.2.0 is prepared with `preview: true` on `feature/corporate-authentication` for integration into `develop`, final CI, an annotated `v1.2.0` tag and publication of the tested draft as a prerelease without Latest. Stable 1.1.3 and Marketplace publication are unchanged. Retain the exact tagged VSIX/SHA in the release notes. Real corporate login, quota comparison, cancellation/reconnection and proxy/certificate checks remain pending; synthetic personal/Business regression tests do not replace real-account acceptance or establish GHE.com/GHES compatibility.
+The maintainer confirmed that the published 1.2.0 pilot works correctly in both GitHub.com and corporate GitHub Enterprise (GHE) environments on October 19, and explicitly requested a new stable release. Version 1.2.1 sets `preview: false`, documents GitHub.com/GHE support and removes pilot/test-environment narrative from the README. Runtime behavior is unchanged apart from the build-time version value. The [acceptance record](validation.md#githubcom-and-ghe-acceptance-october-19-2026) identifies the tested pilot and the scope of the maintainer's confirmation.
+
+Prepare through a PR to `develop`, promote to `main` with a merge commit, validate its exact SHA, create annotated `v1.2.1`, and publish the final tested draft as stable with Latest. Record the final CI run, SHA and VSIX checksum in the [1.2.1 release notes](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.1), then synchronize `main` back into `develop` with a merge commit. Marketplace upload/store verification remain separate. Do not change the published 1.2.0 pilot or any previous tag/asset.
+
+## Enterprise pilot 1.2.0
+
+Feature [#39](https://github.com/rublaman/copilot-pace/issues/39) was integrated through [PR #40](https://github.com/rublaman/copilot-pace/pull/40) and published as [v1.2.0](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.0), a prerelease without Latest, at `1ffd75220eecfecdc6310880c3667f4efd62e073`. Its VSIX SHA-256 is `4e4a23aa7bd4ee39c6f2d37b07c49e5574c35639dba9077c70f2ea22d6027ccf`. The [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/39263413327) passed; the downloaded artifact passed all 8 installed-package tests without rebuilding and its anonymous public download matched. The subsequent maintainer acceptance above supersedes the pilot's original pending-corporate-validation status.
 
 ## Current state
 
