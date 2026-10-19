@@ -1,23 +1,31 @@
 import * as https from 'node:https';
 import type { ClientRequest, IncomingMessage } from 'node:http';
+import { defaultConnection, quotaEndpoint, type Connection } from './connection';
+import { getStrings } from './i18n';
 
 export interface SessionAccount { id: string; label: string }
 export interface Session { id: string; accessToken: string; account: SessionAccount }
 export interface SessionProvider { get(interactive: boolean, forceNewSession?: boolean): Promise<Session | undefined> }
 export interface HttpResponse { status: number; headers: Record<string, string | undefined>; body: unknown }
 export interface HttpTransport { request(accessToken: string, signal: AbortSignal): Promise<HttpResponse> }
-export type FailureCode = 'timeout' | 'network' | 'invalidResponse' | 'unauthorized' | 'forbidden' | 'rateLimited' | 'server' | 'cancelled' | 'auth';
+export type FailureCode = 'timeout' | 'network' | 'invalidResponse' | 'unauthorized' | 'forbidden' | 'rateLimited' | 'server' | 'cancelled' | 'auth' | 'configuration' | 'configurationChanged';
 export class SafeError extends Error {
   constructor(public readonly code: FailureCode, message: string, public readonly retryAt?: number) { super(message); }
 }
 
 export class GitHubTransport implements HttpTransport {
   constructor(private readonly editorVersion: string, private readonly timeoutMs = 10_000,
-    private readonly requestFactory: (url: string, options: https.RequestOptions, callback: (response: IncomingMessage) => void) => ClientRequest = (url, options, callback) => https.request(url, options, callback)) {}
+    private readonly requestFactory: (url: string, options: https.RequestOptions, callback: (response: IncomingMessage) => void) => ClientRequest = (url, options, callback) => https.request(url, options, callback),
+    private readonly connection: Connection = defaultConnection) {}
   request(accessToken: string, signal: AbortSignal): Promise<HttpResponse> {
     return new Promise((resolve, reject) => {
+      if (this.connection.provider === 'github-enterprise' && this.connection.requiresReload) {
+        reject(new SafeError('configurationChanged', getStrings('en').errorConfigurationChanged)); return;
+      }
+      const endpoint = quotaEndpoint(this.connection);
+      if (!endpoint) { reject(new SafeError('configuration', getStrings('en').errorConfiguration)); return; }
       // VS Code patches Node HTTPS to apply its proxy and certificate support. Do not supply a custom agent.
-      const request = this.requestFactory('https://api.github.com/copilot_internal/user', {
+      const request = this.requestFactory(endpoint, {
         method: 'GET', signal,
         headers: {
           Authorization: `Bearer ${accessToken}`, Accept: 'application/json',

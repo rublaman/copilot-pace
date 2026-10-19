@@ -28,7 +28,8 @@ describe('Development build activation boundary', () => {
           },
           window: { createStatusBarItem: () => status },
           workspace: {
-            getConfiguration: () => ({ get: (key: string, fallback?: unknown) => settings[key] ?? fallback }),
+            getConfiguration: () => ({ get: (key: string, fallback?: unknown) => settings[key] ?? fallback, inspect: () => undefined }),
+            onDidGrantWorkspaceTrust: () => disposable,
             onDidChangeConfiguration: () => disposable,
           },
           authentication: {

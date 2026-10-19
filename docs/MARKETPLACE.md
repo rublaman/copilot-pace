@@ -36,7 +36,7 @@ Connect through VS Code's GitHub authentication, see which account is selected, 
 
 No workspace access or telemetry. Figures represent credits, and estimates depend on the quota and monthly cycle reported by GitHub.
 
-Targets GitHub.com on desktop VS Code for Windows, version 1.120 or later. The maintainer validated the 0.2.3 runtime with a real Copilot account; 1.0.0 retains that behavior. Other accounts and corporate networks require separate validation. The extension uses an internal GitHub endpoint that may change. GitHub Enterprise Server, GHE.com and browser-based VS Code are unsupported.
+Supports personal and Business accounts on GitHub.com and GitHub Enterprise (GHE) accounts on desktop VS Code for Windows, version 1.120 or later. Corporate usage queries require a single HTTPS instance configured in VS Code. The extension uses an internal GitHub endpoint that may change. Browser-based VS Code is unsupported.
 
 ## Marketplace overview and images
 
@@ -53,4 +53,4 @@ The overview displays only the dark-theme GIFs on separate lines and centers bot
 
 The README uses relative PNG and GIF paths for local and GitHub viewing. The existing packaging script rewrites them to HTTPS URLs for the packaged commit. Commit and push the referenced assets before preparing a publication candidate, then verify those exact URLs resolve. The banner and documentation captures are hosted in the repository and excluded from the VSIX by the existing ignore rules.
 
-The animated GIFs are documentation captures from the 1.1.1 UI. The published [1.1.2 VSIX](https://github.com/rublaman/copilot-pace/releases/download/v1.1.2/copilot-pace-1.1.2.vsix) carries the updated README with HTTPS links to these repository assets; the GIF files themselves remain excluded from the package. Updating the GitHub README alone does not update the Marketplace overview. Upload the exact tested 1.1.2 VSIX from the [stable release](https://github.com/rublaman/copilot-pace/releases/tag/v1.1.2) to refresh the listing; do not rebuild or replace any published artifact. Store upload and verification remain pending.
+The animated GIFs are documentation captures from the 1.1.1 UI; the GIF files themselves remain excluded from the package. Updating the GitHub README alone does not update the Marketplace overview. Stable 1.2.1 includes the simplified README and GitHub.com/GHE compatibility text. Upload the exact tested VSIX identified in its [release record](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.1) to refresh the listing; do not rebuild or replace any published artifact. Store upload and verification remain separate from GitHub publication.

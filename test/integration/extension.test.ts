@@ -5,7 +5,7 @@ import { scenarioLabels, type MockScenario } from '../../src/mocks';
 
 let api: TestApi;
 const original = new Map<string, unknown>();
-const keys = ['dataSource', 'mockScenario', 'dayMode', 'pollIntervalMinutes', 'language'];
+const keys = ['dataSource', 'mockScenario', 'dayMode', 'pollIntervalMinutes', 'language', 'authProvider'];
 async function waitFor(check: () => boolean) {
   const end = Date.now() + 5000;
   while (!check()) { if (Date.now() > end) throw new Error('The extension did not reach the expected state'); await new Promise(resolve => setTimeout(resolve, 20)); }
@@ -200,5 +200,27 @@ describe('Copilot Pace in the Extension Development Host', () => {
     await vscode.workspace.getConfiguration('copilotPace').update('dataSource', 'mock', vscode.ConfigurationTarget.Global);
     await waitFor(() => api.getModel().demo && api.getState().phase === 'ready' && api.getModel().percentage === '40%');
     assertCurrentPace(40);
+  });
+  it('reports missing Enterprise configuration and returns to normal GitHub.com without an interactive login', async () => {
+    const config = vscode.workspace.getConfiguration('copilotPace');
+    try {
+      await config.update('authProvider', 'github-enterprise', vscode.ConfigurationTarget.Global);
+      await config.update('dataSource', 'github', vscode.ConfigurationTarget.Global);
+      await waitFor(() => !api.getModel().demo && api.getState().failure?.code === 'configuration');
+      assert.equal(api.getState().snapshot, undefined);
+      assert.ok(api.getModel().message.includes('HTTPS'));
+      await config.update('language', 'es-ES', vscode.ConfigurationTarget.Global);
+      await waitFor(() => api.getModel().language === 'es-ES');
+      assert.ok(api.getModel().message.includes('GitHub Enterprise'));
+      await config.update('authProvider', 'github', vscode.ConfigurationTarget.Global);
+      await waitFor(() => api.getState().phase === 'disconnected');
+      assert.equal(api.getState().snapshot, undefined);
+      assert.equal(api.getModel().accountLabel, '');
+    } finally {
+      await config.update('language', 'en', vscode.ConfigurationTarget.Global);
+      await config.update('authProvider', original.get('authProvider'), vscode.ConfigurationTarget.Global);
+      await config.update('dataSource', 'mock', vscode.ConfigurationTarget.Global);
+      await waitFor(() => api.getModel().demo && api.getState().phase === 'ready');
+    }
   });
 });

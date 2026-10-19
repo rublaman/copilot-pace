@@ -23,7 +23,7 @@ function failureMessage(failure: SafeError, language: Language, text: Strings): 
   return {
     timeout: text.errorTimeout, network: text.errorNetwork, invalidResponse: text.errorInvalidResponse,
     unauthorized: text.errorUnauthorized, forbidden: text.errorForbidden, rateLimited: text.errorRateLimited,
-    cancelled: text.errorCancelled, auth: text.errorAuth,
+    cancelled: text.errorCancelled, auth: text.errorAuth, configuration: text.errorConfiguration, configurationChanged: text.errorConfigurationChanged,
   }[failure.code];
 }
 export interface ViewModel {

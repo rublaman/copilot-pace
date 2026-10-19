@@ -1,6 +1,15 @@
 # Validation
 
-**The maintainer confirmed real-account acceptance of 0.2.3 on October 15, 2026. The unchanged runtime was promoted to 1.0.0, whose final downloaded VSIX passed separate automated validation. Corporate network validation remains outside that confirmation.**
+**The maintainer confirmed that the 1.2.0 pilot works correctly in both GitHub.com and corporate GitHub Enterprise (GHE) environments on October 19, 2026, and requested stable publication. Version 1.2.1 retains that runtime behavior and updates release metadata and documentation.**
+
+## GitHub.com and GHE acceptance: October 19, 2026
+
+- Maintainer report: the distributed 1.2.0 pilot was validated in both environments and works correctly. This is real-environment acceptance reported by the maintainer, separate from the earlier synthetic connection fixtures.
+- Accepted pilot: [v1.2.0](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.0), commit `1ffd75220eecfecdc6310880c3667f4efd62e073`, VSIX SHA-256 `4e4a23aa7bd4ee39c6f2d37b07c49e5574c35639dba9077c70f2ea22d6027ccf`.
+- Scope: GitHub.com and the maintainer's corporate GHE environment. Exact editor versions and individual account-switching, cancellation, proxy/certificate and quota-comparison checklist results were not separately supplied. Do not infer universal GitHub Enterprise Server compatibility or record unreported individual checks.
+- Stable 1.2.1 changes version/preview metadata and documentation only; no authentication, transport, service or quota-normalization logic changes. Its final tagged VSIX must pass separate CI, content/checksum inspection and installed-package tests. Final SHA and artifact evidence belong in the [1.2.1 release record](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.1).
+
+Earlier evidence below is historical and retains the scope recorded at the time.
 
 ## Stable 1.0.0: October 15, 2026
 
