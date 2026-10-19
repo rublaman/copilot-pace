@@ -1,6 +1,6 @@
 # Corporate authentication
 
-Feature [#39](https://github.com/rublaman/copilot-pace/issues/39), implemented on `feature/corporate-authentication` on October 19, 2026. Enterprise connection is experimental; real corporate account, quota and network acceptance remain pending. Published releases are unchanged.
+Feature [#39](https://github.com/rublaman/copilot-pace/issues/39), implemented on `feature/corporate-authentication` on October 19, 2026 and distributed in the 1.2.0 pilot. The maintainer subsequently confirmed correct operation in both GitHub.com and corporate GitHub Enterprise (GHE) environments and requested stable 1.2.1 publication. See [acceptance evidence](validation.md#githubcom-and-ghe-acceptance-october-19-2026). The implementation and automated preflight evidence below predates that confirmation; references to pending acceptance in those historical records do not describe the current acceptance state.
 
 ## Account selection
 
@@ -37,9 +37,9 @@ Enterprise origins must be HTTPS DNS hosts, optionally with port 443 and a trail
 | `github-enterprise`, one valid origin | `https://api.<instance-host>/copilot_internal/user` |
 | Missing, invalid or multiple Enterprise origins | No authenticated HTTP quota request; localized configuration error |
 
-This Enterprise API mapping follows the Copilot bundle in the locally cached VS Code 1.141.0. It is an implementation choice awaiting target-environment verification, not evidence that every custom GitHub Enterprise Server exposes that endpoint. Do not substitute `/api/v3`, use a repository path or fall back to GitHub.com on an error.
+This Enterprise API mapping follows the Copilot bundle in the locally cached VS Code 1.141.0 and is covered by the maintainer's subsequent GHE environment acceptance. It does not establish that every custom GitHub Enterprise Server exposes that endpoint. Do not substitute `/api/v3`, use a repository path or fall back to GitHub.com on an error.
 
-VS Code can handle Enterprise sign-in with multiple configured instances. This version delegates that login to the provider but blocks quota requests because the stable `AuthenticationSession` type pinned by the project does not expose the selected authorization server. It does not parse labels/session IDs or use proposed APIs to guess the host. At startup with a single configured origin, it relies on the built-in provider restricting its sessions to that instance. A change to the effective instance configuration during activation blocks further Enterprise session/HTTP requests until VS Code reloads: this prevents pairing a provider's old cached session with the new quota destination while its asynchronous configuration update is still pending. Real corporate acceptance remains pending.
+VS Code can handle Enterprise sign-in with multiple configured instances. This version delegates that login to the provider but blocks quota requests because the stable `AuthenticationSession` type pinned by the project does not expose the selected authorization server. It does not parse labels/session IDs or use proposed APIs to guess the host. At startup with a single configured origin, it relies on the built-in provider restricting its sessions to that instance. A change to the effective instance configuration during activation blocks further Enterprise session/HTTP requests until VS Code reloads: this prevents pairing a provider's old cached session with the new quota destination while its asynchronous configuration update is still pending.
 
 ## Lifecycle and transport
 

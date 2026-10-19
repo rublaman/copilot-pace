@@ -4,6 +4,12 @@ Versions 0.1.x describe local development builds.
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-10-19
+
+- Promote the Enterprise connection to stable after the maintainer confirmed that the 1.2.0 pilot works correctly in both GitHub.com and corporate GHE environments.
+- Document support for GitHub.com personal/Business and GitHub Enterprise (GHE) accounts, with concise corporate connection instructions.
+- Remove pilot wording and test-environment history from the README. Set `preview: false`; runtime behavior is unchanged from the accepted 1.2.0 pilot apart from the build-time version value.
+
 ## [1.2.0] - 2026-10-19
 
 GitHub pilot with `preview: true`. Enterprise login, quota comparison and corporate proxy/certificate validation remain pending in the target environment.

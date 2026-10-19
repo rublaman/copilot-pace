@@ -6,7 +6,9 @@
 
 Track GitHub Copilot credits from your VS Code status bar. See what you have used, what remains, and where your current daily pace could take you by renewal.
 
-**GitHub.com · Desktop VS Code 1.120+**
+Works with personal and Business accounts on GitHub.com and GitHub Enterprise (GHE) accounts.
+
+**GitHub.com and Enterprise GHE · Desktop VS Code 1.120+**
 
 [Get started](#get-started) · [Commands](#commands) · [Settings](#settings) · [Report an issue](https://github.com/rublaman/copilot-pace/issues)
 
@@ -35,7 +37,7 @@ The panel puts your remaining budget and daily allowance next to your average co
   <img src="docs/images/details-dark.gif" alt="Animated dark detail panel: 45%, 50% and 60% of a 3,900-credit budget used, with green, yellow and red pace indicators" />
 </p>
 
-*Actual extension screenshots with simulated data, captured from version 1.1.1 in an isolated development host. Both GIFs cycle through Comfortable, On track and Over pace. Demo tools are available only during development; distributed packages use GitHub data.*
+*Illustrative usage figures. Both animations cycle through Comfortable, On track and Over pace.*
 
 ### What the colors mean
 
@@ -55,9 +57,7 @@ These are estimates based on your average so far. They change as your usage chan
 2. Open the Command Palette (`Ctrl+Shift+P`) and run **Copilot Pace: Connect GitHub**. Authorize access through VS Code and select the account with Copilot.
 3. Find Copilot Pace on the right side of the status bar. Hover for a summary or click for details.
 
-Version history and tested release packages are available in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases).
-
-To test the experimental Enterprise connection, download `copilot-pace-1.2.0.vsix` from the [1.2.0 pilot](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.0). In Extensions, choose **Install from VSIX…**, select that file and reload VS Code. This pilot is distributed through GitHub; the stable Marketplace channel is separate.
+You can also download the stable VSIX from [GitHub Releases](https://github.com/rublaman/copilot-pace/releases/latest). In Extensions, choose **Install from VSIX…**, select the file and reload VS Code.
 
 ### Choose the right account
 
@@ -65,11 +65,11 @@ Copilot Pace uses VS Code's GitHub authentication. Its authorization and account
 
 The hover and detail panel identify the account being queried. Use **Switch GitHub account…** to select another account through VS Code, or **Reconnect GitHub** to renew authorization. Copilot Pace shows one account at a time; switching it does not change the account used by Copilot itself.
 
-By default, Copilot Pace follows Copilot's configured authentication provider and otherwise uses GitHub.com. Personal and Business accounts on GitHub.com keep the same sign-in flow and `read:user` permission. When a corporate instance is configured, **Connect GitHub** also offers a choice between **GitHub.com** and **GitHub Enterprise**, then delegates account selection and login to VS Code. The choice is saved only for Copilot Pace; use `copilotPace.authProvider: "auto"` to follow Copilot again.
+By default, Copilot Pace follows Copilot's configured authentication provider and otherwise uses GitHub.com. When a corporate instance is configured, **Connect GitHub** offers **GitHub.com** for personal and Business accounts or **GitHub Enterprise** for GHE accounts. VS Code handles account selection and sign-in. The choice is saved only for Copilot Pace; use `copilotPace.authProvider: "auto"` to follow Copilot again.
 
-Enterprise connection is experimental in the 1.2.0 pilot. Configure one HTTPS instance origin in VS Code's GitHub Enterprise settings, such as `https://company.ghe.com`, without a login, project or repository path. Copilot Pace uses the plural `github-enterprise.uris` setting only when the installed authentication provider supports it; an explicit empty list takes precedence over the legacy `github-enterprise.uri`. Multiple instances can use VS Code's login selection, but quota queries are blocked because this version cannot reliably identify the selected instance through the stable API. Corporate quota and network validation remain pending.
+For GHE, use the corporate instance already configured in VS Code's GitHub Enterprise settings. Configure a single HTTPS instance address, without a login, project or repository path. Recent VS Code versions use `github-enterprise.uris`; older versions use `github-enterprise.uri`. Usage queries require one configured instance.
 
-After changing Enterprise instance settings while Pace is active, reload VS Code before reconnecting to Enterprise. Pace cancels old queries and pauses corporate authentication until reload so a session from the old instance cannot be sent to the new quota host. GitHub.com login remains available.
+After changing the Enterprise instance settings, reload VS Code before reconnecting.
 
 ## Commands
 
@@ -129,9 +129,9 @@ Search for **Copilot Pace** in VS Code Settings, or edit these application-level
 
 ## Compatibility
 
-The supported target is **GitHub.com on desktop VS Code for Windows**. The maintainer has validated the 0.2.3 pilot with a real Copilot account, including connection, quota comparison, refresh, details, calendar modes, light/dark themes and persistence after restarting VS Code. Version 1.0.0 retains that runtime behavior.
+Supports **GitHub.com personal and Business accounts** and **GitHub Enterprise (GHE) accounts** on desktop VS Code for Windows, version 1.120 or later. Enterprise usage queries require a single configured HTTPS instance.
 
-Copilot Pace uses an internal GitHub endpoint that may change. Validation of one account does not establish compatibility with every plan, multiple-account setup or corporate proxy. The 1.2.0 pilot adds experimental Enterprise authentication and quota routing for a single HTTPS instance, following Copilot's `https://api.<instance-host>/copilot_internal/user` mapping. This is not verified support for GHE.com or GitHub Enterprise Server: real account, quota, proxy and certificate validation in the target environment remain pending. Browser-based VS Code is unsupported.
+Copilot Pace uses an internal GitHub endpoint that may change. Browser-based VS Code is unsupported.
 
 Daily history, individual sessions and usage by model are unavailable.
 
