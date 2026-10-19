@@ -3,11 +3,11 @@
   "displayName": "Copilot Pace",
   "description": "Track GitHub Copilot credits, daily allowance and projected usage in your VS Code status bar.",
   "icon": "images/copilot-pace-128.png",
-  "version": "1.1.3",
+  "version": "1.2.0",
   "publisher": "rubenblancomanzano",
   "author": "Ruben Blanco Manzano",
   "private": true,
-  "preview": false,
+  "preview": true,
   "engines": {
     "vscode": "^1.120.0",
     "node": ">=24 <27"
@@ -58,6 +58,22 @@
     "configuration": {
       "title": "Copilot Pace",
       "properties": {
+        "copilotPace.authProvider": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "github",
+            "github-enterprise"
+          ],
+          "enumDescriptions": [
+            "Follow Copilot's configured authentication provider (GitHub.com by default)",
+            "GitHub.com accounts, including personal and Business plans",
+            "The GitHub Enterprise instance configured in VS Code"
+          ],
+          "default": "auto",
+          "scope": "application",
+          "description": "Account service used by Copilot Pace. Does not change Copilot's account. Enterprise quota queries require one HTTPS instance origin."
+        },
         "copilotPace.language": {
           "type": "string",
           "enum": [

@@ -3,6 +3,7 @@ import { QuotaService } from '../../src/service';
 import { boundedFixture, MockSessions, MockTransport } from '../../src/mocks';
 import { demoClock } from '../fixtures';
 import { SafeError, type HttpResponse, type HttpTransport, type Session, type SessionProvider } from '../../src/transport';
+import { createViewModel } from '../../src/view';
 
 const ok = (total = 3900, used = 1950): HttpResponse => ({ status: 200, headers: {}, body: boundedFixture(total, used, demoClock.now()) });
 const account = { id: 'account', label: 'Test' };
@@ -12,6 +13,22 @@ function setup(transport: HttpTransport, sessions: SessionProvider = new MockSes
   return { service, advance: (ms: number) => { time += ms; } };
 }
 describe('Quota service', () => {
+  it('preserves safe configuration errors, clears old quota and never queries an unrelated host', async () => {
+    let invalid = false;
+    let requests = 0;
+    const { service } = setup({ request: async () => { requests++; return ok(); } }, { get: async () => {
+      if (invalid) throw new SafeError('configuration', 'Safe configuration guidance.');
+      return { id: 'session', accessToken: 'synthetic', account };
+    } });
+    await service.refresh(); assert.ok(service.current.snapshot);
+    invalid = true;
+    await service.refresh();
+    assert.equal(service.current.failure?.code, 'configuration');
+    assert.equal(service.current.snapshot, undefined);
+    assert.equal(service.nextAllowedAt, 0);
+    assert.equal(requests, 1);
+    assert.match(createViewModel(service.current, demoClock, 'all', false, '', 0, 'es-ES').message, /GitHub Enterprise/);
+  });
   it('deduplicates concurrent requests', async () => {
     let requests = 0;
     let complete!: (response: HttpResponse) => void;

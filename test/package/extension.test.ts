@@ -33,7 +33,9 @@ describe('Installed production VSIX', () => {
     assert.deepEqual(manifest.contributes.commands.map((item: { command: string }) => item.command), [
       'copilotPace.showDetails', 'copilotPace.refresh', 'copilotPace.connect',
     ]);
-    assert.deepEqual(Object.keys(manifest.contributes.configuration.properties).sort(), ['copilotPace.dayMode', 'copilotPace.language', 'copilotPace.pollIntervalMinutes']);
+    assert.deepEqual(Object.keys(manifest.contributes.configuration.properties).sort(), ['copilotPace.authProvider', 'copilotPace.dayMode', 'copilotPace.language', 'copilotPace.pollIntervalMinutes']);
+    assert.equal(manifest.contributes.configuration.properties['copilotPace.authProvider'].default, 'auto');
+    assert.deepEqual(manifest.contributes.configuration.properties['copilotPace.authProvider'].enum, ['auto', 'github', 'github-enterprise']);
     assert.equal(manifest.contributes.configuration.properties['copilotPace.language'].default, 'en');
     assert.deepEqual(manifest.contributes.configuration.properties['copilotPace.language'].enum, ['en', 'es-ES']);
   });
@@ -101,5 +103,21 @@ describe('Installed production VSIX', () => {
       await waitFor(() => api.getModel().language === 'en');
       assert.equal(api.getStatus().text, 'Connect GitHub');
     } finally { await api.receiveMessage({ action: 'language', value: 'en' }); }
+  });
+  it('keeps the Enterprise configuration error separate from normal GitHub.com login', async () => {
+    const config = vscode.workspace.getConfiguration('copilotPace');
+    try {
+      await config.update('authProvider', 'github-enterprise', vscode.ConfigurationTarget.Global);
+      await waitFor(() => api.getState().failure?.code === 'configuration');
+      assert.equal(api.getModel().demo, false);
+      assert.equal(api.getState().snapshot, undefined);
+      assert.ok(api.getModel().message.includes('HTTPS'));
+      await config.update('authProvider', 'github', vscode.ConfigurationTarget.Global);
+      await waitFor(() => api.getState().phase === 'disconnected');
+      assert.equal(api.getStatus().text, 'Connect GitHub');
+      assert.equal(api.getModel().accountLabel, '');
+    } finally {
+      await config.update('authProvider', undefined, vscode.ConfigurationTarget.Global);
+    }
   });
 });
