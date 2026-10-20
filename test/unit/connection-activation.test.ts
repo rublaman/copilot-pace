@@ -25,6 +25,7 @@ function harness(initial: Record<string, unknown> = {}, options: {
   const sessionListeners: Array<(event: { provider: { id: string } }) => void> = [];
   const commands = new Map<string, () => Promise<void>>();
   const requests: Array<{ url: string; token: string; signal: AbortSignal }> = [];
+  const responses: Array<() => void> = [];
   const authCalls: Array<{ provider: string; options: vscode.AuthenticationGetSessionOptions; scopes: readonly string[] }> = [];
   const pickedChoices: string[][] = [];
   let choice: string | undefined;
@@ -80,13 +81,14 @@ function harness(initial: Record<string, unknown> = {}, options: {
       const request = new EventEmitter() as EventEmitter & { end(): void; destroy(error: Error): void };
       request.destroy = error => { request.emit('error', error); request.emit('close'); };
       requestOptions.signal.addEventListener('abort', () => request.destroy(new Error('Aborted')), { once: true });
-      request.end = () => queueMicrotask(() => {
-        if (options.pendingNetwork) return;
+      const respond = () => {
         const response = Object.assign(new EventEmitter(), { statusCode: 200, headers: {} });
         callback(response);
         response.emit('data', Buffer.from(JSON.stringify(boundedFixture(100, 25, new Date()))));
         response.emit('end'); request.emit('close');
-      });
+      };
+      responses.push(respond);
+      request.end = () => queueMicrotask(() => { if (!options.pendingNetwork) respond(); });
       return request;
     },
   };
@@ -102,6 +104,7 @@ function harness(initial: Record<string, unknown> = {}, options: {
     api, authCalls, requests, settings, pickedChoices,
     choose: (provider: string | undefined) => { choice = provider; },
     connect: () => commands.get('copilotPace.connect')!(),
+    completeRequest: (index: number) => responses[index]!(),
     set: (key: string, value: unknown) => { settings[key] = value; fireConfiguration(key); },
     sessionChanged: (provider: string) => sessionListeners.forEach(listener => listener({ provider: { id: provider } })),
     dispose: () => api.dispose(),
@@ -180,7 +183,7 @@ describe('Connection integration with native VS Code services', () => {
   it('does not send any credential when several Enterprise instances could own the session', async () => {
     const host = harness({ 'copilotPace.authProvider': 'github-enterprise', 'github-enterprise.uris': ['https://one.ghe.com', 'https://two.ghe.com'] });
     try {
-      await settle(); assert.equal(host.authCalls[0]?.provider, 'github-enterprise');
+      await settle(); assert.equal(host.authCalls.length, 0);
       assert.equal(host.requests.length, 0);
       assert.equal(host.api.getState().failure?.code, 'configuration');
       assert.equal(host.api.getState().snapshot, undefined);
@@ -206,6 +209,114 @@ describe('Connection integration with native VS Code services', () => {
       assert.equal(first, second); await first;
       assert.equal(host.pickedChoices.length, 1);
       assert.equal(host.authCalls.filter(call => call.options.createIfNone).length, 1);
+    } finally { host.dispose(); }
+  });
+  for (const provider of ['github', 'github-enterprise']) {
+    it(`finishes ${provider} sign-in when its session event arrives before native login returns`, async () => {
+      let connected = false;
+      const host = harness({ 'copilotPace.authProvider': provider, 'github-enterprise.uri': 'https://corp.ghe.com' }, {
+        authenticate: async (selected, options) => {
+          if (options.silent) return connected ? session(selected) : undefined;
+          // VS Code can notify listeners before getSession has finished granting access
+          // and saving this extension's selected account preference.
+          host.sessionChanged(selected);
+          await settle();
+          connected = true;
+          return session(selected);
+        },
+      });
+      try {
+        await settle(); host.choose(provider); await host.connect();
+        assert.equal(host.api.getState().phase, 'ready');
+        assert.equal(host.requests.length, 1);
+        assert.equal(host.requests[0]?.token, `Bearer ${provider}-synthetic`);
+        assert.ok(host.authCalls.every(call => call.provider === provider));
+        assert.equal(host.authCalls.filter(call => call.options.createIfNone).length, 1);
+        assert.equal(host.authCalls.at(-1)?.options.silent, true);
+      } finally { host.dispose(); }
+    });
+    it(`does not resurrect a ${provider} login that finishes after logout`, async () => {
+      let complete!: (value: vscode.AuthenticationSession) => void;
+      const host = harness({ 'copilotPace.authProvider': provider, 'github-enterprise.uri': 'https://corp.ghe.com' }, {
+        authenticate: async (_selected, options) => options.silent ? undefined : new Promise(resolve => { complete = resolve; }),
+      });
+      try {
+        await settle(); host.choose(provider);
+        const login = host.connect(); await settle();
+        host.sessionChanged(provider); await settle();
+        complete(session(provider)); await login;
+        assert.equal(host.api.getState().phase, 'disconnected');
+        assert.equal(host.api.getState().account, undefined);
+        assert.equal(host.api.getState().snapshot, undefined);
+        assert.equal(host.requests.length, 0);
+        assert.equal(host.authCalls.filter(call => call.options.createIfNone).length, 1);
+        assert.equal(host.authCalls.at(-1)?.options.silent, true);
+      } finally { host.dispose(); }
+    });
+    it(`clears ${provider} logout immediately, aborts pending usage and rejects a late response`, async () => {
+      let connected = true;
+      const host = harness({ 'copilotPace.authProvider': provider, 'github-enterprise.uri': 'https://corp.ghe.com' }, {
+        pendingNetwork: true,
+        authenticate: async selected => connected ? session(selected) : undefined,
+      });
+      try {
+        await settle(); host.completeRequest(0); await settle();
+        assert.equal(host.api.getState().phase, 'ready');
+        const refresh = host.api.receiveMessage({ action: 'refresh' }); await settle();
+        connected = false; host.sessionChanged(provider);
+        assert.equal(host.api.getState().snapshot, undefined);
+        assert.equal(host.api.getState().account, undefined);
+        assert.equal(host.api.getState().updatedAt, undefined);
+        assert.equal(host.api.getModel().accountLabel, '');
+        assert.equal(host.api.getModel().used, '—');
+        assert.equal(host.requests[1]?.signal.aborted, true);
+        await refresh; await settle();
+        host.completeRequest(1); await settle();
+        assert.equal(host.api.getState().phase, 'disconnected');
+        assert.equal(host.api.getState().snapshot, undefined);
+        assert.equal(host.requests.length, 2);
+        assert.ok(host.authCalls.every(call => call.provider === provider && call.options.silent));
+      } finally { host.dispose(); }
+    });
+    it(`isolates a pending ${provider} request when switching to the other provider`, async () => {
+      const next = provider === 'github' ? 'github-enterprise' : 'github';
+      const host = harness({ 'copilotPace.authProvider': provider, 'github-enterprise.uri': 'https://corp.ghe.com' }, { pendingNetwork: true });
+      try {
+        await settle(); host.set('copilotPace.authProvider', next); await settle();
+        assert.equal(host.requests[0]?.signal.aborted, true);
+        assert.equal(host.api.getState().snapshot, undefined);
+        host.completeRequest(1); await settle();
+        assert.equal(host.api.getState().phase, 'ready');
+        const current = host.api.getState();
+        host.completeRequest(0); host.sessionChanged(provider); await settle();
+        assert.equal(host.api.getState(), current);
+        assert.equal(host.requests.length, 2);
+        for (const request of host.requests) {
+          const enterprise = request.token === 'Bearer github-enterprise-synthetic';
+          assert.equal(request.url, enterprise ? 'https://api.corp.ghe.com/copilot_internal/user' : 'https://api.github.com/copilot_internal/user');
+        }
+        assert.ok(!JSON.stringify([current, host.api.getModel(), host.api.getTooltip()]).includes('synthetic'));
+      } finally { host.dispose(); }
+    });
+  }
+  it('clears personal quota before silently reading a changed Business account', async () => {
+    let selected = 'personal';
+    const host = harness({}, {
+      pendingNetwork: true,
+      authenticate: async () => ({ ...session('github'), account: { id: selected, label: selected } }),
+    });
+    try {
+      await settle(); host.completeRequest(0); await settle();
+      assert.equal(host.api.getModel().accountLabel, 'personal');
+      selected = 'Business'; host.sessionChanged('github');
+      assert.equal(host.api.getState().snapshot, undefined);
+      assert.equal(host.api.getState().account, undefined);
+      await settle();
+      assert.equal(host.api.getModel().accountLabel, 'Business');
+      assert.equal(host.api.getState().snapshot, undefined);
+      host.completeRequest(1); await settle();
+      assert.equal(host.api.getState().phase, 'ready');
+      assert.ok(host.authCalls.every(call => call.provider === 'github' && call.options.silent));
     } finally { host.dispose(); }
   });
   it('ignores plural settings when the running authentication extension only supports the legacy URI', async () => {

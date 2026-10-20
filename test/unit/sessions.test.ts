@@ -73,4 +73,11 @@ describe('GitHub session options', () => {
     await assert.rejects(sessions.get(true), { code: 'configuration' });
     assert.equal(calls, 0);
   });
+  it('rejects multiple corporate instances before requesting credentials or opening a picker', async () => {
+    const sessions = new GitHubSessions({ getSession: async () => assert.fail('Must not request a session') }, () => 'en',
+      resolveConnection({ provider: 'github-enterprise', enterpriseUris: ['https://one.ghe.com', 'https://two.ghe.com'] }));
+    await assert.rejects(sessions.get(false), { code: 'configuration' });
+    await assert.rejects(sessions.get(true), { code: 'configuration' });
+    await assert.rejects(sessions.get(true, true), { code: 'configuration' });
+  });
 });

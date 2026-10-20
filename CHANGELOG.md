@@ -4,6 +4,10 @@ Versions 0.1.x describe local development builds.
 
 ## [Unreleased]
 
+- Recover silently when a native session-change event arrives before interactive sign-in finishes, while still rejecting login results invalidated by sign-out or provider changes.
+- Reject ambiguous Enterprise instance configuration before requesting an authentication session, and expand switching/sign-out regression coverage for GitHub.com personal/Business and Enterprise accounts.
+- Add release, CI, minimum VS Code version and license badges to the README, and clarify sign-out behavior when other accounts remain authorized.
+
 ## [1.2.1] - 2026-10-19
 
 - Promote the Enterprise connection to stable after the maintainer confirmed that the 1.2.0 pilot works correctly in both GitHub.com and corporate GHE environments.

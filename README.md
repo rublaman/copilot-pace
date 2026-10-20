@@ -2,6 +2,11 @@
 
 # Copilot Pace
 
+[![GitHub release](https://img.shields.io/github/v/release/rublaman/copilot-pace)](https://github.com/rublaman/copilot-pace/releases/latest)
+[![CI (main)](https://github.com/rublaman/copilot-pace/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/rublaman/copilot-pace/actions/workflows/ci.yml?query=branch%3Amain+event%3Apush)
+[![VS Code 1.120+](https://img.shields.io/badge/VS_Code-1.120%2B-007ACC)](https://marketplace.visualstudio.com/items?itemName=rubenblancomanzano.copilot-pace)
+[![MIT license](https://img.shields.io/github/license/rublaman/copilot-pace)](https://github.com/rublaman/copilot-pace/blob/main/LICENSE)
+
 **Know your Copilot budget. Keep your pace in view.**
 
 Track GitHub Copilot credits from your VS Code status bar. See what you have used, what remains, and where your current daily pace could take you by renewal.
@@ -70,6 +75,8 @@ By default, Copilot Pace follows Copilot's configured authentication provider an
 For GHE, use the corporate instance already configured in VS Code's GitHub Enterprise settings. Configure a single HTTPS instance address, without a login, project or repository path. Recent VS Code versions use `github-enterprise.uris`; older versions use `github-enterprise.uri`. Usage queries require one configured instance.
 
 After changing the Enterprise instance settings, reload VS Code before reconnecting.
+
+To sign out, use VS Code's **Accounts** menu. Switching accounts in Pace does not sign an account out of VS Code. When VS Code reports a session change for the selected provider, Pace clears the previous usage and checks the currently authorized session silently. If no session is available, it shows **Connect GitHub**. With other authorized accounts still signed in, VS Code may return another account; check the account shown in the hover or panel and use **Switch GitHub account…** to choose explicitly.
 
 ## Commands
 

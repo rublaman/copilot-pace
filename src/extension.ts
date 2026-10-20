@@ -35,6 +35,7 @@ class CopilotPace implements vscode.Disposable {
   private connection = defaultConnection;
   private enterpriseConfigurationKey?: string;
   private enterpriseRequiresReload = false;
+  private sessionRevision = 0;
   private connecting?: Promise<void>;
   private panel?: vscode.WebviewPanel;
   private panelReady = false;
@@ -54,7 +55,10 @@ class CopilotPace implements vscode.Disposable {
       }),
       vscode.workspace.onDidGrantWorkspaceTrust(() => { if (!this.disposed) this.configure(); }),
       vscode.authentication.onDidChangeSessions(event => {
-        if (!this.disposed && event.provider.id === this.connection.provider && !this.demo) { this.service.reset(); void this.refresh(); }
+        if (!this.disposed && event.provider.id === this.connection.provider && !this.demo) {
+          this.sessionRevision++;
+          this.service.reset(); void this.refresh();
+        }
       }),
     );
     if (__DEV__ && this.developmentEnabled) {
@@ -136,8 +140,15 @@ class CopilotPace implements vscode.Disposable {
   }
   async refresh(interactive = false) {
     const service = this.service;
+    const sessionRevision = this.sessionRevision;
     await service.refresh(interactive);
-    if (!this.disposed && this.service === service) this.schedule();
+    if (!this.disposed && this.service === service) {
+      // A native sign-in event can invalidate this read before VS Code saves access
+      // and the account preference. Re-read silently after login has settled; never
+      // reuse its invalidated session, which may also have been signed out meanwhile.
+      if (interactive && sessionRevision !== this.sessionRevision) await service.refresh();
+      if (!this.disposed && this.service === service) this.schedule();
+    }
   }
   private schedule() {
     if (this.timer) clearTimeout(this.timer);

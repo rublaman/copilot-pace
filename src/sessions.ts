@@ -9,7 +9,7 @@ export class GitHubSessions implements SessionProvider {
 
   async get(interactive: boolean, forceNewSession = false) {
     const text = getStrings(this.getLanguage());
-    if (this.connection.provider === 'github-enterprise' && (this.connection.invalid || !this.connection.origins.length)) {
+    if (this.connection.provider === 'github-enterprise' && (this.connection.invalid || this.connection.origins.length !== 1)) {
       throw new SafeError('configuration', getStrings('en').errorConfiguration);
     }
     if (this.connection.provider === 'github-enterprise' && this.connection.requiresReload) {
