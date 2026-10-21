@@ -54,6 +54,8 @@ Copilot Pace is a VS Code extension that displays GitHub Copilot credits and an 
 
 ## Release workflow
 
+- Pilot `1.3.1` is published from `develop` at `9fbac4c9bf3d34208bd2d85564bf4c0dc32c5675` with `preview: true` as a GitHub prerelease without Latest. Its tagged artifact passed the CI matrices, downloaded-package tests and isolated 1.3.0 update-retention checks; see `docs/RELEASING.md` and `docs/validation.md` for evidence. Real-account daily billing/corporate-policy acceptance remains pending. Stable `1.2.1` remains Latest; earlier published tags/assets must not change.
+
 - Pilot `1.3.0` is published from `develop` at `929291f5a43ed96bbc440483ba863bf12ff108e2` with `preview: true` as a GitHub prerelease without Latest. Its exact tagged VSIX passed the CI matrices and downloaded-package tests; see `docs/RELEASING.md` and `docs/validation.md` for checksum and evidence. Real-account daily billing/corporate-policy acceptance remains pending. Stable `1.2.1` remains Latest; published tags/assets must not change.
 
 - Regular changes: `feature/*`, `fix/*` or `chore/*` → PR to `develop` using **Squash and merge** by default, keeping one coherent commit per PR. Use the final PR title and description to describe the resulting change. A merge commit is an exception when independently useful commits need to be preserved; explain the reason in the PR.
