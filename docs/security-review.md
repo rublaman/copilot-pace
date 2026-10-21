@@ -1,10 +1,10 @@
 # Account switching and sign-out review
 
-Reviewed on October 20, 2026. Base: `develop` at `8049e2a`. Scope: authentication, account switching, sign-out and credential routing, with synthetic regression tests.
+Reviewed on October 20–21, 2026. Base: `develop` at `8049e2a`. Scope: authentication, account switching, sign-out and credential routing, with synthetic regression tests.
 
 ## Findings and changes
 
-1. **Sign-in completion race.** A native session event can invalidate the interactive read before `getSession` finishes saving access and account preferences. The immediate silent refresh may then find no session, leaving Pace disconnected after login. The fix resolves the current session silently once the interactive call settles. Tests reproduce the original failure for both providers and check that a login invalidated by sign-out is not reused.
+1. **Sign-in completion race.** A native session event can invalidate the interactive read before `getSession` saves access and account preferences. A silent lookup started before completion may return no session or the previous account. After login settles, Pace waits for that lookup and resolves the saved preference again. A synchronous event cannot replace the new operation with an invalidated one. Tests cover both event timings and providers, cancellation on sign-out/disposal, and preservation of rate limits and retry backoff.
 2. **Ambiguous Enterprise configuration.** Multiple origins blocked HTTP quota requests but still allowed a native session request. Authentication now also requires exactly one valid origin. No cross-host credential disclosure was reproduced.
 
 ## Reviewed boundaries
@@ -28,12 +28,13 @@ Coverage: `test/unit/connection-activation.test.ts`, `sessions.test.ts`, `servic
 
 Local Windows 11 validation with standalone Node 26.11.1 / npm 11.20.0 passed:
 
-- `npm ci` and `npm run check`: lint/types, 208 unit/service tests and 8 release-script regressions.
+- `npm ci` and `npm run check`: lint/types, 221 unit/service tests and 8 release-script regressions. Thirteen added cases cover the delayed lookup and its cancellation/cooldown boundaries; the account regressions failed before the fix.
 - `npm run test:integration`: 18 tests each on VS Code 1.120.0 and 1.141.0.
 - `npm run test:package`: 8 installed-production-VSIX tests on VS Code 1.141.0 and package content inspection. The internal review document remains excluded from distribution.
-- `npm audit`: zero vulnerabilities; `git diff --check`, local documentation links and all four badge endpoints also passed.
+- `npm audit`: zero vulnerabilities; `git diff --check` and local documentation links passed. Badge endpoints were checked on October 20.
+- Comparison with `develop`: 1,120 view-model cases match. Panel text, accessibility attributes, controls and posted actions also match across those cases in both build modes; markup and minified CSS match after normalizing formatting.
 
-These results apply to the October 20 working tree. Its local 1.2.1 VSIX is a test build. CI results for the committed changes are linked in the PR; published 1.2.1 artifacts are unchanged.
+These results apply to the October 21 follow-up to `984f904`. The local 1.2.1 VSIX is a test build, SHA-256 `7f72d73964d2bfea401bdb3b2a3be186d58187a55d48817a69592675193627df`. CI results for the committed changes are linked in the PR; published 1.2.1 artifacts are unchanged.
 
 ## Manual checks pending
 

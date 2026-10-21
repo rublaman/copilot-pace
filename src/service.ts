@@ -73,8 +73,14 @@ export class QuotaService {
         this.inFlightInteractive = false;
       }
     });
-    this.inFlight = operation;
+    // A session event during get() can reset the service and start another read.
+    if (generation === this.generation) this.inFlight = operation;
     return operation;
+  }
+  async refreshAfterCurrent() {
+    const generation = this.generation;
+    await this.inFlight;
+    if (!this.disposed && generation === this.generation) await this.refresh();
   }
   private async read(interactive: boolean, generation: number, signal: AbortSignal) {
     const active = () => !this.disposed && generation === this.generation && !signal.aborted;

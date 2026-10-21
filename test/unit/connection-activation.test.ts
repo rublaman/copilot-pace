@@ -268,6 +268,50 @@ describe('Connection integration with native VS Code services', () => {
     } finally { host.dispose(); }
   });
   for (const provider of ['github', 'github-enterprise']) {
+    for (const synchronousEvent of [false, true]) {
+      for (const staleAccount of [undefined, 'previous-account']) {
+        it(`rechecks ${provider} after a pre-login lookup returns ${staleAccount ?? 'no session'} late (${synchronousEvent ? 'synchronous' : 'asynchronous'} event)`, async () => {
+          let connected = false;
+          let silentReads = 0;
+          let completeBackground!: (value: vscode.AuthenticationSession | undefined) => void;
+          let loginReturned!: () => void;
+          const nativeLogin = new Promise<void>(resolve => { loginReturned = resolve; });
+          const host = harness({ 'copilotPace.authProvider': provider, 'github-enterprise.uri': 'https://corp.ghe.com' }, {
+            authenticate: async (selected, options) => {
+              if (options.silent) {
+                if (++silentReads === 1) return undefined;
+                if (connected) return session(selected);
+                return new Promise(resolve => { completeBackground = resolve; });
+              }
+              if (!synchronousEvent) await settle();
+              host.sessionChanged(selected);
+              await settle();
+              connected = true;
+              loginReturned();
+              return session(selected);
+            },
+          });
+          try {
+            await settle();
+            host.choose(provider);
+            const login = host.connect();
+            await nativeLogin;
+            await settle();
+            assert.equal(connected, true);
+            completeBackground(staleAccount ? {
+              ...session(provider), id: 'previous-session',
+              account: { id: staleAccount, label: staleAccount },
+            } : undefined);
+            await login;
+            await settle();
+            assert.equal(host.api.getState().phase, 'ready');
+            assert.equal(host.api.getModel().accountLabel, provider === 'github' ? provider : `${provider} (corp.ghe.com)`);
+            assert.equal(host.authCalls.at(-1)?.options.silent, true);
+            assert.equal(host.authCalls.filter(call => call.options.createIfNone).length, 1);
+          } finally { host.dispose(); }
+        });
+      }
+    }
     it(`finishes ${provider} sign-in when its session event arrives before native login returns`, async () => {
       let connected = false;
       const host = harness({ 'copilotPace.authProvider': provider, 'github-enterprise.uri': 'https://corp.ghe.com' }, {

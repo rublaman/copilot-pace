@@ -160,8 +160,8 @@ class CopilotPace implements vscode.Disposable {
     await service.refresh(interactive);
     if (!this.disposed && this.service === service) {
       // Session events can arrive before getSession saves access and preferences.
-      // Resolve the current session again; the returned login may be invalidated.
-      if (interactive && sessionRevision !== this.sessionRevision) await service.refresh();
+      // Wait for any earlier lookup, then resolve the saved preference afresh.
+      if (interactive && sessionRevision !== this.sessionRevision) await service.refreshAfterCurrent();
       if (!this.disposed && this.service === service) this.schedule();
     }
   }

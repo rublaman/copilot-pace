@@ -55,6 +55,65 @@ describe('Quota service', () => {
     await first;
     assert.equal(service.current.phase, 'ready');
   });
+  it('resolves the session again after a pending read and deduplicates concurrent rechecks', async () => {
+    let complete!: (session: Session | undefined) => void;
+    let calls = 0;
+    const { service } = setup({ request: async () => ok() }, {
+      get: async () => ++calls === 1 ? new Promise(resolve => { complete = resolve; })
+        : { id: 'current', accessToken: 'synthetic', account },
+    });
+    const background = service.refresh();
+    const recheck = service.refreshAfterCurrent();
+    const anotherRecheck = service.refreshAfterCurrent();
+    assert.equal(calls, 1);
+    complete(undefined);
+    await Promise.all([background, recheck, anotherRecheck]);
+    assert.equal(calls, 2);
+    assert.equal(service.current.phase, 'ready');
+  });
+  for (const action of ['reset', 'dispose'] as const) {
+    it(`cancels a pending session recheck on ${action}`, async () => {
+      let complete!: (session: Session | undefined) => void;
+      let calls = 0;
+      const { service } = setup({ request: async () => assert.fail('Must not access the network') }, {
+        get: async () => {
+          calls++;
+          return new Promise(resolve => { complete = resolve; });
+        },
+      });
+      const background = service.refresh();
+      const recheck = service.refreshAfterCurrent();
+      service[action]();
+      complete({ id: 'removed', accessToken: 'synthetic', account });
+      await Promise.all([background, recheck]);
+      assert.equal(calls, 1);
+      assert.equal(service.current.account, undefined);
+      assert.equal(service.current.snapshot, undefined);
+    });
+  }
+  for (const failure of ['rateLimited', 'timeout'] as const) {
+    it(`preserves ${failure} cooldown before rechecking a session`, async () => {
+      let complete!: (response: HttpResponse) => void;
+      let calls = 0;
+      const { service, advance } = setup({ request: async () => {
+        if (++calls > 1) return ok();
+        const response = await new Promise<HttpResponse>(resolve => { complete = resolve; });
+        if (failure === 'timeout') throw new SafeError('timeout', 'Request timed out.');
+        return response;
+      } });
+      const background = service.refresh();
+      await Promise.resolve();
+      const recheck = service.refreshAfterCurrent();
+      complete({ status: 429, headers: { 'retry-after': '120' }, body: undefined });
+      await Promise.all([background, recheck]);
+      assert.equal(calls, 1);
+      assert.equal(service.current.failure?.code, failure);
+      advance(failure === 'rateLimited' ? 120_000 : 30_000);
+      await service.refreshAfterCurrent();
+      assert.equal(calls, 2);
+      assert.equal(service.current.phase, 'ready');
+    });
+  }
   it('queues and deduplicates an explicit connection during silent authentication', async () => {
     let complete!: (session: Session | undefined) => void;
     const calls: boolean[] = [];
