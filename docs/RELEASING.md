@@ -53,13 +53,13 @@ Historical release evidence through October 16, 2026:
 - The downloaded 1.0.0 tagged VSIX passed all six automated package tests on Windows 11 / VS Code 1.141.0 without rebuilding. An isolated update from the published 0.2.3 VSIX retained the calendar and polling settings and left only `rubenblancomanzano.copilot-pace@1.0.0` active. All five packaged README images resolved at the tagged commit.
 - Tested and published 1.0.0 file: [copilot-pace-1.0.0.vsix](https://github.com/rublaman/copilot-pace/releases/download/v1.0.0/copilot-pace-1.0.0.vsix); SHA-256: `6bc0c7f1d76a69ab58c9e07935f811b4ba58733359e1cb14e401e9c4239bfb4d`. The release's VSIX, checksum and build record matched the tested Actions artifact byte for byte. An anonymous public download matched the tested hash after publication.
 - The [0.2.0](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.0), [0.2.1](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.1), [0.2.2](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.2) and [0.2.3](https://github.com/rublaman/copilot-pace/releases/tag/v0.2.3) pilots retain their original annotated tags and assets. Pilots through 0.2.2 keep the old publisher identity; 0.2.3 uses the current one.
-- The project uses the MIT license. On October 15, 2026, the maintainer confirmed successful real-account acceptance of 0.2.3 and the saved publisher name **Ruben Blanco Manzano** under `rubenblancomanzano`; see the acceptance record below and [MARKETPLACE.md](MARKETPLACE.md). The Marketplace listing is public; store installation and package verification remain manual steps. The unused `CopilotPace` publisher can remain.
+- The project uses the MIT license. On October 15, 2026, the maintainer confirmed successful real-account acceptance of 0.2.3 and the saved publisher name **Ruben Blanco Manzano** under `rubenblancomanzano`; see the acceptance record below and [publisher details](#marketplace-and-failed-releases). The Marketplace listing is public; store installation and package verification remain manual steps. The unused `CopilotPace` publisher can remain.
 
 Next: upload the exact tested 1.2.1 VSIX to Marketplace and verify its listing, package hash and isolated store installation. Keep all published artifacts unchanged and check the remote state before any further publication.
 
 The root README shows dark-theme animated tooltip and detail-panel captures of the 1.1.1 UI, with illustrative usage figures. Packaged README images are pinned to the packaged commit. Upload the exact tested 1.2.1 VSIX to refresh the Marketplace listing. Do not rebuild or replace any published artifact.
 
-Pilots through `0.2.2` retain the `rublaman.copilot-pace` identity and their original assets. Starting with `0.2.3`, the identity is `rubenblancomanzano.copilot-pace`. VS Code treats it as a separate extension: uninstall the earlier pilot, install the new VSIX, reload and reconnect GitHub. Existing `copilotPace.*` user settings remain. Version `1.0.0` keeps the new identity for updates from `0.2.3` and future releases. The public publisher name is configured independently from the technical ID; see [MARKETPLACE.md](MARKETPLACE.md).
+Pilots through `0.2.2` retain the `rublaman.copilot-pace` identity and their original assets. Starting with `0.2.3`, the identity is `rubenblancomanzano.copilot-pace`. VS Code treats it as a separate extension: uninstall the earlier pilot, install the new VSIX, reload and reconnect GitHub. Existing `copilotPace.*` user settings remain. Version `1.0.0` keeps the new identity for updates from `0.2.3` and future releases. The public publisher name is configured independently from the technical ID; see [publisher details](#marketplace-and-failed-releases).
 
 ## Branches and channels
 
@@ -180,9 +180,18 @@ Reported by the maintainer on October 15, 2026, for the Windows 11 development e
 
 ## Marketplace and failed releases
 
-English listing copy is maintained in [MARKETPLACE.md](MARKETPLACE.md). The root README supplies the full overview, with the existing brand banner and [documented UI screenshots](images/README.md). Commit and push all referenced assets before packaging a publication candidate so the rewritten image URLs resolve to that commit.
+The root README supplies the packaged Marketplace overview. [MARKETPLACE.md](MARKETPLACE.md) mirrors its content, banner, badges and [UI captures](images/README.md), with relative paths adjusted for `docs/`. Update both when changing the overview. Commit and push referenced assets before packaging a publication candidate so the rewritten image URLs resolve to that commit.
 
-Marketplace upload and store verification of stable 1.2.1 remain pending. The extension ID is `rubenblancomanzano.copilot-pace`; publisher details are in [MARKETPLACE.md](MARKETPLACE.md). Automated publishing and the Marketplace prerelease channel are unconfigured. Before adding automation, use restricted publishing permissions and check the current [secure publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace).
+| Publisher field | Value |
+| --- | --- |
+| Publisher ID | `rubenblancomanzano` |
+| Publisher name | Ruben Blanco Manzano |
+| Extension ID | `rubenblancomanzano.copilot-pace` |
+| Display name | Copilot Pace |
+
+Edit the publisher profile through its [management page](https://marketplace.visualstudio.com/manage/publishers/rubenblancomanzano). The extension's short description, repository and issue links are configured in `package.json`.
+
+Marketplace upload and store verification of stable 1.2.1 remain pending. Automated publishing and the Marketplace prerelease channel are unconfigured. Before adding automation, use restricted publishing permissions and check the current [secure publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace).
 
 Publish the same VSIX from the reviewed GitHub Release, through the publisher portal or `vsce publish --azure-credential --packagePath <tested.vsix>` with configured credentials. Verify the listing and an install/update before recording success. Do not rebuild or use `--skip-duplicate` to hide an existing version.
 
