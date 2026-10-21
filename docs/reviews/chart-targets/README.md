@@ -12,7 +12,7 @@ October 21, 2026. These are browser captures of the extension's generated detail
 - Every-day reference: 6,000 / 31 = 193.5 credits per day. Mon–Fri reference: 6,000 / 22 = 272.7 credits per weekday, with zero budget on weekends.
 - Projected cycle totals: 6,230 credits for Every day; 5,959.1 credits for Mon–Fri. These estimates apply the cycle average, not just the last day's spending.
 
-The same fixture was checked for both sources, both metrics, both calendars and both remaining chart styles: 16 combinations. The local journal path in the panel captures belongs to this synthetic fixture.
+The same fixture was checked for both sources, both metrics, both calendars and both remaining chart styles: 16 combinations. File controls in the panel captures refer to this synthetic fixture. The follow-up replaces the visible path with Show location, keeping Open file alongside it.
 
 ## Captures
 
@@ -24,17 +24,17 @@ The same fixture was checked for both sources, both metrics, both calendars and 
 | [Cumulative, local fixture](cumulative-local.png) | The same cumulative observations; API data does not change the saved quota history |
 | [Spanish, dark](panel-dark-es.png) | Full panel, projection explanation and local journal controls |
 | [English, light](panel-light-en.png) | Full panel after changing language, style and calendar through the controls |
-| [360-pixel panel](panel-narrow.png) | Short weekend dates staggered into two rows, wrapped file path and controls |
+| [360-pixel panel](panel-narrow.png) | Short weekend dates staggered into two rows and responsive file/location controls |
 
 ## Validation
 
-Windows 11, standalone Node 26.11.1 / npm 11.20.0, working tree based on `929291f5a43ed96bbc440483ba863bf12ff108e2`:
+Windows 11, standalone Node 26.11.1 / npm 11.20.0, location-button follow-up working tree based on `4ab1f1c6278de97aa8af6aeccecfdf4dc540355d`:
 
 - `npm run check`: lint/types, 297 unit/service/activation tests and 8 release-script tests passed.
 - `npm run test:integration`: 21 tests passed on each of VS Code 1.120.0 and 1.141.0.
 - `npm run test:package`: all 8 installed-production tests and content inspection passed. The production package excludes demos and these review files.
-- Local test VSIX: `dist/copilot-pace-1.3.0.vsix`; SHA-256 `eb3babffcb5a75e0b3b2a1c6b13d20741f17f80c9a80c8c3a43fa9d9db686dcb`. This dirty working-tree package retains the pilot version; it is not a new release and does not replace the published 1.3.0 artifact.
+- Local test VSIX: `dist/copilot-pace-1.3.0.vsix`; SHA-256 `91fa1e66d5514fa188a4aeb91eca0a40b33497e16b0f4d9cca31e9551c7994af`. This dirty working-tree package retains the pilot version; it is not a new release and does not replace the published 1.3.0 artifact.
 - Regressions cover target values, UTC weekend dates, unknown budgets, Area-to-Line fallback, localized hover totals/explanations, journal selection across windows, rejected external paths and account disconnection during an open operation.
-- Browser interaction checks exercised language, style and calendar controls. Real-file routing was tested with the extension-host service harness; no signed-in account or corporate-network acceptance was performed.
+- Browser interaction checks exercised language, style and calendar controls. File-open and native reveal-command routing were tested with the extension-host service harness; no signed-in account or corporate-network acceptance was performed.
 
 Remote CI validates the PR's pushed revision independently. The published 1.3.0 pilot and stable 1.2.1 retain their tags and assets.

@@ -38,6 +38,7 @@ function harness(initial: Record<string, unknown> = {}, options: {
   const pickedChoices: string[][] = [];
   const openedFiles: string[] = [];
   const shownFiles: string[] = [];
+  const revealedFiles: string[] = [];
   let choice: string | undefined;
   const disposable = { dispose() { } };
   const fireConfiguration = (key: string) => configurationListeners.forEach(listener => listener({
@@ -54,7 +55,9 @@ function harness(initial: Record<string, unknown> = {}, options: {
         commands.set(id, callback);
         return disposable;
       },
-      executeCommand: async () => { },
+      executeCommand: async (id: string, uri?: { fsPath: string }) => {
+        if (id === 'revealFileInOS' && uri) revealedFiles.push(uri.fsPath);
+      },
     },
     window: {
       createStatusBarItem: () => ({ text: '', show() { }, dispose() { } }),
@@ -151,7 +154,7 @@ function harness(initial: Record<string, unknown> = {}, options: {
   });
   const api = module.exports.activate(context as unknown as vscode.ExtensionContext) as TestApi;
   return {
-    api, authCalls, requests, allRequests, settings, pickedChoices, openedFiles, shownFiles,
+    api, authCalls, requests, allRequests, settings, pickedChoices, openedFiles, shownFiles, revealedFiles,
     choose: (provider: string | undefined) => { choice = provider; },
     connect: () => commands.get('copilotPace.connect')!(),
     completeRequest: (index: number) => responses[index]!(),
@@ -238,11 +241,14 @@ describe('Connection integration with native VS Code services', () => {
     try {
       const deadline = Date.now() + 5000;
       while (!host.api.getModel().canOpenHistory) {
-        assert.ok(Date.now() < deadline, 'Journal path was not exposed');
+        assert.ok(Date.now() < deadline, 'Journal actions did not become available');
         await settle();
       }
-      const file = host.api.getModel().historyPath;
-      assert.equal(file, await new HistoryStore(directory).latestFile(historyIdentity('github', 'https://github.com', 'same-account-id')));
+      const file = await new HistoryStore(directory).latestFile(historyIdentity('github', 'https://github.com', 'same-account-id'));
+      assert.ok(file);
+      assert.ok(!JSON.stringify(host.api.getModel()).includes(directory));
+      await host.api.receiveMessage({ action: 'revealHistory', value: 'C:\\untrusted-path.json' });
+      assert.deepEqual(host.revealedFiles, [file]);
       await host.api.receiveMessage({ action: 'openHistory', value: 'C:\\untrusted-path.json' });
       assert.deepEqual(host.openedFiles, [file]);
       assert.deepEqual(host.shownFiles, [file]);
@@ -255,12 +261,13 @@ describe('Connection integration with native VS Code services', () => {
       authenticated = false;
       host.sessionChanged('github');
       assert.equal(host.api.getModel().canOpenHistory, false);
-      assert.equal(host.api.getModel().historyPath, directory);
       completeOpen();
       await pendingOpen;
       assert.deepEqual(host.shownFiles, [file]);
       await host.api.receiveMessage({ action: 'openHistory' });
+      await host.api.receiveMessage({ action: 'revealHistory' });
       assert.equal(host.openedFiles.length, 2);
+      assert.deepEqual(host.revealedFiles, [file]);
     } finally {
       host.dispose();
       await rm(directory, { recursive: true, force: true });

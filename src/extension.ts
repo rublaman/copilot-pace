@@ -255,7 +255,7 @@ class CopilotPace implements vscode.Disposable {
       }
     }
   }
-  private async openHistory() {
+  private async showHistoryFile(action: 'open' | 'reveal') {
     if (this.demo || !this.historyKey || !this.historyStore) return;
     const key = this.historyKey;
     try {
@@ -268,10 +268,18 @@ class CopilotPace implements vscode.Disposable {
         void vscode.window.showInformationMessage(getStrings(this.language).historyFileUnavailable);
         return;
       }
-      const document = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
+      const uri = vscode.Uri.file(file);
+      if (action === 'reveal') {
+        await vscode.commands.executeCommand('revealFileInOS', uri);
+        return;
+      }
+      const document = await vscode.workspace.openTextDocument(uri);
       if (!this.disposed && this.historyKey === key) await vscode.window.showTextDocument(document, { preview: true });
     } catch {
-      if (!this.disposed && this.historyKey === key) void vscode.window.showErrorMessage(getStrings(this.language).historyFileOpenError);
+      if (!this.disposed && this.historyKey === key) {
+        const text = getStrings(this.language);
+        void vscode.window.showErrorMessage(action === 'reveal' ? text.historyLocationError : text.historyFileOpenError);
+      }
     }
   }
   get model(): ViewModel {
@@ -279,7 +287,7 @@ class CopilotPace implements vscode.Disposable {
       this.service.nextAllowedAt, this.language, {
         statusStyle: this.statusStyle, chartStyle: this.chartStyle, chartMetric: this.chartMetric,
         history: this.history, historyFailed: this.historyFailed,
-        historyDirectory: this.demo ? undefined : this.historyStore?.directory, historyFile: this.historyFile,
+        historyFileAvailable: !this.demo && !!this.historyFile,
       });
   }
   private render() {
@@ -332,7 +340,9 @@ class CopilotPace implements vscode.Disposable {
     } else if (data.action === 'connect') {
       await this.connect();
     } else if (data.action === 'openHistory') {
-      await this.openHistory();
+      await this.showHistoryFile('open');
+    } else if (data.action === 'revealHistory') {
+      await this.showHistoryFile('reveal');
     } else if (data.action === 'dayMode' && (data.value === 'all' || data.value === 'weekdays')) {
       await this.updateConfig('dayMode', data.value);
     } else if (data.action === 'language' && (data.value === 'en' || data.value === 'es-ES')) {

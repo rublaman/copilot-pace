@@ -51,10 +51,10 @@ export interface ViewModel {
   historyColumns: ViewModel['history'];
   historyBudgetTarget: string; historyBudgetTargetY: number; historyBudgetTargetHint: string;
   historyCalendarTicks: Array<{ x: number; label: string; weekend: boolean }>;
-  historyPath: string; canOpenHistory: boolean;
+  canOpenHistory: boolean;
 }
 export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayMode, demo: boolean, scenario: string, retryAt: number, language: Language = 'en',
-  options: { statusStyle?: StatusStyle; chartStyle?: ChartStyle; chartMetric?: ChartMetric; history?: readonly Observation[]; historyFailed?: boolean; historyDirectory?: string; historyFile?: string } = {}): ViewModel {
+  options: { statusStyle?: StatusStyle; chartStyle?: ChartStyle; chartMetric?: ChartMetric; history?: readonly Observation[]; historyFailed?: boolean; historyFileAvailable?: boolean } = {}): ViewModel {
   const { statusStyle: style = 'text', chartStyle = 'line', chartMetric = 'cumulative', history = [], historyFailed = false } = options;
   const text = getStrings(language);
   const formatter = formatters[language];
@@ -206,7 +206,7 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
     historyBudget: budget,
     historyBudgetTarget, historyBudgetTargetY, historyBudgetTargetHint,
     historyCalendarTicks,
-    historyPath: options.historyFile ?? options.historyDirectory ?? '', canOpenHistory: !demo && !!options.historyFile,
+    canOpenHistory: !demo && !!options.historyFileAvailable,
     historyMessage,
     chartStyle, chartMetric, chartStyleName: { line: text.chartLine, columns: text.chartColumns }[chartStyle],
     historyMetricLabel: dailyMode ? text.historyDailyLabel : text.historyMetricLabel,

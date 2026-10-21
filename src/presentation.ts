@@ -313,7 +313,7 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     font-size: 12px;
   }
 
-  .customization-row label {
+  .customization-row label,.customization-row > span {
     color: var(--muted);
   }
 
@@ -564,15 +564,6 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
 
   .history-file {
     margin-top: 18px;
-  }
-
-  #historyPath {
-    display: block;
-    overflow-wrap: anywhere;
-    margin-top: 8px;
-    font-size: 11px;
-    color: var(--muted);
-    user-select: text;
   }
 
   button:disabled {
@@ -914,10 +905,12 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     </div>
     <div class="history-file">
       <div class="customization-row">
-        <label id="historyFileLabel" for="openHistory"></label>
-        <button id="openHistory"></button>
+        <span id="historyFileLabel"></span>
+        <div class="controls" role="group" aria-labelledby="historyFileLabel">
+          <button id="revealHistory"></button>
+          <button id="openHistory"></button>
+        </div>
       </div>
-      <code id="historyPath"></code>
       <p id="historyFileNote" class="explanation"></p>
     </div>
   </section>
@@ -1026,7 +1019,7 @@ function show(model) {
     'statusStyleLabel', 'styleText', 'styleCompact', 'styleBar', 'styleDots',
     'customizationHeading', 'languageLabel',
     'chartStyleLabel', 'chartLine', 'chartColumns', 'metricCumulative', 'metricDaily',
-    'historyFileLabel', 'openHistory',
+    'historyFileLabel', 'openHistory', 'revealHistory',
     'historyObservedLabel', 'historyWithinLabel', 'historyOverLabel', 'historyBudgetLabel', 'historyColumnsNote',
   ];
   for (const id of labelIds) {
@@ -1042,7 +1035,7 @@ function show(model) {
     'cycleProgress', 'daysLeft', 'period', 'baseRate', 'accountLabel',
     'depletion', 'excess', 'historyMaximum', 'historyStart', 'historyEnd', 'historyMessage',
     'historyLatest', 'chartStyleName', 'historyMetricLabel', 'historyLatestDate',
-    'historyBudgetTarget', 'historyBudgetTargetHint', 'historyPath',
+    'historyBudgetTarget', 'historyBudgetTargetHint',
   ];
   for (const id of valueIds) {
     document.getElementById(id).textContent = model[id];
@@ -1050,6 +1043,7 @@ function show(model) {
   document.getElementById('statusStyle').value = model.statusStyle;
   document.getElementById('chartStyle').value = model.chartStyle;
   document.getElementById('openHistory').disabled = !model.canOpenHistory;
+  document.getElementById('revealHistory').disabled = !model.canOpenHistory;
   let fileNote = model.text.historyFileEmpty;
   if (model.demo) fileNote = model.text.historyDemo;
   else if (model.canOpenHistory) fileNote = model.text.historyFileNote;
@@ -1109,6 +1103,7 @@ window.addEventListener('message', event => {
 document.getElementById('refresh').addEventListener('click', () => vscode.postMessage({ action: 'refresh' }));
 document.getElementById('connect').addEventListener('click', () => vscode.postMessage({ action: 'connect' }));
 document.getElementById('openHistory').addEventListener('click', () => vscode.postMessage({ action: 'openHistory' }));
+document.getElementById('revealHistory').addEventListener('click', () => vscode.postMessage({ action: 'revealHistory' }));
 document.getElementById('language').addEventListener('click', () => {
   vscode.postMessage({ action: 'language', value: currentLanguage === 'en' ? 'es-ES' : 'en' });
 });

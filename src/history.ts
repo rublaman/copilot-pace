@@ -54,7 +54,7 @@ export function observation(snapshot: Snapshot): Observation | undefined {
 export class HistoryStore {
   private readonly pending = new Map<string, Promise<Observation[]>>();
   private readonly writer = randomUUID();
-  constructor(readonly directory: string, private readonly clock: Clock = systemClock) {}
+  constructor(private readonly directory: string, private readonly clock: Clock = systemClock) {}
 
   private validateIdentity(identity: string) {
     if (!/^[a-f0-9]{64}$/.test(identity)) throw new Error('Invalid history identity');

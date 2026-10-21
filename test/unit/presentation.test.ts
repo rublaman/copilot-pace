@@ -136,19 +136,22 @@ describe('Forecast, history and appearance presentation', () => {
     for (const value of ['area', undefined, 'invalid', '__proto__']) assert.equal(resolveChartStyle(value), 'line');
     assert.equal(resolveChartStyle('columns'), 'columns');
   });
-  it('shows the trusted journal path and sends only an open action, clearing it when unavailable', () => {
-    const file = 'C:\\example\\history\\account.2026-10-16.window.json';
-    const available = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'es-ES', { historyFile: file });
+  it('offers file and location actions without exposing a path and disables both when unavailable', () => {
+    const available = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'es-ES', { historyFileAvailable: true });
     const messages: unknown[] = [];
     const elements = panelElements(available, [], messages);
-    assert.equal(elements.get('historyPath')!.textContent, file);
+    assert.equal(elements.has('historyPath'), false);
     assert.equal(elements.get('openHistory')!.disabled, false);
+    assert.equal(elements.get('revealHistory')!.disabled, false);
+    assert.equal(elements.get('revealHistory')!.textContent, 'Mostrar ubicación');
+    elements.get('revealHistory')!.click();
+    assert.equal(JSON.stringify(messages.at(-1)), JSON.stringify({ action: 'revealHistory' }));
     elements.get('openHistory')!.click();
     assert.equal(JSON.stringify(messages.at(-1)), JSON.stringify({ action: 'openHistory' }));
-    const empty = createViewModel({ phase: 'disconnected' }, demoClock, 'all', false, '', 0, 'en', { historyDirectory: 'C:\\example\\history' });
+    const empty = createViewModel({ phase: 'disconnected' }, demoClock, 'all', false, '', 0);
     const cleared = panelElements(available, [empty]);
     assert.equal(cleared.get('openHistory')!.disabled, true);
-    assert.equal(cleared.get('historyPath')!.textContent, 'C:\\example\\history');
+    assert.equal(cleared.get('revealHistory')!.disabled, true);
   });
   it('localizes appearance controls, sends the selected style and reports storage errors', () => {
     const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'es-ES', { statusStyle: 'dots', historyFailed: true });

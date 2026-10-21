@@ -91,7 +91,7 @@ Green marks values within the budget pace; red marks values above it. Daily char
 
 The dashed reference ends with the cycle budget in Cumulative mode or the average daily limit in Daily mode. Mon–Fri daily charts label the Saturday/Monday transitions with short UTC dates. **Projected at renewal** estimates the total credits used by renewal if your cycle average continues; its explanation appears below the estimate. The status hover also shows total credits used.
 
-Customization shows the local observed-usage path and an **Open file** button. Pace stores separate journals per UTC day and VS Code window; the button opens the most recent file for the active account. Before a journal exists, the storage folder is shown and the button is disabled.
+Customization provides **Show location** to reveal the most recent observed-usage file in the system file manager, and **Open file** to inspect it in VS Code. Pace stores separate journals per UTC day and VS Code window. Both actions use the active account and remain disabled until a journal exists; file paths are not displayed in the panel.
 
 ## How the estimate works
 
