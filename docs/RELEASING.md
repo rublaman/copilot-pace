@@ -4,9 +4,11 @@ This guide defines version preparation, validation and distribution. Read the wo
 
 ## Usage history pilot 1.3.0
 
-Prepared through [PR #45](https://github.com/rublaman/copilot-pace/pull/45) for `develop`, with manifest/lockfile version `1.3.0` and `preview: true`. The intended GitHub prerelease uses annotated tag `v1.3.0` without Latest. Stable 1.2.1 and all published artifacts remain unchanged.
+Published on October 21, 2026 as [v1.3.0](https://github.com/rublaman/copilot-pace/releases/tag/v1.3.0), a GitHub prerelease without Latest. [PR #45](https://github.com/rublaman/copilot-pace/pull/45) was squash-merged into `develop` at `929291f5a43ed96bbc440483ba863bf12ff108e2`; the annotated tag identifies that commit. The manifest and lockfile use `1.3.0` with `preview: true`. Stable 1.2.1 remains Latest.
 
-The pilot adds exhaustion/excess forecasts, account-separated local history, daily billing retrieval with automatic observed fallback, selectable chart/status styles and green/red budget-pace colors. Billing access depends on account permissions and policy. Synthetic checks and illustrative chart reviews do not establish real-account billing acceptance; personal/corporate billing validation remains pending for this pilot. Tag creation and publication follow the candidate checks below, using the exact tagged workflow VSIX and checksum.
+The pilot adds exhaustion/excess forecasts, account-separated local history, daily billing retrieval with automatic observed fallback, selectable chart/status styles and green/red budget-pace colors. Billing access depends on account permissions and policy. Synthetic checks and illustrative chart reviews do not establish real-account billing acceptance; personal/corporate billing validation remains pending for this pilot.
+
+[Develop CI](https://github.com/rublaman/copilot-pace/actions/runs/39630142093) and the [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/39630759375) passed. The exact attached `copilot-pace-1.3.0.vsix` passed package inspection and all 8 installed-package tests on Windows 11 / VS Code 1.141.0 without rebuilding. Its anonymous public download matched SHA-256 `7a1571840f28b6221ec63a8a3a7348d70a211b878894a548a35a099f276876df`. The release retains that VSIX, `SHA256SUMS.txt` and `build-info.json`. Earlier tags/assets are unchanged; Marketplace publication remains separate.
 
 ## Stable 1.2.1
 
@@ -20,9 +22,10 @@ Feature [#39](https://github.com/rublaman/copilot-pace/issues/39) was integrated
 
 ## Current state
 
-Reviewed on October 19, 2026:
+Reviewed on October 21, 2026:
 
 - Stable: [1.2.1](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.1) from `main`, `preview: false`, publisher `rubenblancomanzano`. The [main CI](https://github.com/rublaman/copilot-pace/actions/runs/39267811489) and tagged release artifact validation identify the tested source and package. See the release's attached build record/checksum for artifact provenance.
+- Pilot: [1.3.0](https://github.com/rublaman/copilot-pace/releases/tag/v1.3.0) from `develop`, `preview: true`, without Latest. The artifact and remaining billing acceptance are recorded above.
 - Account support: GitHub.com personal/Business and GitHub Enterprise (GHE), with maintainer-reported real-environment acceptance of the 1.2.0 pilot. The stable runtime retains that behavior. The README contains account/setup guidance instead of test-environment history.
 - [PR #43](https://github.com/rublaman/copilot-pace/pull/43) synchronized `main` back into `develop` with a merge commit on October 19.
 - Marketplace upload and store verification of the exact tested 1.2.1 VSIX remain pending and separate from GitHub publication. Published pilots and older assets are retained.
