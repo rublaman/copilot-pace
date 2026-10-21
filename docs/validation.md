@@ -2,6 +2,16 @@
 
 Validation records identify the tested source, artifact, environment and scope. Local checks, CI and maintainer-reported account acceptance are recorded separately.
 
+## Published 1.3.0 pilot: October 21, 2026
+
+- Release: [v1.3.0](https://github.com/rublaman/copilot-pace/releases/tag/v1.3.0), a GitHub prerelease without Latest and with `preview: true`. Stable 1.2.1 remains Latest.
+- Source: `929291f5a43ed96bbc440483ba863bf12ff108e2` on `develop`, squash-merged through [PR #45](https://github.com/rublaman/copilot-pace/pull/45). The annotated tag identifies this commit.
+- [Develop CI](https://github.com/rublaman/copilot-pace/actions/runs/39630142093) and the [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/39630759375) passed Node 24.21.0 / 26.11.1, lint/types, 293 unit/service/activation tests, 8 release-script tests, 21 integration tests per VS Code 1.120.0 / 1.141.0, 8 installed-production tests, package inspection and dependency audit.
+- Published [copilot-pace-1.3.0.vsix](https://github.com/rublaman/copilot-pace/releases/download/v1.3.0/copilot-pace-1.3.0.vsix): 96,019 bytes; SHA-256 `7a1571840f28b6221ec63a8a3a7348d70a211b878894a548a35a099f276876df`. The attached checksum and clean build record match the tag commit and workflow.
+- Downloaded the exact draft attachment, inspected its identity/content boundaries and passed all 8 installed-package tests again on Windows 11 / VS Code 1.141.0 without rebuilding. After publication, an anonymous public download matched the same checksum.
+- Earlier synthetic visual checks cover 12 local/API, daily/cumulative and area/line/column combinations. Real-account daily billing and corporate-policy acceptance remain pending. Acceptance of the older quota runtime does not establish acceptance of this billing integration.
+- No Marketplace publication was performed. Earlier releases, tags and assets retain their identities.
+
 ## 1.3.0 pilot preflight: October 21, 2026
 
 Working tree based on `16d46251717fca17d42e54086e311c2330d2f8b8`, prepared in PR #45 with version `1.3.0` and `preview: true`, Windows 11 / standalone Node 26.11.1 / npm 11.20.0:
