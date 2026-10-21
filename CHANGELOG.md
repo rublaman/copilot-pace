@@ -1,8 +1,10 @@
 # Changelog
 
-Versions 0.1.x were local development builds; 0.2.x, 1.1.0 and 1.2.0 were pilots. Validation and publication records are in [validation.md](docs/validation.md) and [RELEASING.md](docs/RELEASING.md).
+Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0 and 1.3.0 are pilot versions. Validation and publication records are in [validation.md](docs/validation.md) and [RELEASING.md](docs/RELEASING.md).
 
 ## [Unreleased]
+
+## [1.3.0] - 2026-10-21
 
 - Add estimated credit exhaustion and projected excess over the cycle budget.
 - Add a local observed-usage chart with account/server separation and 90-day retention.

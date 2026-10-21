@@ -2,6 +2,12 @@
 
 This guide defines version preparation, validation and distribution. Read the workflows and scripts before using it; documentation alone does not publish a release.
 
+## Usage history pilot 1.3.0
+
+Prepared through [PR #45](https://github.com/rublaman/copilot-pace/pull/45) for `develop`, with manifest/lockfile version `1.3.0` and `preview: true`. The intended GitHub prerelease uses annotated tag `v1.3.0` without Latest. Stable 1.2.1 and all published artifacts remain unchanged.
+
+The pilot adds exhaustion/excess forecasts, account-separated local history, daily billing retrieval with automatic observed fallback, selectable chart/status styles and green/red budget-pace colors. Billing access depends on account permissions and policy. Synthetic checks and illustrative chart reviews do not establish real-account billing acceptance; personal/corporate billing validation remains pending for this pilot. Tag creation and publication follow the candidate checks below, using the exact tagged workflow VSIX and checksum.
+
 ## Stable 1.2.1
 
 Version 1.2.1 promotes the accepted 1.2.0 runtime to stable with `preview: false` and updated GitHub.com/GHE setup documentation. The [acceptance record](validation.md#githubcom-and-ghe-acceptance-october-19-2026) identifies the tested pilot, environments and reported checks.
