@@ -2,6 +2,16 @@
 
 Validation records identify the tested source, artifact, environment and scope. Local checks, CI and maintainer-reported account acceptance are recorded separately.
 
+## 1.3.1 pilot preflight: October 21, 2026
+
+Working tree based on `132df1d7a6e84edae7aa1401b047815ef6c57df6`, prepared in PR #47 with version `1.3.1` and `preview: true`, Windows 11 / standalone Node 26.11.1 / npm 11.20.0:
+
+- `npm ci`, lint/types, 297 unit/service/activation tests and 8 release-script tests passed.
+- 21 integration tests passed on each of VS Code 1.120.0 and 1.141.0; all 8 installed-production tests and package inspection passed.
+- `npm audit`: zero vulnerabilities. `git diff --check` passed.
+- Local preflight artifact: `dist/copilot-pace-1.3.1.vsix`, SHA-256 `ca19bdba4dea5a048456b89e91a3e9a2b0c0cac5c15dd03078ec5b019e5e4ba5`. This dirty working-tree package is not the publication artifact. The final annotated tag workflow must retain and validate its clean source SHA, VSIX, checksum and build record.
+- The [mid-month review](reviews/chart-targets/README.md) covers both chart styles, calendars, metrics and local/reported fixtures, plus the file/location controls. Real-account daily billing/corporate-policy acceptance remains pending.
+
 ## Published 1.3.0 pilot: October 21, 2026
 
 - Release: [v1.3.0](https://github.com/rublaman/copilot-pace/releases/tag/v1.3.0), a GitHub prerelease without Latest and with `preview: true`. Stable 1.2.1 remains Latest.
