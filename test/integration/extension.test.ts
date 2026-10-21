@@ -36,7 +36,7 @@ describe('Copilot Pace in the Extension Development Host', () => {
     for (const key of keys) original.set(key, config.inspect(key)?.globalValue);
     await config.update('language', 'en', vscode.ConfigurationTarget.Global);
     await config.update('statusStyle', 'text', vscode.ConfigurationTarget.Global);
-    await config.update('chartStyle', 'area', vscode.ConfigurationTarget.Global);
+    await config.update('chartStyle', 'line', vscode.ConfigurationTarget.Global);
     await config.update('chartMetric', 'cumulative', vscode.ConfigurationTarget.Global);
     await config.update('mockScenario', '10000-comfortable', vscode.ConfigurationTarget.Global);
     await config.update('dayMode', 'all', vscode.ConfigurationTarget.Global);
@@ -75,18 +75,22 @@ describe('Copilot Pace in the Extension Development Host', () => {
   it('saves chart selection without refreshing quota and rejects unsupported styles', async () => {
     const snapshot = api.getState().snapshot;
     try {
-      for (const style of ['line', 'columns', 'area']) {
+      for (const style of ['line', 'columns']) {
         await api.receiveMessage({ action: 'chartStyle', value: style });
         assert.equal(api.getModel().chartStyle, style);
         assert.equal(vscode.workspace.getConfiguration('copilotPace').get('chartStyle'), style);
         assert.equal(api.getState().snapshot, snapshot);
       }
       await api.receiveMessage({ action: 'chartStyle', value: '<script>' });
-      assert.equal(api.getModel().chartStyle, 'area');
+      assert.equal(api.getModel().chartStyle, 'columns');
+      await api.receiveMessage({ action: 'chartStyle', value: 'area' });
+      assert.equal(api.getModel().chartStyle, 'columns');
+      await vscode.workspace.getConfiguration('copilotPace').update('chartStyle', 'area', vscode.ConfigurationTarget.Global);
+      await waitFor(() => api.getModel().chartStyle === 'line');
       await vscode.workspace.getConfiguration('copilotPace').update('chartStyle', 'line', vscode.ConfigurationTarget.Global);
       await waitFor(() => api.getModel().chartStyle === 'line');
     } finally {
-      await api.receiveMessage({ action: 'chartStyle', value: 'area' });
+      await api.receiveMessage({ action: 'chartStyle', value: 'line' });
     }
   });
   it('switches daily and cumulative charts without choosing a data source or changing quota', async () => {

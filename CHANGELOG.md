@@ -1,8 +1,15 @@
 # Changelog
 
-Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0 and 1.3.0 are pilot versions. Validation and publication records are in [validation.md](docs/validation.md) and [RELEASING.md](docs/RELEASING.md).
+Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0 and 1.3.x are pilot versions. Validation and publication records are in [validation.md](docs/validation.md) and [RELEASING.md](docs/RELEASING.md).
 
 ## [Unreleased]
+
+## [1.3.1] - 2026-10-21
+
+- Label chart budget targets and daily weekend transitions with short UTC dates.
+- Keep Line and Columns chart styles; existing Gradient area preferences display as Line.
+- Explain projected usage at renewal and show total used credits in the status hover.
+- Reveal the active account's observed-usage file location from Customization or open the file in VS Code.
 
 ## [1.3.0] - 2026-10-21
 

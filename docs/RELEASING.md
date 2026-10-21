@@ -2,6 +2,12 @@
 
 This guide defines version preparation, validation and distribution. Read the workflows and scripts before using it; documentation alone does not publish a release.
 
+## Chart refinement pilot 1.3.1
+
+Prepared through [PR #47](https://github.com/rublaman/copilot-pace/pull/47) for `develop`, with manifest/lockfile version `1.3.1` and `preview: true`. The intended annotated tag is `v1.3.1`, published as a GitHub prerelease without Latest after validation of the merged/tagged commit and exact downloaded VSIX. Stable 1.2.1 remains Latest; the published 1.3.0 pilot and earlier assets are unchanged.
+
+The follow-up labels monthly/daily chart targets and weekend transitions, keeps Line and Columns with Area-to-Line fallback, explains the renewal forecast and adds total used credits to the hover. Customization offers Show location and Open file for the active account's most recent observed journal; file paths stay in the extension host. The [visual review](reviews/chart-targets/README.md) records the synthetic mid-month scenarios. Real-account daily billing/corporate-policy acceptance remains pending.
+
 ## Usage history pilot 1.3.0
 
 Published on October 21, 2026 as [v1.3.0](https://github.com/rublaman/copilot-pace/releases/tag/v1.3.0), a GitHub prerelease without Latest. [PR #45](https://github.com/rublaman/copilot-pace/pull/45) was squash-merged into `develop` at `929291f5a43ed96bbc440483ba863bf12ff108e2`; the annotated tag identifies that commit. The manifest and lockfile use `1.3.0` with `preview: true`. Stable 1.2.1 remains Latest.

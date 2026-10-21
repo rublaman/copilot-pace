@@ -25,6 +25,7 @@ function harness(initial: Record<string, unknown> = {}, options: {
   pluralSupported?: boolean;
   storageDirectory?: string;
   apiResponse?: (url: string) => { status: number; body: unknown };
+  openDocument?: (uri: { fsPath: string }) => Promise<{ fsPath: string }>;
 } = {}) {
   const settings = { ...initial };
   const configurationListeners: Array<(event: vscode.ConfigurationChangeEvent) => void> = [];
@@ -35,6 +36,9 @@ function harness(initial: Record<string, unknown> = {}, options: {
   const responses: Array<() => void> = [];
   const authCalls: Array<{ provider: string; options: vscode.AuthenticationGetSessionOptions; scopes: readonly string[] }> = [];
   const pickedChoices: string[][] = [];
+  const openedFiles: string[] = [];
+  const shownFiles: string[] = [];
+  const revealedFiles: string[] = [];
   let choice: string | undefined;
   const disposable = { dispose() { } };
   const fireConfiguration = (key: string) => configurationListeners.forEach(listener => listener({
@@ -42,7 +46,7 @@ function harness(initial: Record<string, unknown> = {}, options: {
   }));
   const host = {
     version: '1.141.0',
-    Uri: { joinPath: (base: URL, ...parts: string[]) => new URL(parts.join('/'), base) },
+    Uri: { joinPath: (base: URL, ...parts: string[]) => new URL(parts.join('/'), base), file: (fsPath: string) => ({ fsPath }) },
     ExtensionMode: { Production: 1, Development: 2, Test: 3 }, StatusBarAlignment: { Right: 2 },
     ThemeColor: class { constructor(public id: string) { } },
     MarkdownString: class { constructor(public value: string) { } },
@@ -51,10 +55,15 @@ function harness(initial: Record<string, unknown> = {}, options: {
         commands.set(id, callback);
         return disposable;
       },
-      executeCommand: async () => { },
+      executeCommand: async (id: string, uri?: { fsPath: string }) => {
+        if (id === 'revealFileInOS' && uri) revealedFiles.push(uri.fsPath);
+      },
     },
     window: {
       createStatusBarItem: () => ({ text: '', show() { }, dispose() { } }),
+      showTextDocument: async (document: { fsPath: string }) => { shownFiles.push(document.fsPath); },
+      showInformationMessage: async () => {},
+      showErrorMessage: async () => {},
       showQuickPick: async (items: Array<{ provider: string }>) => {
         pickedChoices.push(Array.from(items, item => item.provider));
         return items.find(item => item.provider === choice);
@@ -62,6 +71,10 @@ function harness(initial: Record<string, unknown> = {}, options: {
     },
     workspace: {
       isTrusted: options.trusted ?? true,
+      openTextDocument: async (uri: { fsPath: string }) => {
+        openedFiles.push(uri.fsPath);
+        return options.openDocument ? options.openDocument(uri) : uri;
+      },
       getConfiguration: (section: string) => ({
         get: (key: string, fallback?: unknown) => settings[`workspace:${section}.${key}`] ?? settings[`${section}.${key}`] ?? fallback,
         inspect: (key: string) => {
@@ -141,7 +154,7 @@ function harness(initial: Record<string, unknown> = {}, options: {
   });
   const api = module.exports.activate(context as unknown as vscode.ExtensionContext) as TestApi;
   return {
-    api, authCalls, requests, allRequests, settings, pickedChoices,
+    api, authCalls, requests, allRequests, settings, pickedChoices, openedFiles, shownFiles, revealedFiles,
     choose: (provider: string | undefined) => { choice = provider; },
     connect: () => commands.get('copilotPace.connect')!(),
     completeRequest: (index: number) => responses[index]!(),
@@ -209,6 +222,54 @@ describe('Connection integration with native VS Code services', () => {
     } finally {
       first.dispose();
       second?.dispose();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+  it('opens only the active account journal and clears file access when the account disconnects', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'copilot-pace-open-history-'));
+    let authenticated = true;
+    let delayOpen = false;
+    let completeOpen!: () => void;
+    const host = harness({}, {
+      storageDirectory: directory,
+      authenticate: async () => authenticated ? session('github') : undefined,
+      openDocument: async uri => {
+        if (delayOpen) await new Promise<void>(resolve => { completeOpen = resolve; });
+        return uri;
+      },
+    });
+    try {
+      const deadline = Date.now() + 5000;
+      while (!host.api.getModel().canOpenHistory) {
+        assert.ok(Date.now() < deadline, 'Journal actions did not become available');
+        await settle();
+      }
+      const file = await new HistoryStore(directory).latestFile(historyIdentity('github', 'https://github.com', 'same-account-id'));
+      assert.ok(file);
+      assert.ok(!JSON.stringify(host.api.getModel()).includes(directory));
+      await host.api.receiveMessage({ action: 'revealHistory', value: 'C:\\untrusted-path.json' });
+      assert.deepEqual(host.revealedFiles, [file]);
+      await host.api.receiveMessage({ action: 'openHistory', value: 'C:\\untrusted-path.json' });
+      assert.deepEqual(host.openedFiles, [file]);
+      assert.deepEqual(host.shownFiles, [file]);
+      delayOpen = true;
+      const pendingOpen = host.api.receiveMessage({ action: 'openHistory' });
+      while (host.openedFiles.length < 2) {
+        assert.ok(Date.now() < deadline, 'Document open did not start');
+        await settle();
+      }
+      authenticated = false;
+      host.sessionChanged('github');
+      assert.equal(host.api.getModel().canOpenHistory, false);
+      completeOpen();
+      await pendingOpen;
+      assert.deepEqual(host.shownFiles, [file]);
+      await host.api.receiveMessage({ action: 'openHistory' });
+      await host.api.receiveMessage({ action: 'revealHistory' });
+      assert.equal(host.openedFiles.length, 2);
+      assert.deepEqual(host.revealedFiles, [file]);
+    } finally {
+      host.dispose();
       await rm(directory, { recursive: true, force: true });
     }
   });

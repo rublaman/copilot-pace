@@ -1,5 +1,5 @@
 import * as assert from 'node:assert/strict';
-import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { HistoryStore, historyIdentity, observation, retainObservations, type Observation } from '../../src/history';
@@ -31,6 +31,21 @@ describe('Local observed usage history', () => {
     ]);
     assert.deepEqual(await second.read(identity, clock.now().getTime()), [point(), point(at + 1000, 120), point(at + 2000, 130)]);
     assert.equal((await readdir(directory)).length, 2);
+  });
+  it('selects the latest account journal across days and windows without exposing temporary or foreign files', async () => {
+    const store = new HistoryStore(directory, clock);
+    assert.equal(await store.latestFile(identity), undefined);
+    const old = `${identity}.2026-10-20.00000000-0000-0000-0000-000000000000.json`;
+    const first = `${identity}.2026-10-21.00000000-0000-0000-0000-000000000001.json`;
+    const latest = `${identity}.2026-10-21.00000000-0000-0000-0000-000000000002.json`;
+    const foreign = `${historyIdentity('github', 'https://github.com', 'other')}.2026-10-22.00000000-0000-0000-0000-000000000003.json`;
+    for (const name of [old, first, latest, foreign, `${latest}.00000000-0000-0000-0000-000000000004.tmp`]) {
+      await writeFile(join(directory, name), '{}');
+    }
+    await utimes(join(directory, first), at / 1000, at / 1000);
+    await utimes(join(directory, latest), at / 1000 + 1, at / 1000 + 1);
+    assert.equal(await store.latestFile(identity), join(directory, latest));
+    await assert.rejects(store.latestFile('../outside'), /identity/);
   });
   it('isolates accounts, authentication providers and Enterprise origins', async () => {
     const keys = [identity, historyIdentity('github', 'https://github.com', 'other'),

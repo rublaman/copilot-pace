@@ -313,18 +313,19 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     font-size: 12px;
   }
 
-  .customization-row label {
+  .customization-row label,.customization-row > span {
     color: var(--muted);
   }
 
   #historyChart {
     width: 100%;
-    height: auto;
+    height: 160px;
     display: block;
     overflow: visible;
   }
 
   .history-card {
+    container-type: inline-size;
     --chart-accent: var(--vscode-charts-blue,#3794ff);
     background: var(--surface);
     border: 1px solid var(--line);
@@ -394,7 +395,7 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     stroke: var(--line);
   }
 
-  #historyBudget {
+  #historyBudget,#historyBudgetLeader {
     fill: none;
     stroke: var(--muted);
     stroke-dasharray: 5 5;
@@ -407,19 +408,6 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     stroke-width: 2.5;
     stroke-linecap: round;
     stroke-linejoin: round;
-  }
-
-  .chart-area {
-    fill: url(#historyFill);
-    stroke: none;
-  }
-
-  .chart-area.good {
-    fill: url(#historyFillGood);
-  }
-
-  .chart-area.over {
-    fill: url(#historyFillOver);
   }
 
   .chart-dot {
@@ -461,16 +449,6 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
   .chart-column:hover,.chart-column:focus-visible {
     fill: var(--chart-accent);
     outline: none;
-  }
-
-  .chart-gradient-top {
-    stop-color: var(--chart-accent);
-    stop-opacity: .3;
-  }
-
-  .chart-gradient-bottom {
-    stop-color: var(--chart-accent);
-    stop-opacity: .015;
   }
 
   .chart-column-top {
@@ -523,6 +501,69 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     gap: 12px;
     font-size: 11px;
     color: var(--muted);
+  }
+
+  .chart-body {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 105px;
+  }
+
+  .chart-body:has(.chart-target-content[hidden]) {
+    grid-template-columns: minmax(0,1fr) 0;
+  }
+
+  .chart-target {
+    position: relative;
+    color: var(--muted);
+    font-size: 10px;
+    min-width: 0;
+  }
+
+  .chart-target-content {
+    position: absolute;
+    transform: translateY(-50%);
+    padding-left: 8px;
+  }
+
+  .chart-target strong {
+    display: block;
+    color: var(--vscode-foreground);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .chart-plot {
+    position: relative;
+  }
+
+  .chart-calendar-label {
+    position: absolute;
+    top: 85%;
+    color: var(--muted);
+    font-size: 10px;
+    white-space: nowrap;
+    transform: translateX(-50%) rotate(-40deg);
+  }
+
+  #historyCalendarMarks path {
+    stroke: var(--muted);
+    stroke-opacity: .6;
+  }
+
+  @container (max-width:360px) {
+    .chart-calendar-label.monday {
+      top: 105%;
+    }
+    .chart-body {
+      grid-template-columns: minmax(0,1fr) 85px;
+    }
+    .chart-body:has(.chart-calendar-label.monday) {
+      margin-bottom: 32px;
+    }
+  }
+
+  .history-file {
+    margin-top: 18px;
   }
 
   button:disabled {
@@ -760,6 +801,7 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
       <span id="projectionLabel"></span>
       <strong id="projection"></strong>
     </div>
+    <p id="projectionHint" class="explanation"></p>
     <div class="metrics forecast-metrics">
       <div class="metric">
         <span id="depletionHeading"></span>
@@ -792,40 +834,41 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
         </div>
         <span id="chartStyleName" class="chart-style-tag"></span>
       </div>
-      <svg id="historyChart" viewBox="0 0 584 192" role="img">
-        <defs>
-          <clipPath id="historyWithinClip"><path id="historyWithinClipShape"></path></clipPath>
-          <clipPath id="historyOverClip"><path id="historyOverClipShape"></path></clipPath>
-          <linearGradient id="historyFill" x1="0" y1="0" x2="0" y2="1">
-            <stop class="chart-gradient-top" offset="0%"></stop>
-            <stop class="chart-gradient-bottom" offset="100%"></stop>
-          </linearGradient>
-          <linearGradient id="historyColumnFill" x1="0" y1="0" x2="0" y2="1">
-            <stop class="chart-column-top" offset="0%"></stop>
-            <stop class="chart-column-bottom" offset="100%"></stop>
-          </linearGradient>
-          <linearGradient id="historyFillGood" class="good" x1="0" y1="0" x2="0" y2="1">
-            <stop class="chart-gradient-top" offset="0%"></stop>
-            <stop class="chart-gradient-bottom" offset="100%"></stop>
-          </linearGradient>
-          <linearGradient id="historyFillOver" class="over" x1="0" y1="0" x2="0" y2="1">
-            <stop class="chart-gradient-top" offset="0%"></stop>
-            <stop class="chart-gradient-bottom" offset="100%"></stop>
-          </linearGradient>
-          <linearGradient id="historyColumnFillGood" class="good" x1="0" y1="0" x2="0" y2="1">
-            <stop class="chart-column-top" offset="0%"></stop>
-            <stop class="chart-column-bottom" offset="100%"></stop>
-          </linearGradient>
-          <linearGradient id="historyColumnFillOver" class="over" x1="0" y1="0" x2="0" y2="1">
-            <stop class="chart-column-top" offset="0%"></stop>
-            <stop class="chart-column-bottom" offset="100%"></stop>
-          </linearGradient>
-        </defs>
-        <path class="chart-grid" d="M32 24H552M32 72H552M32 120H552"></path>
-        <path class="chart-axis" d="M32 168H552"></path>
-        <g id="historyPoints"></g>
-        <path id="historyBudget"></path>
-      </svg>
+      <div class="chart-body">
+        <div class="chart-plot">
+          <svg id="historyChart" viewBox="0 0 584 224" preserveAspectRatio="none" role="img">
+            <defs>
+              <clipPath id="historyWithinClip"><path id="historyWithinClipShape"></path></clipPath>
+              <clipPath id="historyOverClip"><path id="historyOverClipShape"></path></clipPath>
+              <linearGradient id="historyColumnFill" x1="0" y1="0" x2="0" y2="1">
+                <stop class="chart-column-top" offset="0%"></stop>
+                <stop class="chart-column-bottom" offset="100%"></stop>
+              </linearGradient>
+              <linearGradient id="historyColumnFillGood" class="good" x1="0" y1="0" x2="0" y2="1">
+                <stop class="chart-column-top" offset="0%"></stop>
+                <stop class="chart-column-bottom" offset="100%"></stop>
+              </linearGradient>
+              <linearGradient id="historyColumnFillOver" class="over" x1="0" y1="0" x2="0" y2="1">
+                <stop class="chart-column-top" offset="0%"></stop>
+                <stop class="chart-column-bottom" offset="100%"></stop>
+              </linearGradient>
+            </defs>
+            <path class="chart-grid" d="M32 24H552M32 72H552M32 120H552"></path>
+            <path class="chart-axis" d="M32 168H552"></path>
+            <g id="historyPoints"></g>
+            <path id="historyBudget"></path>
+            <path id="historyBudgetLeader"></path>
+            <g id="historyCalendarMarks"></g>
+          </svg>
+          <div id="historyCalendarTicks"></div>
+        </div>
+        <div class="chart-target">
+          <div id="historyBudgetTargetPosition" class="chart-target-content">
+            <strong id="historyBudgetTarget"></strong>
+            <span id="historyBudgetTargetHint"></span>
+          </div>
+        </div>
+      </div>
       <div class="chart-labels"><span id="historyStart"></span><span id="historyEnd"></span></div>
       <div class="chart-legend">
         <span id="historyObservedLabel"></span>
@@ -856,10 +899,19 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     <div class="customization-row">
       <label id="chartStyleLabel" for="chartStyle"></label>
       <select id="chartStyle">
-        <option id="chartArea" value="area"></option>
         <option id="chartLine" value="line"></option>
         <option id="chartColumns" value="columns"></option>
       </select>
+    </div>
+    <div class="history-file">
+      <div class="customization-row">
+        <span id="historyFileLabel"></span>
+        <div class="controls" role="group" aria-labelledby="historyFileLabel">
+          <button id="revealHistory"></button>
+          <button id="openHistory"></button>
+        </div>
+      </div>
+      <p id="historyFileNote" class="explanation"></p>
     </div>
   </section>
 
@@ -920,9 +972,6 @@ function drawHistory(model) {
     const last = segment[segment.length - 1];
     const path = segment.map((point, index) => (index === 0 ? 'M' : 'L') + point.x + ' ' + point.y).join('');
     if (segment.length > 1) {
-      if (model.chartStyle === 'area') {
-        drawPath(path + 'L' + last.x + ' 168L' + first.x + ' 168Z', 'chart-area');
-      }
       drawPath(path, 'chart-line');
     }
     if (model.chartMetric !== 'daily') {
@@ -939,6 +988,22 @@ function drawHistory(model) {
   const latest = model.history[model.history.length - 1];
   if (latest) create('circle', { cx: latest.x, cy: latest.y, r: 4.5, class: 'chart-last ' + latest.tone, tabindex: 0, 'aria-label': latest.label }, latest.label);
 }
+function drawCalendarTicks(model) {
+  const layer = document.getElementById('historyCalendarTicks');
+  const marks = document.getElementById('historyCalendarMarks');
+  layer.replaceChildren();
+  marks.replaceChildren();
+  for (const tick of model.historyCalendarTicks) {
+    const mark = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    mark.setAttribute('d', 'M' + tick.x + ' 168v7');
+    marks.appendChild(mark);
+    const label = document.createElement('span');
+    label.setAttribute('class', 'chart-calendar-label' + (tick.weekend ? '' : ' monday'));
+    label.style.left = (tick.x / 584 * 100) + '%';
+    label.textContent = tick.label;
+    layer.appendChild(label);
+  }
+}
 function show(model) {
   currentLanguage = model.language;
   document.getElementById('page').setAttribute('lang', model.language);
@@ -948,12 +1013,13 @@ function show(model) {
     'eyebrow', 'budgetUsedLabel', 'remainingLabel', 'progressHeading',
     'usageBarLabel', 'cycleBarLabel', 'paceHeading', 'all', 'weekdays',
     'averageHeading', 'averageHint', 'allowanceHeading', 'allowanceHint',
-    'projectionLabel', 'baselinePrefix', 'calendarNote', 'accountHeading',
+    'projectionLabel', 'projectionHint', 'baselinePrefix', 'calendarNote', 'accountHeading',
     'renewalHeading', 'updatedHeading', 'refresh',
     'depletionHeading', 'excessHeading', 'forecastHint', 'historyHeading',
     'statusStyleLabel', 'styleText', 'styleCompact', 'styleBar', 'styleDots',
     'customizationHeading', 'languageLabel',
-    'chartStyleLabel', 'chartArea', 'chartLine', 'chartColumns', 'metricCumulative', 'metricDaily',
+    'chartStyleLabel', 'chartLine', 'chartColumns', 'metricCumulative', 'metricDaily',
+    'historyFileLabel', 'openHistory', 'revealHistory',
     'historyObservedLabel', 'historyWithinLabel', 'historyOverLabel', 'historyBudgetLabel', 'historyColumnsNote',
   ];
   for (const id of labelIds) {
@@ -969,18 +1035,29 @@ function show(model) {
     'cycleProgress', 'daysLeft', 'period', 'baseRate', 'accountLabel',
     'depletion', 'excess', 'historyMaximum', 'historyStart', 'historyEnd', 'historyMessage',
     'historyLatest', 'chartStyleName', 'historyMetricLabel', 'historyLatestDate',
+    'historyBudgetTarget', 'historyBudgetTargetHint',
   ];
   for (const id of valueIds) {
     document.getElementById(id).textContent = model[id];
   }
   document.getElementById('statusStyle').value = model.statusStyle;
   document.getElementById('chartStyle').value = model.chartStyle;
+  document.getElementById('openHistory').disabled = !model.canOpenHistory;
+  document.getElementById('revealHistory').disabled = !model.canOpenHistory;
+  let fileNote = model.text.historyFileEmpty;
+  if (model.demo) fileNote = model.text.historyDemo;
+  else if (model.canOpenHistory) fileNote = model.text.historyFileNote;
+  document.getElementById('historyFileNote').textContent = fileNote;
   const chart = document.getElementById('historyChart');
   document.getElementById('historyPlot').hidden = model.history.length === 0;
   chart.setAttribute('aria-label', model.historyAria);
   chart.setAttribute('role', model.chartMetric === 'daily' ? 'group' : 'img');
   const budgetPath = model.historyBudget.map((point, index) => (index === 0 ? 'M' : 'L') + point.x + ' ' + point.y).join('');
   document.getElementById('historyBudget').setAttribute('d', budgetPath);
+  const target = document.getElementById('historyBudgetTargetPosition');
+  target.hidden = !model.historyBudgetTarget;
+  target.style.top = (model.historyBudgetTargetY / 224 * 100) + '%';
+  document.getElementById('historyBudgetLeader').setAttribute('d', model.historyBudgetTarget ? 'M552 ' + model.historyBudgetTargetY + 'H584' : '');
   document.getElementById('historyWithinClipShape').setAttribute('d', budgetPath ? budgetPath + 'L552 192L32 192Z' : '');
   document.getElementById('historyOverClipShape').setAttribute('d', budgetPath ? budgetPath + 'L552 0L32 0Z' : '');
   document.getElementById('historyLatest').setAttribute('data-chart-tone', model.historyLatestTone);
@@ -993,6 +1070,7 @@ function show(model) {
   document.getElementById('metricCumulative').setAttribute('aria-pressed', String(model.chartMetric === 'cumulative'));
   document.getElementById('metricDaily').setAttribute('aria-pressed', String(model.chartMetric === 'daily'));
   drawHistory(model);
+  drawCalendarTicks(model);
   ${__DEV__ ? `document.getElementById('demo').hidden = !model.demo;
   const note = document.getElementById('demoNote');
   note.hidden = !model.demo;
@@ -1024,6 +1102,8 @@ window.addEventListener('message', event => {
 });
 document.getElementById('refresh').addEventListener('click', () => vscode.postMessage({ action: 'refresh' }));
 document.getElementById('connect').addEventListener('click', () => vscode.postMessage({ action: 'connect' }));
+document.getElementById('openHistory').addEventListener('click', () => vscode.postMessage({ action: 'openHistory' }));
+document.getElementById('revealHistory').addEventListener('click', () => vscode.postMessage({ action: 'revealHistory' }));
 document.getElementById('language').addEventListener('click', () => {
   vscode.postMessage({ action: 'language', value: currentLanguage === 'en' ? 'es-ES' : 'en' });
 });

@@ -60,6 +60,31 @@ export class HistoryStore {
     if (!/^[a-f0-9]{64}$/.test(identity)) throw new Error('Invalid history identity');
   }
 
+  async latestFile(identity: string): Promise<string | undefined> {
+    this.validateIdentity(identity);
+    let names: string[];
+    try { names = await readdir(this.directory); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+      throw error;
+    }
+    const journals = [];
+    for (const name of names) {
+      const match = /^([a-f0-9]{64})\.(\d{4}-\d{2}-\d{2})\.[a-f0-9-]{36}\.json$/.exec(name);
+      if (!match || match[1] !== identity) continue;
+      const file = join(this.directory, name);
+      try {
+        const metadata = await stat(file);
+        if (metadata.isFile()) journals.push({ file, day: match[2]!, modified: metadata.mtimeMs });
+      } catch (error) {
+        // Retention or another window can remove a journal after the directory read.
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      }
+    }
+    journals.sort((a, b) => b.day.localeCompare(a.day) || b.modified - a.modified || a.file.localeCompare(b.file));
+    return journals[0]?.file;
+  }
+
   private async readFile(file: string, now: number): Promise<Observation[]> {
     try {
       if ((await stat(file)).size > MAX_FILE_BYTES) throw new Error('History file is too large');
