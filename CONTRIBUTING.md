@@ -10,6 +10,23 @@ Use Windows, PowerShell 7, standalone Node 24 or 26, npm 11.20.0 and the VS Code
 npm ci
 ```
 
+## Code and documentation style
+
+Apply these rules to new features, fixes and reviews:
+
+- Use names that describe the domain and the operation. Keep control flow explicit; expand nested ternaries and branches with several actions. Put separate actions and assertions on separate lines.
+- Keep abstractions tied to current requirements. Extract shared behavior when it removes meaningful duplication; avoid speculative options, pass-through wrappers and unused scaffolding. Preserve strict types instead of bypassing errors with `any` or unexplained assertions.
+- Keep HTML, CSS and webview scripts readable in source. Use the production build for minification. Preserve escaping, CSP and action allowlists when reorganizing templates or handlers.
+- Use comments to explain constraints, tradeoffs or non-obvious behavior. Remove comments that repeat the code, stale explanations and abandoned code. Give actionable TODOs a concrete missing behavior and an issue reference when available.
+- Make tests describe observable behavior. Separate setup, action and assertions; use controlled promises and injected clocks for asynchronous cases. Cover cancellation, late responses and account identity when changing session logic. Do not weaken existing assertions or add tests that only repeat the implementation.
+- Preserve behavior and security boundaries during readability refactors. Check equivalence where practical and run the checks required for the affected code. Keep unrelated formatting out of feature changes.
+- Write documentation in direct, factual English for the reader who will use or maintain the feature. Explain behavior, configuration and limits. Remove promotional claims, conversational filler, repeated summaries and unsupported assurances such as "fully secure" or "production-ready."
+- Distinguish implemented behavior, automated test results, manual acceptance and pending work. Name the tested scope; do not infer account or network compatibility from synthetic tests or describe planned automation as implemented.
+- Keep changelog entries focused on user-visible changes, fixes and migration steps. Put test evidence in [validation.md](docs/validation.md) or a focused review record, and release procedures, artifact records and publication status in [RELEASING.md](docs/RELEASING.md). Preserve historical versions and dates when editing older entries.
+- Keep `docs/MARKETPLACE.md` aligned with the README's content, GIFs, images and badges, adjusting relative paths for its location. Keep publisher administration in the release guide.
+
+Before submitting a PR, read the final diff for unnecessary abstractions, compressed control flow, stale comments, repeated text and claims without evidence. The PR description should explain the resulting behavior, relevant validation and remaining limits. Use these criteria during implementation and review; passing automated checks does not replace that review.
+
 ## Builds and demos
 
 Build mode is explicit and independent of the branch.

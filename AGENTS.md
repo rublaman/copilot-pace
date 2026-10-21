@@ -18,6 +18,12 @@ Copilot Pace is a VS Code extension that displays GitHub Copilot credits and an 
 - Use `rg` for searches. Check `gh auth status` before operating on GitHub; never print or store tokens.
 - Keep the scope aligned with the request. Documenting a workflow does not authorize executing it or publishing a release.
 
+## Code and documentation style
+
+- Apply [Code and documentation style](CONTRIBUTING.md#code-and-documentation-style) to every feature, fix and review. It defines the shared writing and readability criteria for contributors and coding agents.
+- Prefer explicit control flow, domain names and readable templates. Keep abstractions justified by current behavior, comments focused on reasoning, and tests focused on observable outcomes. Readability refactors must preserve behavior and security boundaries.
+- Write factual, concise documentation. Separate user-facing changes from validation and release records; keep the Marketplace overview aligned with the README. Review the final diff for filler, repetition, stale code and unsupported claims before submitting.
+
 ## Architecture and invariants
 
 - `src/domain.ts`: quota normalization and pure calculations. Values represent credits, not tokens; the calendar uses UTC. `weekdays` excludes Saturdays and Sundays, without a public holiday calendar.
