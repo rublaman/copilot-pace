@@ -8,7 +8,12 @@ export function registerDemoCommands(host: typeof vscode, updateConfig: (key: st
   return [
     host.commands.registerCommand('copilotPace.demo', async () => {
       const language = getLanguage();
-      const selection = await host.window.showQuickPick(Object.entries(scenarioLabels).map(([scenario, label]) => ({ label: localizeDemoScenario(label, language), scenario })), { title: language === 'es-ES' ? 'Copilot Pace · Escenarios de demostración' : 'Copilot Pace · Demo scenarios' });
+      const choices = Object.entries(scenarioLabels).map(([scenario, label]) => ({
+        label: localizeDemoScenario(label, language), scenario,
+      }));
+      const selection = await host.window.showQuickPick(choices, {
+        title: language === 'es-ES' ? 'Copilot Pace · Escenarios de demostración' : 'Copilot Pace · Demo scenarios',
+      });
       if (!selection) return;
       await updateConfig('mockScenario', selection.scenario);
       await updateConfig('dataSource', 'mock');

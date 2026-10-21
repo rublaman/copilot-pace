@@ -62,16 +62,20 @@ describe('Presentation and demo scenarios', () => {
       { kind: 'bounded' as const, used: 15, total: 20, usedPercent: 75, asOf: 0, cycle: { start: 0, end: 86400000 } },
     ]) {
       const model = createViewModel({ phase: 'ready', snapshot: state }, demoClock, 'all', false, '', 0);
-      assert.equal(model.allowance, '—'); assert.equal(model.cycleValue, null); assert.equal(model.projection, '—');
+      assert.equal(model.allowance, '—');
+      assert.equal(model.cycleValue, null);
+      assert.equal(model.projection, '—');
       assert.ok(!renderHover(model).includes('Daily allowance'));
       assert.ok(!renderHover(model).includes('Today:'));
     }
   });
   it('keeps early-cycle averages pending and exhausted allowances at zero', () => {
     const early = createViewModel({ phase: 'ready', snapshot }, { now: () => new Date('2026-10-01T12:00Z') }, 'all', true, 'Demo', 0);
-    assert.equal(early.dailyAverage, '—'); assert.equal(early.summary, 'Calculating pace');
+    assert.equal(early.dailyAverage, '—');
+    assert.equal(early.summary, 'Calculating pace');
     const exhausted = createViewModel({ phase: 'ready', snapshot: normalizeQuota(boundedFixture(3900, 3900, demoClock.now()), demoClock.now()) }, demoClock, 'all', true, 'Demo', 0);
-    assert.equal(exhausted.remaining, '0 credits'); assert.equal(exhausted.allowance, '0 / day');
+    assert.equal(exhausted.remaining, '0 credits');
+    assert.equal(exhausted.allowance, '0 / day');
     assert.ok(renderHover(exhausted).includes('Daily allowance: **0 / day** · Mon–Sun'));
     assert.ok(renderHover(early).includes('A daily estimate will appear after one full eligible day.'));
   });
@@ -108,7 +112,8 @@ describe('Presentation and demo scenarios', () => {
     const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', true, 'Demo', 0);
     model.message = '[run](command:evil) <img> | $(warning)\nextra';
     const hover = renderHover(model);
-    assert.ok(hover.includes('Projected at renewal:')); assert.ok(hover.includes('6,000 credits'));
+    assert.ok(hover.includes('Projected at renewal:'));
+    assert.ok(hover.includes('6,000 credits'));
     assert.ok(hover.includes('\\[run\\]\\(command:evil\\)'));
     assert.ok(!hover.includes('[run](command:evil)'));
     assert.ok(hover.includes('\\<img\\> \\| \\$\\(warning\\) extra'));
@@ -122,7 +127,8 @@ describe('Presentation and demo scenarios', () => {
   });
   it('keeps the status text minimal and identifies synthetic data', () => {
     const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', true, 'Demo', 0);
-    assert.equal(model.statusText, '40% · Comfortable · Demo'); assert.equal(model.canConnect, false);
+    assert.equal(model.statusText, '40% · Comfortable · Demo');
+    assert.equal(model.canConnect, false);
     assert.ok(model.referenceDate.includes('2026'));
   });
   for (const [used, percentage] of [[0, '0%'], [1, '<0.1%'], [2, '<0.1%'], [4, '<0.1%'], [6, '0.1%'], [10, '0.1%'], [40, '0.4%'], [1234, '12.3%'], [1950, '19.5%'], [10000, '100%']] as const) {
@@ -176,7 +182,8 @@ describe('Presentation and demo scenarios', () => {
       [{ phase: 'error', account, failure: new SafeError('auth', 'Cancelled') }, 'Reconnect GitHub', 'Test'],
     ] as const) {
       const model = createViewModel(state, demoClock, 'all', false, '', 0);
-      assert.equal(model.connectLabel, label); assert.equal(model.accountLabel, displayedAccount);
+      assert.equal(model.connectLabel, label);
+      assert.equal(model.accountLabel, displayedAccount);
       assert.ok(!renderHover(model).includes('Today:'));
       assert.ok(renderHover(model).includes(`[${label}](command:copilotPace.connect)`));
       assert.equal(renderHover(model).includes('GitHub account:'), !!displayedAccount);
@@ -218,14 +225,16 @@ describe('Presentation and demo scenarios', () => {
     const label = '[run](command:evil) </script><img src=x onerror=alert(1)> $(warning)\nOther';
     const model = createViewModel({ phase: 'ready', snapshot, account: { id: 'account', label } }, demoClock, 'all', false, '', 0);
     const hover = renderHover(model);
-    assert.ok(!hover.includes('[run](command:evil)')); assert.ok(!hover.includes('$(warning)'));
+    assert.ok(!hover.includes('[run](command:evil)'));
+    assert.ok(!hover.includes('$(warning)'));
     assert.ok(hover.includes('\\[run\\]\\(command:evil\\)'));
     assert.ok(!renderHtml(model, 'safe-nonce').includes('</script><img'));
     assert.equal(panelElements(model).get('accountLabel')?.textContent, label);
   });
   it('hides account identity and connection controls for synthetic demos', () => {
     const model = createViewModel({ phase: 'ready', snapshot, account: { id: 'synthetic', label: 'Demo' } }, demoClock, 'all', true, 'Demo', 0);
-    assert.equal(model.accountLabel, ''); assert.equal(model.canConnect, false);
+    assert.equal(model.accountLabel, '');
+    assert.equal(model.canConnect, false);
     assert.ok(!renderHover(model).includes('GitHub account:'));
     assert.ok(renderHover(model).includes('[Change demo](command:copilotPace.demo)'));
     const elements = panelElements(model);
@@ -288,8 +297,10 @@ describe('Presentation and demo scenarios', () => {
   it('uses CSP and text content without exposing credentials', () => {
     const model = createViewModel({ phase: 'ready' }, demoClock, 'all', true, '</script><img src=x onerror=alert(1)>', 0);
     const html = renderHtml(model, 'safe-nonce');
-    assert.ok(html.includes("default-src 'none'")); assert.ok(!html.includes('</script><img'));
-    assert.ok(html.includes('textContent')); assert.ok(!html.includes('accessToken'));
+    assert.ok(html.includes("default-src 'none'"));
+    assert.ok(!html.includes('</script><img'));
+    assert.ok(html.includes('textContent'));
+    assert.ok(!html.includes('accessToken'));
   });
   it('localizes Spanish figures, dates, states and hover without a language action in the hover', () => {
     const spanish = createViewModel({ phase: 'ready', snapshot, updatedAt: demoClock.now().getTime(), account: { id: 'test', label: 'Test' } }, demoClock, 'weekdays', false, '', 0, 'es-ES');
@@ -309,7 +320,8 @@ describe('Presentation and demo scenarios', () => {
     assert.ok(hover.includes('Previsión al renovar:'));
     assert.ok(hover.includes('[$(graph) Ver detalles](command:copilotPace.showDetails)'));
     assert.ok(!hover.includes('Daily allowance'));
-    assert.ok(!hover.includes('[Inglés]')); assert.ok(!hover.includes('[Spanish]'));
+    assert.ok(!hover.includes('[Inglés]'));
+    assert.ok(!hover.includes('[Spanish]'));
     assert.ok(!hover.includes('Today:'));
     assert.deepEqual(snapshot, normalizeQuota(boundedFixture(10000, 4000, demoClock.now()), demoClock.now()));
   });
@@ -365,7 +377,7 @@ describe('Presentation and demo scenarios', () => {
   });
   for (const scenario of Object.keys(scenarioLabels) as Array<keyof typeof scenarioLabels>) {
     it(`runs ${scenario} through authentication, transport, normalization and presentation`, async () => {
-      const service = new QuotaService({ sessions: new MockSessions(scenario), transport: new MockTransport(scenario, demoClock), dataClock: demoClock }, () => {});
+      const service = new QuotaService({ sessions: new MockSessions(scenario), transport: new MockTransport(scenario, demoClock), dataClock: demoClock }, () => { });
       await service.refresh();
       const model = createViewModel(service.current, demoClock, 'all', true, scenarioLabels[scenario], service.nextAllowedAt);
       assert.ok(model.statusText.endsWith('Demo'));

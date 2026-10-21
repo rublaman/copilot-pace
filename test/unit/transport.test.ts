@@ -8,20 +8,30 @@ import { createViewModel } from '../../src/view';
 import { resolveConnection } from '../../src/connection';
 
 function engine(status: number, body: string, options: { pending?: boolean; failure?: Error; oversize?: boolean } = {}) {
-  let capturedUrl = ''; let capturedOptions: RequestOptions = {};
+  let capturedUrl = '';
+  let capturedOptions: RequestOptions = {};
   const factory = (url: string, requestOptions: RequestOptions, callback: (response: IncomingMessage) => void): ClientRequest => {
-    capturedUrl = url; capturedOptions = requestOptions;
+    capturedUrl = url;
+    capturedOptions = requestOptions;
     const request = new EventEmitter() as EventEmitter & { end(): void; destroy(error?: Error): void };
-    request.destroy = error => { if (error) request.emit('error', error); request.emit('close'); };
+    request.destroy = error => {
+      if (error) request.emit('error', error);
+      request.emit('close');
+    };
     requestOptions.signal?.addEventListener('abort', () => request.destroy(new Error('Aborted')), { once: true });
     request.end = () => queueMicrotask(() => {
-      if (options.failure) { request.destroy(options.failure); return; }
+      if (options.failure) {
+        request.destroy(options.failure);
+        return;
+      }
       if (options.pending) return;
       const response = new EventEmitter() as IncomingMessage;
-      response.statusCode = status; response.headers = {};
+      response.statusCode = status;
+      response.headers = {};
       callback(response);
       response.emit('data', options.oversize ? Buffer.alloc(1_048_577) : Buffer.from(body));
-      response.emit('end'); request.emit('close');
+      response.emit('end');
+      request.emit('close');
     });
     return request as unknown as ClientRequest;
   };
@@ -60,13 +70,15 @@ describe('Real HTTP adapter with a simulated network engine', () => {
     const headers = fake.inspect().options.headers as Record<string, string>;
     assert.equal(headers['User-Agent'], `Copilot-Pace/${version}`);
     assert.equal(headers['Editor-Plugin-Version'], `copilot-pace/${version}`);
-    assert.equal(fake.inspect().options.agent, undefined); assert.equal(fake.inspect().options.rejectUnauthorized, undefined);
+    assert.equal(fake.inspect().options.agent, undefined);
+    assert.equal(fake.inspect().options.rejectUnauthorized, undefined);
     assert.deepEqual(response.body, { token_based_billing: true });
   });
   it('does not require JSON in HTTP error responses', async () => {
     const fake = engine(500, '<html>Server error</html>');
     const response = await new GitHubTransport('1.141.0', 10000, fake.factory).request('synthetic', new AbortController().signal);
-    assert.equal(response.status, 500); assert.equal(response.body, undefined);
+    assert.equal(response.status, 500);
+    assert.equal(response.body, undefined);
   });
   it('rejects invalid JSON without exposing its content', async () => {
     const fake = engine(200, 'secret-data');
@@ -84,7 +96,8 @@ describe('Real HTTP adapter with a simulated network engine', () => {
     const fake = engine(200, '{}', { pending: true });
     const abort = new AbortController();
     const pending = new GitHubTransport('1.141.0', 10000, fake.factory).request('synthetic', abort.signal);
-    abort.abort(); await assert.rejects(pending, error => error instanceof SafeError && error.code === 'cancelled');
+    abort.abort();
+    await assert.rejects(pending, error => error instanceof SafeError && error.code === 'cancelled');
   });
   it('sanitizes certificate and network errors', async () => {
     const fake = engine(200, '{}', { failure: new Error('certificate problem secret-token') });

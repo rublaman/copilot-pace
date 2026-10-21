@@ -14,16 +14,25 @@ export class SafeError extends Error {
 }
 
 export class GitHubTransport implements HttpTransport {
-  constructor(private readonly editorVersion: string, private readonly timeoutMs = 10_000,
-    private readonly requestFactory: (url: string, options: https.RequestOptions, callback: (response: IncomingMessage) => void) => ClientRequest = (url, options, callback) => https.request(url, options, callback),
-    private readonly connection: Connection = defaultConnection) {}
+  constructor(
+    private readonly editorVersion: string,
+    private readonly timeoutMs = 10_000,
+    private readonly requestFactory: (
+      url: string, options: https.RequestOptions, callback: (response: IncomingMessage) => void,
+    ) => ClientRequest = (url, options, callback) => https.request(url, options, callback),
+    private readonly connection: Connection = defaultConnection,
+  ) {}
   request(accessToken: string, signal: AbortSignal): Promise<HttpResponse> {
     return new Promise((resolve, reject) => {
       if (this.connection.provider === 'github-enterprise' && this.connection.requiresReload) {
-        reject(new SafeError('configurationChanged', getStrings('en').errorConfigurationChanged)); return;
+        reject(new SafeError('configurationChanged', getStrings('en').errorConfigurationChanged));
+        return;
       }
       const endpoint = quotaEndpoint(this.connection);
-      if (!endpoint) { reject(new SafeError('configuration', getStrings('en').errorConfiguration)); return; }
+      if (!endpoint) {
+        reject(new SafeError('configuration', getStrings('en').errorConfiguration));
+        return;
+      }
       // VS Code patches Node HTTPS to apply its proxy and certificate support. Do not supply a custom agent.
       const request = this.requestFactory(endpoint, {
         method: 'GET', signal,
@@ -50,8 +59,12 @@ export class GitHubTransport implements HttpTransport {
           }
           let body: unknown;
           if (status >= 200 && status < 300) {
-            try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown; }
-            catch { reject(new SafeError('invalidResponse', 'GitHub returned an unsupported response.')); return; }
+            try {
+              body = JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown;
+            } catch {
+              reject(new SafeError('invalidResponse', 'GitHub returned an unsupported response.'));
+              return;
+            }
           }
           resolve({ status, headers, body });
         });

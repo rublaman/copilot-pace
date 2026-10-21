@@ -9,7 +9,10 @@ let settingsPath: string;
 let originalSettings: string;
 async function waitFor(check: () => boolean) {
   const end = Date.now() + 5000;
-  while (!check()) { if (Date.now() > end) throw new Error('The production extension did not reach the expected state'); await new Promise(resolve => setTimeout(resolve, 20)); }
+  while (!check()) {
+    if (Date.now() > end) throw new Error('The production extension did not reach the expected state');
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
 }
 
 describe('Installed production VSIX', () => {
@@ -20,7 +23,8 @@ describe('Installed production VSIX', () => {
     assert.equal(vscode.workspace.getConfiguration('copilotPace').get('dataSource'), 'mock');
     assert.equal(vscode.workspace.getConfiguration('copilotPace').get('mockScenario'), '3900-justo');
     const installed = vscode.extensions.getExtension<TestApi>('rubenblancomanzano.copilot-pace');
-    assert.ok(installed); extension = installed;
+    assert.ok(installed);
+    extension = installed;
     api = await extension.activate();
     await waitFor(() => api.getState().phase !== 'loading');
   });
@@ -73,12 +77,15 @@ describe('Installed production VSIX', () => {
     }
   });
   it('renders the production hover and initializes the panel without demo controls', async () => {
-    const tooltip = api.getTooltip(); assert.ok(tooltip);
+    const tooltip = api.getTooltip();
+    assert.ok(tooltip);
     assert.deepEqual(tooltip.isTrusted, { enabledCommands: ['copilotPace.showDetails', 'copilotPace.refresh', 'copilotPace.connect'] });
-    assert.ok(!tooltip.value.includes('Demo')); assert.ok(!tooltip.value.includes('copilotPace.demo'));
+    assert.ok(!tooltip.value.includes('Demo'));
+    assert.ok(!tooltip.value.includes('copilotPace.demo'));
     await vscode.commands.executeCommand('copilotPace.showDetails');
     await waitFor(() => api.isPanelReady());
-    const panel = api.getPanel(); assert.ok(panel);
+    const panel = api.getPanel();
+    assert.ok(panel);
     assert.ok(panel.webview.html.includes('Daily pace'));
     assert.ok(!panel.webview.html.includes('Simulated data'));
     assert.ok(!panel.webview.html.includes('id="demo"'));
@@ -87,7 +94,8 @@ describe('Installed production VSIX', () => {
     assert.equal(api.getModel().demo, false);
   });
   it('switches the production language through the panel and saves the preference', async () => {
-    const panel = api.getPanel(); assert.ok(panel);
+    const panel = api.getPanel();
+    assert.ok(panel);
     assert.equal(api.getModel().language, 'en');
     assert.equal(api.getModel().text.switchLanguage, 'Spanish');
     try {

@@ -1,8 +1,6 @@
 # Architecture
 
-Synthetic fixtures exercise the response contract; they are not captured corporate traffic.
-
-The [corporate authentication implementation](corporate-authentication.md) documents provider selection, experimental Enterprise routing, stable-API constraints and pending real-account validation.
+The extension separates quota calculations from authentication, HTTP transport and VS Code presentation. [Corporate authentication](corporate-authentication.md) covers provider selection and Enterprise host restrictions; [validation](validation.md) records automated and real-account results.
 
 ## Data flow
 
@@ -20,15 +18,15 @@ The [corporate authentication implementation](corporate-authentication.md) docum
 | `presentation.ts` | Theme-aware webview with text-only values, nonce CSP and allowed actions |
 | `extension.ts` | Status item, commands and one reusable detail panel |
 
-The status item uses right alignment and priority 100.05. Pace states use VS Code theme colors; unavailable states clear the custom foreground. The panel provides labeled progress bars and keyboard focus. Messages are limited to `ready`, `refresh`, `connect`, `dayMode` (values `all` or `weekdays`) and `language` (values `en` or `es-ES`).
+## Presentation
 
-`copilotPace.language` defaults to `en`, independently of VS Code's display language, and is stored as an application-level preference. Only the detail panel has a language button: Spanish in English, Inglés in Spanish. A language change updates the existing panel's text, accessible labels and HTML language, plus the status and hover, without replacing the panel or fetching usage. Display formatters use `en-US` or `es-ES`, retaining UTC for dates and calculations. Pace classification and tone are language-independent. Authentication details and safe failure messages are localized in presentation; provider scopes and transport behavior are unchanged. Development-only translations are excluded from production with the demo adapter.
+The status item is right-aligned with priority 100.05. The hover shows the account, pace, remaining credits, daily allowance, projection and last update. Monthly averages, cycle progress and renewal are in the detail panel. Daily allowance divides remaining credits by eligible days left and is omitted when either value is unavailable.
 
-The hover summarizes pace status, remaining credits, daily allowance, projection and last update, retaining account identity, recovery messages and actions. It reuses the existing allowance calculation (remaining credits divided by remaining eligible days) and identifies the selected calendar as Mon–Sun or Mon–Fr (De lunes a domingo or De lunes a viernes in Spanish). The allowance is omitted when it cannot be calculated. Monthly averages, cycle progress and renewal stay in the detail panel. Today's usage is omitted even for a connected account: the quota source has no daily breakdown, and no midnight baseline or daily history is recorded. Credits are not tokens. The Comfortable indicator uses a text check to share the label's baseline. Unsupported model usage is omitted from the panel for all accounts and demos.
+Pace states use `charts.green`, `charts.yellow` and `charts.red`. The panel's `data-tone` attribute applies the same color to status, percentage, usage bar and forecast. Stale, disconnected and unavailable states clear the pace color. CSS theme variables follow editor theme changes.
 
-Pace colors consistently use `charts.green`, `charts.yellow` and `charts.red` in the status bar, hover and detail panel. The hover enables VS Code's sanitized HTML subset only for a fixed status `span` with a fixed theme-color variable; all dynamic Markdown values remain escaped and the command allowlist is unchanged. The panel sets a `data-tone` attribute on every update, coloring the status, percentage, usage bar and forecast while keeping the cycle bar and other labels neutral. CSS theme variables update automatically when the editor theme changes. Stale, disconnected and unavailable states clear the pace colors rather than implying a healthy quota.
+The hover escapes dynamic Markdown values and enables commands through `hoverCommands`. Its only HTML is a fixed status `span` using a theme color. The webview uses a nonce-based CSP, restricted local images and `textContent` for dynamic values. Its message handler accepts `ready`, `refresh`, `connect`, `dayMode` (`all` or `weekdays`) and `language` (`en` or `es-ES`).
 
-Development demos use the same response contract with a current UTC calendar. Tests inject fixed clocks. Production removes the demo adapter and contributions; see [CONTRIBUTING.md](../CONTRIBUTING.md).
+`copilotPace.language` is an application setting, defaulting to `en`. The detail panel's language button reads **Spanish** in English and **Inglés** in Spanish. Switching language updates text, accessible labels and locale formatting in place, without fetching usage. Formatters use `en-US` or `es-ES`; dates and calculations remain in UTC.
 
 ## Quota contract
 
@@ -40,14 +38,16 @@ Projections require a recognized UTC calendar-month cycle. Missing quotas, legac
 
 This is an internal endpoint without a guaranteed third-party API contract. Account authentication, network behavior and response values require real validation. See [validation](validation.md) for the acceptance procedure.
 
-## Other sources and tooling
+## Data limitations
 
-The [billing usage REST API](https://docs.github.com/en/rest/billing/usage) requires access appropriate to personal, organization or enterprise reports. The extension does not request administrative PATs. [Usage monitoring](https://docs.github.com/en/copilot/how-tos/manage-and-track-spending/monitor-ai-usage) and [budgets](https://docs.github.com/en/copilot/concepts/billing-and-usage/organizations-and-enterprises/budgets) describe assigned allowances; they do not establish a readable per-model breakdown for an employee.
+The quota endpoint returns aggregate credits. It provides no daily or per-model breakdown, and the extension records no local usage history. Polling those totals cannot recover model identities or token counts.
 
-Reviewed October 16, 2026: GitHub's downloadable [AI usage report](https://docs.github.com/en/billing/reference/billing-reports) has model-level input, output, cache-read and cache-write token counts. The billing REST API's `/users/{username}/settings/billing/ai_credit/usage` endpoint documents model-level credit quantities, calendar filters and separate billing access (including the fine-grained user permission `Plan: read`); personal endpoints exclude organization-billed licenses. Organization-level reports require administrative access. The [automation tutorial](https://docs.github.com/en/billing/tutorials/automate-usage-reporting) and endpoint reference currently disagree on fine-grained-token support, so authentication must be validated before implementing a separate billing integration. Neither source establishes model-level token access through this extension's `github` session with `read:user` and fixed `copilot_internal/user` quota source. The panel omits the model-usage section entirely. No extra billing requests, authentication scopes or credit-to-token conversions are added.
+Separate billing sources were reviewed on October 16, 2026: the [billing REST API](https://docs.github.com/en/rest/billing/usage) documents model-level credit quantities and the downloadable [AI usage report](https://docs.github.com/en/billing/reference/billing-reports) includes token counts. Both require billing access beyond the current quota session. At that review, the [automation tutorial](https://docs.github.com/en/billing/tutorials/automate-usage-reporting) and endpoint reference disagreed on fine-grained-token support. A billing integration would need its own authentication and access validation. Neither source is integrated here.
 
-Persisting the current aggregate quota snapshots cannot recover missing model identities, per-model attribution or tokens. Differences between snapshots could support an explicitly approximate credit-usage history from the start of recording, with gaps while VS Code is closed, delayed source updates, account and cycle boundaries, and other-device usage handled explicitly. That is a separate feature and cannot supply a reliable monthly top-five ranking. No local usage history or Copilot chat/log collection is implemented. An explicitly imported AI usage report could support a historical ranking in a future feature, subject to report access and validation; it would not be live usage through the current connection.
+The [Copilot SDK](https://docs.github.com/en/copilot/how-tos/copilot-sdk/features/usage-and-billing) reports its own sessions rather than global editor usage.
 
-The [Copilot SDK](https://docs.github.com/en/copilot/how-tos/copilot-sdk/features/usage-and-billing) reports its own sessions and is not a source of global editor history.
+## Build and test boundaries
+
+Development demos use synthetic responses with the same quota shape and a current UTC calendar. Tests inject fixed clocks. Production removes the demo adapter, translations and contributions; see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 The bundle targets ES2022/CommonJS. Node 22 types constrain API usage; build-time Node is separate from VS Code's embedded runtime. Versions are pinned in the manifest/lockfile. Mocha overrides address the [diff](https://github.com/advisories/GHSA-73rr-hh4g-fpgx) and serialize-javascript [RCE](https://github.com/advisories/GHSA-5c6j-r48x-rmvq) / [CPU](https://github.com/advisories/GHSA-qj8w-gfj5-8c6v) advisories. Recheck the audit when dependencies change.

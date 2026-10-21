@@ -45,16 +45,25 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
   const snapshot = state.snapshot;
   const now = clock.now();
   const pace = snapshot ? calculatePace(snapshot, now, dayMode) : undefined;
+  const pacePresentation = pace?.kind === 'available' ? {
+    Comfortable: { summary: text.comfortable, tone: 'good' as const, note: text.comfortableNote },
+    'On track': { summary: text.onTrack, tone: 'watch' as const, note: text.onTrackNote },
+    'Over pace': { summary: text.overPace, tone: 'over' as const, note: text.overPaceNote },
+  }[pace.label] : undefined;
   let summary = text.readingUsage;
   let tone: ViewModel['tone'] = 'neutral';
-  if (state.phase === 'disconnected') summary = text.connect;
-  else if (state.phase === 'error') summary = snapshot ? text.outOfDate : state.failure?.code === 'rateLimited' ? text.waiting : text.unavailable;
-  else if (snapshot?.kind === 'unavailable') summary = text.quotaUnavailable;
-  else if (snapshot?.kind === 'usageOnly') summary = text.noKnownLimit;
-  else if (snapshot?.kind === 'bounded') {
-    summary = pace?.kind === 'available' ? { Comfortable: text.comfortable, 'On track': text.onTrack, 'Over pace': text.overPace }[pace.label]
-      : pace?.kind === 'pending' ? text.calculatingPace : text.paceUnavailable;
-    if (pace?.kind === 'available') tone = pace.label === 'Comfortable' ? 'good' : pace.label === 'On track' ? 'watch' : 'over';
+  if (state.phase === 'disconnected') {
+    summary = text.connect;
+  } else if (state.phase === 'error') {
+    if (snapshot) summary = text.outOfDate;
+    else summary = state.failure?.code === 'rateLimited' ? text.waiting : text.unavailable;
+  } else if (snapshot?.kind === 'unavailable') {
+    summary = text.quotaUnavailable;
+  } else if (snapshot?.kind === 'usageOnly') {
+    summary = text.noKnownLimit;
+  } else if (snapshot?.kind === 'bounded') {
+    summary = pacePresentation?.summary ?? (pace?.kind === 'pending' ? text.calculatingPace : text.paceUnavailable);
+    tone = pacePresentation?.tone ?? 'neutral';
   }
   const cycle = snapshot?.cycle;
   const validCycle = cycle && now.getTime() >= cycle.start && now.getTime() < cycle.end;
@@ -63,11 +72,12 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
   const cycleValue = totalDays > 0 ? (totalDays - daysLeft) / totalDays * 100 : null;
   const remaining = snapshot?.kind === 'bounded' ? Math.max(0, snapshot.total - snapshot.used) : undefined;
   const percentage = snapshot?.kind === 'bounded' ? percent(snapshot.usedPercent) : '—';
-  const forecastNote = pace?.kind === 'available'
-    ? pace.label === 'Comfortable' ? text.comfortableNote : pace.label === 'On track' ? text.onTrackNote : text.overPaceNote
-    : pace?.kind === 'pending' ? text.pendingNote : text.unavailableNote;
-  const quotaReason = snapshot?.kind === 'unavailable' ? language === 'en' ? snapshot.reason
-    : snapshot.reason === 'No supported credit quota was returned.' ? text.unsupportedQuota : text.missingQuota : undefined;
+  const forecastNote = pacePresentation?.note ?? (pace?.kind === 'pending' ? text.pendingNote : text.unavailableNote);
+  let quotaReason: string | undefined;
+  if (snapshot?.kind === 'unavailable') {
+    quotaReason = language === 'en' ? snapshot.reason
+      : snapshot.reason === 'No supported credit quota was returned.' ? text.unsupportedQuota : text.missingQuota;
+  }
   const message = state.failure ? failureMessage(state.failure, language, text)
     : quotaReason ?? (state.phase === 'disconnected' ? text.connectNote : forecastNote);
   const reconnect = state.failure?.code === 'unauthorized' || (state.failure?.code === 'auth' && state.account !== undefined);

@@ -13,18 +13,24 @@ describe('Quota normalization', () => {
     const snapshot = bounded(10000, 4000);
     assert.equal(snapshot.kind, 'bounded');
     if (snapshot.kind !== 'bounded') return;
-    assert.equal(snapshot.total, 10000); assert.equal(snapshot.used, 4000); assert.equal(snapshot.usedPercent, 40);
+    assert.equal(snapshot.total, 10000);
+    assert.equal(snapshot.used, 4000);
+    assert.equal(snapshot.usedPercent, 40);
     assert.equal(snapshot.cycle?.end, Date.parse('2026-11-01T00:00:00Z'));
   });
   it('does not divide credits_used by entitlement', () => {
     const snapshot = normalizeQuota(quota({ quota_remaining: 1950, credits_used: 987654 }), now);
     assert.equal(snapshot.kind, 'bounded');
-    if (snapshot.kind === 'bounded') { assert.equal(snapshot.used, 1950); assert.equal(snapshot.usedPercent, 50); }
+    if (snapshot.kind === 'bounded') {
+      assert.equal(snapshot.used, 1950);
+      assert.equal(snapshot.usedPercent, 50);
+    }
   });
   it('preserves the native percentage when remaining credits round differently', () => {
     const snapshot = normalizeQuota(quota({ quota_remaining: 2000 }), now);
     if (snapshot.kind !== 'bounded') return assert.fail();
-    assert.equal(snapshot.used, 1900); assert.equal(snapshot.usedPercent, 50);
+    assert.equal(snapshot.used, 1900);
+    assert.equal(snapshot.usedPercent, 50);
   });
   it('accepts numeric strings and derives usage from percentage', () => {
     const snapshot = normalizeQuota(quota({ entitlement: '3900', percent_remaining: '50' }), now);
@@ -80,7 +86,8 @@ describe('Monthly pace', () => {
   it('calculates the approximate average and projection', () => {
     const result = calculatePace(bounded(3900, 1950), now, 'all');
     if (result.kind !== 'available') return assert.fail();
-    assert.equal(result.dailyAverage, 130); assert.equal(result.projected, 4030);
+    assert.equal(result.dailyAverage, 130);
+    assert.equal(result.projected, 4030);
   });
   it('classifies exactly 90 and 100 percent as On track', () => {
     for (const [used, label] of [[449, 'Comfortable'], [450, 'On track'], [500, 'On track'], [501, 'Over pace']] as const) {
