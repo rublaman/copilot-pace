@@ -298,12 +298,22 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     outline: 2px solid var(--vscode-focusBorder);
   }
 
-  .appearance {
-    margin-top: 18px;
+  .customization {
+    border-top: 1px solid var(--line);
+    padding-top: 18px;
+  }
+
+  .customization-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
     font-size: 12px;
   }
 
-  .appearance label {
+  .customization-row label {
     color: var(--muted);
   }
 
@@ -485,10 +495,6 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     justify-content: flex-end;
   }
 
-  .header-tools button {
-    font-size: 12px;
-  }
-
   main[data-tone=good] {
     --accent:var(--vscode-charts-green,var(--vscode-foreground));
   }
@@ -516,10 +522,7 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
         <h1>Copilot Pace</h1>
       </div>
     </div>
-    <div class="controls header-tools">
-      ${__DEV__ ? '<span id="demo" class="badge">DEMO</span>' : ''}
-      <button id="language"></button>
-    </div>
+    ${__DEV__ ? '<div class="controls header-tools"><span id="demo" class="badge">DEMO</span></div>' : ''}
   </header>
 
   <div class="hero">
@@ -610,6 +613,23 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     <p id="historyMessage" class="explanation" role="status"></p>
   </section>
 
+  <section class="customization" aria-labelledby="customizationHeading">
+    <h2 id="customizationHeading"></h2>
+    <div class="customization-row">
+      <label id="languageLabel" for="language"></label>
+      <button id="language"></button>
+    </div>
+    <div class="customization-row">
+      <label id="statusStyleLabel" for="statusStyle"></label>
+      <select id="statusStyle">
+        <option id="styleText" value="text"></option>
+        <option id="styleCompact" value="compact"></option>
+        <option id="styleBar" value="bar"></option>
+        <option id="styleDots" value="dots"></option>
+      </select>
+    </div>
+  </section>
+
   <footer>
     <dl>
       <dt id="accountHeading" hidden></dt><dd id="accountLabel" hidden></dd>
@@ -619,15 +639,6 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     <div class="controls">
       <button id="refresh"></button>
       <button id="connect"></button>
-    </div>
-    <div class="controls appearance">
-      <label id="statusStyleLabel" for="statusStyle"></label>
-      <select id="statusStyle">
-        <option id="styleText" value="text"></option>
-        <option id="styleCompact" value="compact"></option>
-        <option id="styleBar" value="bar"></option>
-        <option id="styleDots" value="dots"></option>
-      </select>
     </div>
     <p id="retry"></p>
     ${__DEV__ ? '<p id="demoNote"></p>' : ''}
@@ -649,6 +660,7 @@ function show(model) {
     'renewalHeading', 'updatedHeading', 'refresh',
     'depletionHeading', 'excessHeading', 'forecastHint', 'historyHeading',
     'statusStyleLabel', 'styleText', 'styleCompact', 'styleBar', 'styleDots',
+    'customizationHeading', 'languageLabel',
   ];
   for (const id of labelIds) {
     document.getElementById(id).textContent = model.text[id];

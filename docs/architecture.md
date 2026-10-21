@@ -28,7 +28,7 @@ Pace states use `charts.green`, `charts.yellow` and `charts.red`. The panel's `d
 
 The hover escapes dynamic Markdown values and enables commands through `hoverCommands`. Its only HTML is a fixed status `span` using a theme color. The webview uses a nonce-based CSP, restricted local images and `textContent` for dynamic values. Its message handler accepts `ready`, `refresh`, `connect`, `dayMode` (`all` or `weekdays`), `language` (`en` or `es-ES`) and `statusStyle` (`text`, `compact`, `bar` or `dots`).
 
-`copilotPace.statusStyle` defaults to the existing percentage-and-pace label. Compact, segmented and dot indicators use native status item text; errors and pending estimates remain explicit, and accessibility labels retain the percentage and pace. The dropdown changes only presentation.
+`copilotPace.statusStyle` defaults to the existing percentage-and-pace label. Compact, segmented and dot indicators use native status item text; errors and pending estimates remain explicit, and accessibility labels retain the percentage and pace. The dropdown changes only presentation. A divided **Customization / Personalización** section below the history chart groups the language button and status appearance dropdown; account and refresh controls remain in the footer.
 
 Exhaustion and excess are calculated from the last accepted snapshot's cycle average, anchored to its timestamp. Weekday exhaustion skips weekends in UTC. No new forecast is shown after a failed refresh or outside a known cycle. Excess represents projected credits above the quota, not an additional invoice amount.
 

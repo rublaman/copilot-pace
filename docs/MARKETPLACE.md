@@ -81,9 +81,9 @@ Open the Command Palette and type **Copilot Pace**:
 
 The panel also offers **Refresh usage** and the appropriate account action. **Every day / Mon–Fri** changes the calendar used for the estimate.
 
-Use **Spanish** in the detail panel's header to switch to Spanish (Spain), and **Inglés** to switch back. The saved preference is independent of VS Code's display language. Text, numbers and dates update immediately; calculations continue to use UTC.
+Use **Spanish** in the **Customization** section below the chart to switch to Spanish (Spain), and **Inglés** to switch back. The saved preference is independent of VS Code's display language. Text, numbers and dates update immediately; calculations continue to use UTC.
 
-Choose **Status bar appearance** at the bottom of the panel to switch between **Percentage and pace**, **Compact**, **Segmented bar** and **Dots**. These change the indicator you hover over, while its hover retains the usage details. Colors continue to follow projected pace. Errors and pending estimates remain visible in every style.
+Choose **Status bar appearance** in the same section to switch between **Percentage and pace**, **Compact**, **Segmented bar** and **Dots**. These change the indicator you hover over, while its hover retains the usage details. Colors continue to follow projected pace. Errors and pending estimates remain visible in every style.
 
 ## How the estimate works
 
