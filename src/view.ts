@@ -1,5 +1,9 @@
 import { Buffer } from 'node:buffer';
-import { calculatePace, equivalentDays, type Clock, type DayMode } from './domain';
+import { calculateForecast, calculatePace, equivalentDays, type Clock, type DayMode } from './domain';
+import { statusText, type StatusStyle } from './status';
+import type { Observation } from './history';
+import { chartTone, type ChartMetric, type ChartStyle, type ChartTone } from './chart';
+import { mergeDailyUsage, observedDailyUsage, UTC_DAY } from './daily';
 import { getStrings, type Language, type Strings } from './i18n';
 import { localizeDemoScenario } from './development';
 import type { ServiceState } from './service';
@@ -35,8 +39,19 @@ export interface ViewModel {
   cycleProgress: string; daysLeft: string; period: string; forecastNote: string;
   usageValue: number | null; cycleValue: number | null;
   accountLabel: string; connectLabel: string;
+  statusStyle: StatusStyle; statusDescription: string;
+  depletion: string; excess: string;
+  history: Array<{ x: number; y: number; connect: boolean; label: string; partial?: boolean; tone: ChartTone }>;
+  historyMaximum: string; historyStart: string; historyEnd: string; historyBudget: Array<{ x: number; y: number }>;
+  historyMessage: string;
+  chartStyle: ChartStyle; chartStyleName: string; historyLatest: string; chartMetric: ChartMetric;
+  historyMetricLabel: string; historyLatestDate: string; historyAria: string;
+  historyLatestTone: ChartTone;
+  historyColumns: ViewModel['history'];
 }
-export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayMode, demo: boolean, scenario: string, retryAt: number, language: Language = 'en'): ViewModel {
+export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayMode, demo: boolean, scenario: string, retryAt: number, language: Language = 'en',
+  options: { statusStyle?: StatusStyle; chartStyle?: ChartStyle; chartMetric?: ChartMetric; history?: readonly Observation[]; historyFailed?: boolean } = {}): ViewModel {
+  const { statusStyle: style = 'text', chartStyle = 'area', chartMetric = 'cumulative', history = [], historyFailed = false } = options;
   const text = getStrings(language);
   const formatter = formatters[language];
   const amount = (value: number) => formatter.number.format(value);
@@ -44,7 +59,8 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
   const date = (value: number) => formatter.date.format(value) + ' UTC';
   const snapshot = state.snapshot;
   const now = clock.now();
-  const pace = snapshot ? calculatePace(snapshot, now, dayMode) : undefined;
+  const observedAt = snapshot?.cycle && now.getTime() < snapshot.cycle.end ? new Date(Math.min(now.getTime(), snapshot.asOf)) : now;
+  const pace = snapshot ? calculatePace(snapshot, observedAt, dayMode) : undefined;
   const pacePresentation = pace?.kind === 'available' ? {
     Comfortable: { summary: text.comfortable, tone: 'good' as const, note: text.comfortableNote },
     'On track': { summary: text.onTrack, tone: 'watch' as const, note: text.onTrackNote },
@@ -81,9 +97,97 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
   const message = state.failure ? failureMessage(state.failure, language, text)
     : quotaReason ?? (state.phase === 'disconnected' ? text.connectNote : forecastNote);
   const reconnect = state.failure?.code === 'unauthorized' || (state.failure?.code === 'auth' && state.account !== undefined);
+  const forecast = snapshot && state.phase === 'ready' ? calculateForecast(snapshot, now, dayMode) : undefined;
+  let depletion = '—';
+  let excess = '—';
+  if (forecast?.kind === 'available') {
+    if (forecast.exhausted) depletion = text.budgetExhausted;
+    else if (forecast.exhaustionAt !== undefined) depletion = date(forecast.exhaustionAt);
+    else depletion = text.notBeforeRenewal;
+    excess = `${amount(forecast.excess)} ${text.credits}`;
+  }
+  if (state.phase === 'ready' && validCycle && snapshot?.kind === 'bounded' && snapshot.used >= snapshot.total) depletion = text.budgetExhausted;
+  const observations = validCycle ? history.filter(item => item.start === cycle.start && item.end === cycle.end && item.at <= now.getTime()) : [];
+  const daily = validCycle && !demo ? mergeDailyUsage(observedDailyUsage(observations, cycle),
+    (state.dailyUsage ?? []).filter(item => item.day >= cycle.start && item.day < cycle.end && item.day <= now.getTime())) : [];
+  const dailyMode = chartMetric === 'daily';
+  const baseRate = snapshot?.kind === 'bounded' && totalDays > 0 ? snapshot.total / totalDays : 0;
+  const knownBudget = snapshot?.kind === 'bounded' && !!validCycle && totalDays > 0;
+  const pointLabel = (at: number, used: number, pointTone: ChartTone, partial = false) => {
+    const status = { good: text.historyWithinLabel, over: text.historyOverLabel, neutral: '' }[pointTone];
+    return `${date(at)}${status ? ` · ${status}` : ''} · ${amount(used)} ${text.credits}${partial ? ` · ${text.historyPartial}` : ''}`;
+  };
+  let historyMessage = text.historyNote;
+  if (dailyMode) historyMessage = daily.length ? text.historyDailyNote : text.historyDailyEmpty;
+  if (demo) historyMessage = text.historyDemo;
+  else if (historyFailed) historyMessage = text.historyError;
+  else if (!dailyMode && observations.length === 0) historyMessage = text.historyEmpty;
+  const maximum = dailyMode ? Math.max(1, baseRate, ...daily.map(item => item.used))
+    : Math.max(1, snapshot?.kind === 'bounded' ? snapshot.total : 0, ...observations.map(item => item.used));
+  const points: ViewModel['history'] = dailyMode ? daily.map((item, index) => {
+    const allowance = knownBudget ? baseRate * equivalentDays(item.day, item.day + UTC_DAY, dayMode) : undefined;
+    const pointTone = chartTone(item.used, allowance);
+    return {
+      x: 32 + (item.day + UTC_DAY / 2 - cycle!.start) / (cycle!.end - cycle!.start) * 520,
+      y: 168 - item.used / maximum * 144,
+      connect: !!daily[index - 1] && item.day - daily[index - 1]!.day === UTC_DAY,
+      label: pointLabel(item.day, item.used, pointTone, item.partial),
+      partial: item.partial, tone: pointTone,
+    };
+  }) : observations.map((item, index) => {
+    const previous = observations[index - 1];
+    const allowance = knownBudget ? baseRate * equivalentDays(item.start, item.at, dayMode) : undefined;
+    const pointTone = chartTone(item.used, allowance);
+    return {
+      x: 32 + (item.at - item.start) / (item.end - item.start) * 520,
+      y: 168 - item.used / maximum * 144,
+      connect: !!previous && item.at - previous.at <= 2 * 60 * 60_000 && item.used >= previous.used && item.total === previous.total,
+      label: pointLabel(item.at, item.used, pointTone), tone: pointTone,
+    };
+  });
+  // Columns are cumulative snapshots, never inferred daily spending.
+  const dayIndices = new Map<string, number>();
+  observations.forEach((item, index) => dayIndices.set(new Date(item.at).toISOString().slice(0, 10), index));
+  const columns = dailyMode ? points : [...dayIndices.values()].map(index => points[index]!);
+  const budget: Array<{ x: number; y: number }> = [];
+  if (snapshot?.kind === 'bounded' && validCycle && totalDays > 0) {
+    for (let cursor = cycle.start; cursor <= cycle.end; cursor += 86_400_000) {
+      if (dailyMode && cursor < cycle.end) {
+        const allowance = baseRate * equivalentDays(cursor, cursor + UTC_DAY, dayMode);
+        const y = 168 - allowance / maximum * 144;
+        budget.push({ x: 32 + (cursor - cycle.start) / (cycle.end - cycle.start) * 520, y },
+          { x: 32 + (cursor + UTC_DAY - cycle.start) / (cycle.end - cycle.start) * 520, y });
+      } else if (!dailyMode) {
+        budget.push({
+          x: 32 + (cursor - cycle.start) / (cycle.end - cycle.start) * 520,
+          y: 168 - snapshot.total / maximum * equivalentDays(cycle.start, cursor, dayMode) / totalDays * 144,
+        });
+      }
+    }
+  }
+  let historyLatest = '—';
+  let historyLatestDate = '';
+  if (dailyMode && daily.length) {
+    const latest = daily[daily.length - 1]!;
+    historyLatest = `${amount(latest.used)} ${text.credits}`;
+    historyLatestDate = `${date(latest.day)}${latest.partial ? ` · ${text.historyPartial}` : ''}`;
+  } else if (!dailyMode && observations.length) {
+    historyLatest = `${amount(observations[observations.length - 1]!.used)} ${text.credits}`;
+  }
   return {
     language, text,
-    statusText: `${snapshot?.kind === 'bounded' ? `${percentage} · ` : ''}${summary}${demo ? ' · Demo' : ''}`,
+    statusText: statusText(style, percentage, snapshot?.kind === 'bounded' ? snapshot.usedPercent : null, summary, tone === 'neutral', demo),
+    statusDescription: `${percentage} · ${summary}`, statusStyle: style, depletion, excess,
+    history: points, historyMaximum: `${amount(maximum)} ${text.credits}`,
+    historyStart: validCycle ? date(cycle.start) : '', historyEnd: validCycle ? date(cycle.end) : '',
+    historyBudget: budget,
+    historyMessage,
+    chartStyle, chartMetric, chartStyleName: { area: text.chartArea, line: text.chartLine, columns: text.chartColumns }[chartStyle],
+    historyMetricLabel: dailyMode ? text.historyDailyLabel : text.historyMetricLabel,
+    historyAria: dailyMode ? text.historyDailyAria : text.historyAria,
+    historyLatestDate, historyLatest,
+    historyLatestTone: points[points.length - 1]?.tone ?? 'neutral',
+    historyColumns: columns,
     summary, tone, message, demo, scenario: __DEV__ ? localizeDemoScenario(scenario, language) : scenario, forecastNote,
     used: snapshot && snapshot.kind !== 'unavailable' ? `${amount(snapshot.used)} ${text.credits}` : '—',
     total: snapshot?.kind === 'bounded' ? `${amount(snapshot.total)} ${text.credits}` : '—',
@@ -134,6 +238,7 @@ export function renderHover(model: ViewModel): string {
     '', row(`${label.remainingHover}: **${text(model.remaining)}**`),
     ...(model.allowance !== '—' ? [row(`${label.allowanceHover}: **${text(model.allowance)}** · ${model.dayMode === 'weekdays' ? label.allowanceCalendarWeekdays : label.allowanceCalendarAll}`)] : []),
     row(`${label.projectionLabel}: **${text(model.projection)}**`),
+    ...(model.depletion !== '—' ? [row(`${label.depletionHeading}: **${text(model.depletion)}**`), row(`${label.excessHeading}: **${text(model.excess)}**`)] : []),
     row(`${label.updatedHover} ${text(model.updated)}`),
   ];
   if (__DEV__ && model.demo) lines.push('', row(`$(beaker) ${label.simulatedData} · ${text(model.referenceDate)}`));

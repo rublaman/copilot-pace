@@ -237,6 +237,10 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     background: var(--surface);
   }
 
+  .forecast-metrics {
+    margin-top: 12px;
+  }
+
   .forecast span {
     font-size: 12px;
     color: var(--muted);
@@ -278,6 +282,247 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
   button:focus-visible {
     outline: 2px solid var(--vscode-focusBorder);
     outline-offset: 2px;
+  }
+
+  select {
+    font: inherit;
+    color: var(--vscode-dropdown-foreground);
+    background: var(--vscode-dropdown-background);
+    border: 1px solid var(--vscode-dropdown-border,var(--line));
+    border-radius: 4px;
+    padding: 6px 10px;
+    max-width: 100%;
+  }
+
+  select:focus-visible {
+    outline: 2px solid var(--vscode-focusBorder);
+  }
+
+  .customization {
+    border-top: 1px solid var(--line);
+    padding-top: 18px;
+  }
+
+  .customization-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+    font-size: 12px;
+  }
+
+  .customization-row label {
+    color: var(--muted);
+  }
+
+  #historyChart {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+
+  .history-card {
+    --chart-accent: var(--vscode-charts-blue,#3794ff);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 16px 14px;
+  }
+
+  .good {
+    --chart-accent: var(--vscode-charts-green,#73c991);
+  }
+
+  .over {
+    --chart-accent: var(--vscode-charts-red,#f48771);
+  }
+
+  #historyLatest[data-chart-tone=good] {
+    color: var(--vscode-charts-green,#73c991);
+  }
+
+  #historyLatest[data-chart-tone=over] {
+    color: var(--vscode-charts-red,#f48771);
+  }
+
+  .chart-summary {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  #chartMetrics {
+    margin-bottom: 12px;
+  }
+
+  .chart-summary p {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .chart-summary strong {
+    font-size: 24px;
+    font-weight: 550;
+    letter-spacing: -.5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .chart-style-tag {
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    font-size: 10px;
+    padding: 3px 9px;
+    white-space: nowrap;
+  }
+
+  .chart-grid {
+    fill: none;
+    stroke: var(--line);
+    stroke-dasharray: 2 5;
+    stroke-opacity: .55;
+  }
+
+  .chart-axis {
+    fill: none;
+    stroke: var(--line);
+  }
+
+  #historyBudget {
+    fill: none;
+    stroke: var(--muted);
+    stroke-dasharray: 5 5;
+    stroke-width: 1.2;
+  }
+
+  .chart-line {
+    fill: none;
+    stroke: var(--chart-accent);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .chart-area {
+    fill: url(#historyFill);
+    stroke: none;
+  }
+
+  .chart-area.good {
+    fill: url(#historyFillGood);
+  }
+
+  .chart-area.over {
+    fill: url(#historyFillOver);
+  }
+
+  .chart-dot {
+    fill: var(--chart-accent);
+    stroke: var(--surface);
+    stroke-width: 2;
+  }
+
+  .chart-dot.partial {
+    fill: var(--surface);
+    stroke: var(--chart-accent);
+    stroke-dasharray: 2 2;
+  }
+
+  .chart-last {
+    fill: var(--surface);
+    stroke: var(--chart-accent);
+    stroke-width: 2.5;
+  }
+
+  .chart-column {
+    fill: url(#historyColumnFill);
+  }
+
+  .chart-column.good {
+    fill: url(#historyColumnFillGood);
+  }
+
+  .chart-column.over {
+    fill: url(#historyColumnFillOver);
+  }
+
+  .chart-column.partial {
+    fill-opacity: .6;
+    stroke: var(--chart-accent);
+    stroke-dasharray: 3 3;
+  }
+
+  .chart-column:hover,.chart-column:focus-visible {
+    fill: var(--chart-accent);
+    outline: none;
+  }
+
+  .chart-gradient-top {
+    stop-color: var(--chart-accent);
+    stop-opacity: .3;
+  }
+
+  .chart-gradient-bottom {
+    stop-color: var(--chart-accent);
+    stop-opacity: .015;
+  }
+
+  .chart-column-top {
+    stop-color: var(--chart-accent);
+    stop-opacity: .95;
+  }
+
+  .chart-column-bottom {
+    stop-color: var(--chart-accent);
+    stop-opacity: .35;
+  }
+
+  .chart-legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+
+  .chart-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .chart-legend span::before {
+    content: '';
+    width: 16px;
+    border-top: 2px solid var(--chart-accent);
+  }
+
+  .chart-legend .budget-key::before {
+    border-top: 2px dashed var(--muted);
+  }
+
+  .chart-legend .good-key::before {
+    border-color: var(--vscode-charts-green,#73c991);
+  }
+
+  .chart-legend .over-key::before {
+    border-color: var(--vscode-charts-red,#f48771);
+  }
+
+  .chart-labels {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--muted);
   }
 
   button:disabled {
@@ -427,10 +672,6 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     justify-content: flex-end;
   }
 
-  .header-tools button {
-    font-size: 12px;
-  }
-
   main[data-tone=good] {
     --accent:var(--vscode-charts-green,var(--vscode-foreground));
   }
@@ -458,10 +699,7 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
         <h1>Copilot Pace</h1>
       </div>
     </div>
-    <div class="controls header-tools">
-      ${__DEV__ ? '<span id="demo" class="badge">DEMO</span>' : ''}
-      <button id="language"></button>
-    </div>
+    ${__DEV__ ? '<div class="controls header-tools"><span id="demo" class="badge">DEMO</span></div>' : ''}
   </header>
 
   <div class="hero">
@@ -522,7 +760,107 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
       <span id="projectionLabel"></span>
       <strong id="projection"></strong>
     </div>
+    <div class="metrics forecast-metrics">
+      <div class="metric">
+        <span id="depletionHeading"></span>
+        <strong id="depletion"></strong>
+      </div>
+      <div class="metric">
+        <span id="excessHeading"></span>
+        <strong id="excess"></strong>
+      </div>
+    </div>
+    <p id="forecastHint" class="explanation"></p>
     <p class="explanation"><span id="baselinePrefix"></span> <span id="baseRate"></span>. <span id="calendarNote"></span></p>
+  </section>
+
+  <section aria-labelledby="historyHeading">
+    <div class="section-head">
+      <h2 id="historyHeading"></h2>
+      <span id="historyMaximum"></span>
+    </div>
+    <div id="chartMetrics" class="controls days" role="group">
+      <button id="metricCumulative" aria-pressed="false"></button>
+      <button id="metricDaily" aria-pressed="false"></button>
+    </div>
+    <div id="historyPlot" class="history-card">
+      <div class="chart-summary">
+        <div>
+          <p id="historyMetricLabel"></p>
+          <strong id="historyLatest"></strong>
+          <p id="historyLatestDate"></p>
+        </div>
+        <span id="chartStyleName" class="chart-style-tag"></span>
+      </div>
+      <svg id="historyChart" viewBox="0 0 584 192" role="img">
+        <defs>
+          <clipPath id="historyWithinClip"><path id="historyWithinClipShape"></path></clipPath>
+          <clipPath id="historyOverClip"><path id="historyOverClipShape"></path></clipPath>
+          <linearGradient id="historyFill" x1="0" y1="0" x2="0" y2="1">
+            <stop class="chart-gradient-top" offset="0%"></stop>
+            <stop class="chart-gradient-bottom" offset="100%"></stop>
+          </linearGradient>
+          <linearGradient id="historyColumnFill" x1="0" y1="0" x2="0" y2="1">
+            <stop class="chart-column-top" offset="0%"></stop>
+            <stop class="chart-column-bottom" offset="100%"></stop>
+          </linearGradient>
+          <linearGradient id="historyFillGood" class="good" x1="0" y1="0" x2="0" y2="1">
+            <stop class="chart-gradient-top" offset="0%"></stop>
+            <stop class="chart-gradient-bottom" offset="100%"></stop>
+          </linearGradient>
+          <linearGradient id="historyFillOver" class="over" x1="0" y1="0" x2="0" y2="1">
+            <stop class="chart-gradient-top" offset="0%"></stop>
+            <stop class="chart-gradient-bottom" offset="100%"></stop>
+          </linearGradient>
+          <linearGradient id="historyColumnFillGood" class="good" x1="0" y1="0" x2="0" y2="1">
+            <stop class="chart-column-top" offset="0%"></stop>
+            <stop class="chart-column-bottom" offset="100%"></stop>
+          </linearGradient>
+          <linearGradient id="historyColumnFillOver" class="over" x1="0" y1="0" x2="0" y2="1">
+            <stop class="chart-column-top" offset="0%"></stop>
+            <stop class="chart-column-bottom" offset="100%"></stop>
+          </linearGradient>
+        </defs>
+        <path class="chart-grid" d="M32 24H552M32 72H552M32 120H552"></path>
+        <path class="chart-axis" d="M32 168H552"></path>
+        <g id="historyPoints"></g>
+        <path id="historyBudget"></path>
+      </svg>
+      <div class="chart-labels"><span id="historyStart"></span><span id="historyEnd"></span></div>
+      <div class="chart-legend">
+        <span id="historyObservedLabel"></span>
+        <span id="historyWithinLabel" class="good-key"></span>
+        <span id="historyOverLabel" class="over-key"></span>
+        <span id="historyBudgetLabel" class="budget-key"></span>
+      </div>
+      <p id="historyColumnsNote" class="explanation" hidden></p>
+    </div>
+    <p id="historyMessage" class="explanation" role="status"></p>
+  </section>
+
+  <section class="customization" aria-labelledby="customizationHeading">
+    <h2 id="customizationHeading"></h2>
+    <div class="customization-row">
+      <label id="languageLabel" for="language"></label>
+      <button id="language"></button>
+    </div>
+    <div class="customization-row">
+      <label id="statusStyleLabel" for="statusStyle"></label>
+      <select id="statusStyle">
+        <option id="styleText" value="text"></option>
+        <option id="styleCompact" value="compact"></option>
+        <option id="styleBar" value="bar"></option>
+        <option id="styleDots" value="dots"></option>
+      </select>
+    </div>
+    <div class="customization-row">
+      <label id="chartStyleLabel" for="chartStyle"></label>
+      <select id="chartStyle">
+        <option id="chartArea" value="area"></option>
+        <option id="chartLine" value="line"></option>
+        <option id="chartColumns" value="columns"></option>
+      </select>
+    </div>
   </section>
 
   <footer>
@@ -542,6 +880,65 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
 <script nonce="${nonce}">
 const vscode = acquireVsCodeApi();
 let currentLanguage;
+function drawHistory(model) {
+  const layer = document.getElementById('historyPoints');
+  layer.replaceChildren();
+  const create = (tag, attributes, label) => {
+    const element = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, String(value));
+    if (label) {
+      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      title.textContent = label;
+      element.appendChild(title);
+    }
+    layer.appendChild(element);
+  };
+  const drawPath = (path, className) => {
+    if (model.historyBudget.length === 0) {
+      create('path', { d: path, class: className });
+      return;
+    }
+    create('path', { d: path, class: className + ' good', 'clip-path': 'url(#historyWithinClip)' });
+    create('path', { d: path, class: className + ' over', 'clip-path': 'url(#historyOverClip)' });
+  };
+  if (model.chartStyle === 'columns') {
+    for (const point of model.historyColumns) {
+      create('rect', {
+        x: point.x - 5, y: point.y, width: 10, height: Math.max(.5, 168 - point.y),
+        rx: 3, class: 'chart-column ' + point.tone + (point.partial ? ' partial' : ''), tabindex: 0, 'aria-label': point.label,
+      }, point.label);
+    }
+    return;
+  }
+  const segments = [];
+  for (const point of model.history) {
+    if (!point.connect || segments.length === 0) segments.push([]);
+    segments[segments.length - 1].push(point);
+  }
+  for (const segment of segments) {
+    const first = segment[0];
+    const last = segment[segment.length - 1];
+    const path = segment.map((point, index) => (index === 0 ? 'M' : 'L') + point.x + ' ' + point.y).join('');
+    if (segment.length > 1) {
+      if (model.chartStyle === 'area') {
+        drawPath(path + 'L' + last.x + ' 168L' + first.x + ' 168Z', 'chart-area');
+      }
+      drawPath(path, 'chart-line');
+    }
+    if (model.chartMetric !== 'daily') {
+      create('circle', { cx: first.x, cy: first.y, r: 3, class: 'chart-dot ' + first.tone }, first.label);
+      if (last !== first) create('circle', { cx: last.x, cy: last.y, r: 3, class: 'chart-dot ' + last.tone }, last.label);
+    }
+  }
+  if (model.chartMetric === 'daily') {
+    for (const point of model.history) create('circle', {
+      cx: point.x, cy: point.y, r: 3.5, class: 'chart-dot ' + point.tone + (point.partial ? ' partial' : ''),
+      tabindex: 0, 'aria-label': point.label,
+    }, point.label);
+  }
+  const latest = model.history[model.history.length - 1];
+  if (latest) create('circle', { cx: latest.x, cy: latest.y, r: 4.5, class: 'chart-last ' + latest.tone, tabindex: 0, 'aria-label': latest.label }, latest.label);
+}
 function show(model) {
   currentLanguage = model.language;
   document.getElementById('page').setAttribute('lang', model.language);
@@ -553,6 +950,11 @@ function show(model) {
     'averageHeading', 'averageHint', 'allowanceHeading', 'allowanceHint',
     'projectionLabel', 'baselinePrefix', 'calendarNote', 'accountHeading',
     'renewalHeading', 'updatedHeading', 'refresh',
+    'depletionHeading', 'excessHeading', 'forecastHint', 'historyHeading',
+    'statusStyleLabel', 'styleText', 'styleCompact', 'styleBar', 'styleDots',
+    'customizationHeading', 'languageLabel',
+    'chartStyleLabel', 'chartArea', 'chartLine', 'chartColumns', 'metricCumulative', 'metricDaily',
+    'historyObservedLabel', 'historyWithinLabel', 'historyOverLabel', 'historyBudgetLabel', 'historyColumnsNote',
   ];
   for (const id of labelIds) {
     document.getElementById(id).textContent = model.text[id];
@@ -565,10 +967,32 @@ function show(model) {
     'summary', 'message', 'used', 'total', 'percentage', 'remaining', 'renewal',
     'dailyAverage', 'allowance', 'projection', 'updated', 'retry',
     'cycleProgress', 'daysLeft', 'period', 'baseRate', 'accountLabel',
+    'depletion', 'excess', 'historyMaximum', 'historyStart', 'historyEnd', 'historyMessage',
+    'historyLatest', 'chartStyleName', 'historyMetricLabel', 'historyLatestDate',
   ];
   for (const id of valueIds) {
     document.getElementById(id).textContent = model[id];
   }
+  document.getElementById('statusStyle').value = model.statusStyle;
+  document.getElementById('chartStyle').value = model.chartStyle;
+  const chart = document.getElementById('historyChart');
+  document.getElementById('historyPlot').hidden = model.history.length === 0;
+  chart.setAttribute('aria-label', model.historyAria);
+  chart.setAttribute('role', model.chartMetric === 'daily' ? 'group' : 'img');
+  const budgetPath = model.historyBudget.map((point, index) => (index === 0 ? 'M' : 'L') + point.x + ' ' + point.y).join('');
+  document.getElementById('historyBudget').setAttribute('d', budgetPath);
+  document.getElementById('historyWithinClipShape').setAttribute('d', budgetPath ? budgetPath + 'L552 192L32 192Z' : '');
+  document.getElementById('historyOverClipShape').setAttribute('d', budgetPath ? budgetPath + 'L552 0L32 0Z' : '');
+  document.getElementById('historyLatest').setAttribute('data-chart-tone', model.historyLatestTone);
+  document.getElementById('historyObservedLabel').hidden = model.historyBudget.length > 0;
+  document.getElementById('historyWithinLabel').hidden = model.historyBudget.length === 0;
+  document.getElementById('historyOverLabel').hidden = model.historyBudget.length === 0;
+  document.getElementById('historyBudgetLabel').hidden = model.historyBudget.length === 0;
+  document.getElementById('historyColumnsNote').hidden = model.chartStyle !== 'columns' || model.chartMetric === 'daily';
+  document.getElementById('chartMetrics').setAttribute('aria-label', model.text.chartMetricAria);
+  document.getElementById('metricCumulative').setAttribute('aria-pressed', String(model.chartMetric === 'cumulative'));
+  document.getElementById('metricDaily').setAttribute('aria-pressed', String(model.chartMetric === 'daily'));
+  drawHistory(model);
   ${__DEV__ ? `document.getElementById('demo').hidden = !model.demo;
   const note = document.getElementById('demoNote');
   note.hidden = !model.demo;
@@ -603,8 +1027,17 @@ document.getElementById('connect').addEventListener('click', () => vscode.postMe
 document.getElementById('language').addEventListener('click', () => {
   vscode.postMessage({ action: 'language', value: currentLanguage === 'en' ? 'es-ES' : 'en' });
 });
+document.getElementById('statusStyle').addEventListener('change', event => {
+  vscode.postMessage({ action: 'statusStyle', value: event.target.value });
+});
+document.getElementById('chartStyle').addEventListener('change', event => {
+  vscode.postMessage({ action: 'chartStyle', value: event.target.value });
+});
 for (const mode of ['all', 'weekdays']) {
   document.getElementById(mode).addEventListener('click', () => vscode.postMessage({ action: 'dayMode', value: mode }));
+}
+for (const metric of ['Cumulative', 'Daily']) {
+  document.getElementById('metric' + metric).addEventListener('click', () => vscode.postMessage({ action: 'chartMetric', value: metric.toLowerCase() }));
 }
 vscode.postMessage({ action: 'ready' });
 </script>

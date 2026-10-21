@@ -2,6 +2,61 @@
 
 Validation records identify the tested source, artifact, environment and scope. Local checks, CI and maintainer-reported account acceptance are recorded separately.
 
+## 1.3.0 pilot preflight: October 21, 2026
+
+Working tree based on `16d46251717fca17d42e54086e311c2330d2f8b8`, prepared in PR #45 with version `1.3.0` and `preview: true`, Windows 11 / standalone Node 26.11.1 / npm 11.20.0:
+
+- `npm ci`, lint/types, 293 unit/service/activation tests and 8 release-script tests passed.
+- 21 integration tests passed on each of VS Code 1.120.0 and 1.141.0; all 8 installed-production tests and package inspection passed.
+- `npm audit`: zero vulnerabilities. `git diff --check` passed.
+- Local preflight artifact: `dist/copilot-pace-1.3.0.vsix`, SHA-256 `c337c4045ca130df7d3791d93efee9dca751eb9e5be431333a01f79b174f0a14`. This dirty working-tree build is not the publication artifact. The final annotated tag workflow must retain and validate its own clean SHA, VSIX, checksum and build record.
+- Earlier illustrative chart reviews cover all local/API, daily/cumulative and area/line/column combinations. Actual billing access and corporate-policy acceptance remain pending; publication is an explicitly labeled pilot.
+
+## Forecast, history and status styles: October 21, 2026
+
+Local checks on `feature/usage-history-status-styles`, based on `develop` at `ecf9b2ef06dd4d7c55d807b837c0a23bbc5bf1f6`:
+
+- Windows 11, standalone Node 26.11.1 and npm 11.20.0.
+- `npm run check`: lint/types, 245 unit/service/activation tests and 8 release-script regressions passed. New coverage includes UTC weekday exhaustion, observation-anchored forecasts, history restoration/concurrent writers/account isolation, missing intervals/corrections, and validated status-style messages.
+- `npm run test:integration`: 19 tests passed on each of VS Code 1.120.0 and 1.141.0, including actual status item updates and persisted appearance settings.
+- `npm run test:package`: 8 installed-production tests passed in an isolated VS Code 1.141.0 profile; package contents and demo exclusion were inspected.
+- Local candidate after grouping customization controls: `dist/copilot-pace-1.2.1.vsix`, SHA-256 `27713ba05ada73c22f2d8f97dd09087eb7ba952406dbf7bcd13b4438138a60a5`. This working-tree build retains the existing manifest version and is not a published release artifact.
+- `npm audit`: zero vulnerabilities. Documentation links and `git diff --check` passed.
+- Browser preview: the generated panel was inspected with illustrative observations in English/dark and Spanish/light at a 360-pixel content width. Language, weekday and appearance controls were exercised. This preview does not validate actual GitHub quotas or constitute real-account acceptance.
+- The layout follow-up groups language and status appearance in a divided Customization / Personalización section immediately below the chart. Code checks, 19 integration tests on VS Code 1.141.0 and all 8 package tests passed again; both controls and section labels were checked in English and Spanish in the dark preview. The local 1.120.0 rerun was blocked at startup by the editor's `vscode-updating` mutex, including a retry, so its earlier result above applies to the preceding layout. Remote CI checks the follow-up revision independently.
+
+Remote CI belongs to the feature PR's exact head revision. No new personal/corporate account or network acceptance was performed for these features; the previous distributed 1.2.1 release and its artifacts remain unchanged.
+
+### Chart styles follow-up
+
+Local Windows checks on the working tree based on `01c91fa2494ab36e12f77f5ad99e8e7fa86b961a`, using standalone Node 26.11.1 / npm 11.20.0:
+
+- `npm run check`: lint/types, 246 unit/service/activation tests and 8 release-script regressions passed.
+- `npm run test:integration`: 20 tests passed on each of VS Code 1.120.0 and 1.141.0. The saved chart choice updates without refreshing quota; unsupported panel values are rejected. Both editor hosts started successfully, resolving the earlier update-mutex block.
+- `npm run test:package`: all 8 installed-production tests passed; package identity, contents and demo exclusion were checked.
+- The generated panel was inspected with illustrative observations in dark and light themes. Gradient area, line and columns preserve missing intervals; columns use the last cumulative observation per UTC day. The Spanish Customization selector was exercised in the browser preview. These checks do not validate real-account quotas or constitute account acceptance.
+- Final local working-tree candidate: `dist/copilot-pace-1.2.1.vsix`, SHA-256 `526ab61a93cf8b3c700b3fed3e9ddb13061ee3f0ab1a08d4b295679e86d5cddb`. This retains the existing manifest version and is not a published release artifact.
+- `npm audit`: zero vulnerabilities. Local Markdown link targets and `git diff --check` passed. Remote CI validates the pushed PR head separately.
+
+### Daily billing and observed fallback test build
+
+Local uncommitted working tree based on `5c6b594a362dcfd8dfccb7f69df924e52ff99ef6`, October 21, 2026, Windows 11 / standalone Node 26.11.1 / npm 11.20.0:
+
+- `npm run check`: lint/types, 285 unit/service/activation tests and 8 release-script tests passed. New fixtures cover personal, Business and Enterprise report routes, gross credit quantities, permission failures, missing days, account identity, cancellation, late responses, rate limits, daily deltas and chart metric controls.
+- `npm run test:integration`: 21 tests passed on each of VS Code 1.120.0 and 1.141.0.
+- `npm run test:package`: all 8 installed-production tests passed; package contents and demo exclusion checked.
+- Tested VSIX: `dist/copilot-pace-1.2.1.vsix`, SHA-256 `fbb438036dafa12cd91fafcf2f2623cb2a12bf003e9db8000b42df78b1a5b671`. The user test copy at `dist/test/copilot-pace-1.2.1-daily-test.vsix` has the same bytes and checksum. Both retain the existing manifest version; this is a local test build, not a published release.
+- Dark browser preview inspected all three daily chart styles with illustrative reported days, a missing day and a partial ongoing day. These fixtures do not validate actual billing access or corporate policies. Real-account daily billing acceptance remains pending.
+
+### Chart budget colors follow-up
+
+On the same local working tree and environment, after adding chart budget colors:
+
+- `npm run check`: lint/types, 293 unit/service/activation tests and 8 release-script tests passed. Coverage includes all three styles with reported/local daily totals, exact-budget equality, cumulative pace, weekend budgets and neutral unknown budgets. SVG clip regions preserve disconnected paths and color crossings.
+- `npm run test:integration`: 21 tests passed on each of VS Code 1.120.0 and 1.141.0. All 8 installed-production tests and package inspection passed again.
+- Latest local test VSIX: `dist/copilot-pace-1.2.1.vsix`, SHA-256 `8fe169ab3c551ee5a6dd0e56e982861c64cdbc1705de79ca0b13e4b3db935df3`. The same bytes replace the earlier user test copy at `dist/test/copilot-pace-1.2.1-daily-test.vsix`. No release version or published artifact was changed.
+- Generated panel inspected in a dark browser preview for local/API simulations, daily/cumulative metrics and area/line/column styles: 12 chart combinations. The fixture has a 6,000-credit budget, 4,855 cumulative credits, local recording from October 8 and offline days on October 14 and 18. Both sources exercise green/red daily values; the cumulative observations cross the budget reference. API responses are simulated, not real-account acceptance.
+
 ## GitHub.com and GHE acceptance: October 19, 2026
 
 - Maintainer report: the distributed 1.2.0 pilot was validated in both environments and works correctly. This is real-environment acceptance reported by the maintainer, separate from the earlier synthetic connection fixtures.

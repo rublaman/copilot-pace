@@ -75,3 +75,37 @@ export function calculatePace(snapshot: Snapshot, now: Date, mode: DayMode): Pac
   const label = projectedPercent > 100 + 1e-9 ? 'Over pace' : projectedPercent >= 90 - 1e-9 ? 'On track' : 'Comfortable';
   return { kind: 'available', dailyAverage, projected, projectedPercent, label };
 }
+
+export type Forecast =
+  | { kind: 'available'; exhausted: boolean; exhaustionAt?: number; excess: number }
+  | { kind: 'unavailable' };
+
+export function calculateForecast(snapshot: Snapshot, now: Date, mode: DayMode): Forecast {
+  const cycle = snapshot.cycle;
+  if (snapshot.kind !== 'bounded' || !cycle || now.getTime() < snapshot.asOf || now.getTime() >= cycle.end ||
+      snapshot.asOf < cycle.start || snapshot.asOf >= cycle.end) return { kind: 'unavailable' };
+  // Anchor the estimate to the observation: time spent offline must not lower the burn rate.
+  const pace = calculatePace(snapshot, new Date(snapshot.asOf), mode);
+  if (pace.kind !== 'available') return { kind: 'unavailable' };
+  const result: Forecast = {
+    kind: 'available', exhausted: snapshot.used >= snapshot.total,
+    excess: Math.max(0, pace.projected - snapshot.total),
+  };
+  if (result.exhausted || pace.dailyAverage <= 0 || pace.projected <= snapshot.total) return result;
+  let days = (snapshot.total - snapshot.used) / pace.dailyAverage;
+  let cursor = snapshot.asOf;
+  while (cursor < cycle.end) {
+    const date = new Date(cursor);
+    const next = Math.min(cycle.end, Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1));
+    if (mode === 'all' || (date.getUTCDay() !== 0 && date.getUTCDay() !== 6)) {
+      const available = (next - cursor) / DAY;
+      if (days <= available) {
+        result.exhaustionAt = cursor + days * DAY;
+        break;
+      }
+      days -= available;
+    }
+    cursor = next;
+  }
+  return result;
+}

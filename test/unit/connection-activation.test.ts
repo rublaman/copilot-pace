@@ -2,10 +2,14 @@ import * as assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { runInNewContext } from 'node:vm';
 import type * as vscode from 'vscode';
 import type { activate, TestApi } from '../../src/extension';
 import { boundedFixture } from '../../src/mocks';
+import { HistoryStore, historyIdentity } from '../../src/history';
 
 const loadNodeModule = createRequire(__filename);
 const settle = () => new Promise<void>(resolve => setImmediate(resolve));
@@ -19,12 +23,15 @@ function harness(initial: Record<string, unknown> = {}, options: {
   authenticate?: (provider: string, options: vscode.AuthenticationGetSessionOptions) => Promise<vscode.AuthenticationSession | undefined>;
   pendingNetwork?: boolean;
   pluralSupported?: boolean;
+  storageDirectory?: string;
+  apiResponse?: (url: string) => { status: number; body: unknown };
 } = {}) {
   const settings = { ...initial };
   const configurationListeners: Array<(event: vscode.ConfigurationChangeEvent) => void> = [];
   const sessionListeners: Array<(event: { provider: { id: string } }) => void> = [];
   const commands = new Map<string, () => Promise<void>>();
   const requests: Array<{ url: string; token: string; signal: AbortSignal }> = [];
+  const allRequests: typeof requests = [];
   const responses: Array<() => void> = [];
   const authCalls: Array<{ provider: string; options: vscode.AuthenticationGetSessionOptions; scopes: readonly string[] }> = [];
   const pickedChoices: string[][] = [];
@@ -98,7 +105,10 @@ function harness(initial: Record<string, unknown> = {}, options: {
   };
   const http = {
     request: (url: string, requestOptions: { headers: { Authorization: string }; signal: AbortSignal }, callback: (response: EventEmitter) => void) => {
-      requests.push({ url, token: requestOptions.headers.Authorization, signal: requestOptions.signal });
+      const quotaRequest = url.endsWith('/copilot_internal/user');
+      const captured = { url, token: requestOptions.headers.Authorization, signal: requestOptions.signal };
+      allRequests.push(captured);
+      if (quotaRequest) requests.push(captured);
       const request = new EventEmitter() as EventEmitter & { end(): void; destroy(error: Error): void };
       request.destroy = error => {
         request.emit('error', error);
@@ -106,27 +116,32 @@ function harness(initial: Record<string, unknown> = {}, options: {
       };
       requestOptions.signal.addEventListener('abort', () => request.destroy(new Error('Aborted')), { once: true });
       const respond = () => {
-        const response = Object.assign(new EventEmitter(), { statusCode: 200, headers: {} });
+        const result = quotaRequest ? { status: 200, body: boundedFixture(100, 25, new Date()) }
+          : options.apiResponse?.(url) ?? { status: 403, body: undefined };
+        const response = Object.assign(new EventEmitter(), { statusCode: result.status, headers: {} });
         callback(response);
-        response.emit('data', Buffer.from(JSON.stringify(boundedFixture(100, 25, new Date()))));
+        if (result.body !== undefined) response.emit('data', Buffer.from(JSON.stringify(result.body)));
         response.emit('end');
         request.emit('close');
       };
-      responses.push(respond);
-      request.end = () => queueMicrotask(() => { if (!options.pendingNetwork) respond(); });
+      if (quotaRequest) responses.push(respond);
+      request.end = () => queueMicrotask(() => { if (!quotaRequest || !options.pendingNetwork) respond(); });
       return request;
     },
   };
-  const context = { extensionMode: 3, extensionUri: new URL('file:///extension/'), subscriptions: [] as vscode.Disposable[] };
+  const context = {
+    extensionMode: 3, extensionUri: new URL('file:///extension/'), subscriptions: [] as vscode.Disposable[],
+    globalStorageUri: options.storageDirectory ? { fsPath: options.storageDirectory } : undefined,
+  };
   const module = { exports: {} as { activate: typeof activate } };
   runInNewContext(readFileSync('out/development/dist/extension.js', 'utf8'), {
     module, exports: module.exports,
     require: (id: string) => id === 'vscode' ? host : id === 'node:https' ? http : loadNodeModule(id),
-    Date, Intl, URL, Buffer, AbortController, setTimeout, clearTimeout,
+    Date, Intl, URL, URLSearchParams, Buffer, AbortController, AbortSignal, setTimeout, clearTimeout,
   });
   const api = module.exports.activate(context as unknown as vscode.ExtensionContext) as TestApi;
   return {
-    api, authCalls, requests, settings, pickedChoices,
+    api, authCalls, requests, allRequests, settings, pickedChoices,
     choose: (provider: string | undefined) => { choice = provider; },
     connect: () => commands.get('copilotPace.connect')!(),
     completeRequest: (index: number) => responses[index]!(),
@@ -140,6 +155,63 @@ function harness(initial: Record<string, unknown> = {}, options: {
 }
 
 describe('Connection integration with native VS Code services', () => {
+  for (const enterprise of [false, true]) {
+    it(`retrieves daily reports silently on the matched ${enterprise ? 'Enterprise' : 'GitHub.com'} API host`, async () => {
+      const now = new Date();
+      const settings = enterprise ? { 'copilotPace.authProvider': 'github-enterprise', 'github-enterprise.uri': 'https://corp.ghe.com' } : {};
+      const host = harness(settings, { apiResponse: raw => {
+        const url = new URL(raw);
+        if (url.pathname === '/user') return { status: 200, body: { login: 'octocat', id: 'same-account-id' } };
+        if (url.pathname.startsWith('/users/octocat/settings/billing/ai_credit/usage')) return { status: 200, body: {
+          user: 'octocat', timePeriod: { year: now.getUTCFullYear(), month: now.getUTCMonth() + 1,
+            ...(url.searchParams.has('day') ? { day: Number(url.searchParams.get('day')) } : {}) },
+          usageItems: [{ product: 'Copilot', unitType: 'credits', grossQuantity: 5 }],
+        } };
+        return { status: 403, body: undefined };
+      } });
+      try {
+        for (let attempt = 0; attempt < 10 && !host.api.getState().dailyUsage?.length; attempt++) await settle();
+        assert.ok(host.api.getState().dailyUsage!.length > 0);
+        assert.equal(host.api.getState().phase, 'ready');
+        assert.equal(host.authCalls.length, 1);
+        assert.deepEqual([...host.authCalls[0]!.scopes], ['read:user']);
+        assert.equal(host.authCalls[0]!.options.silent, true);
+        assert.ok(host.allRequests.every(request => new URL(request.url).origin === (enterprise ? 'https://api.corp.ghe.com' : 'https://api.github.com')));
+        assert.ok(host.allRequests.every(request => request.token === `Bearer ${enterprise ? 'github-enterprise' : 'github'}-synthetic`));
+      } finally { host.dispose(); }
+    });
+  }
+  it('persists accepted account observations and restores them across extension activations', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'copilot-pace-activation-history-'));
+    const key = historyIdentity('github', 'https://github.com', 'same-account-id');
+    const store = new HistoryStore(directory);
+    const first = harness({}, { storageDirectory: directory });
+    let second: ReturnType<typeof harness> | undefined;
+    try {
+      const deadline = Date.now() + 5000;
+      while ((await store.read(key, Date.now())).length === 0) {
+        assert.ok(Date.now() < deadline, 'Accepted observation was not persisted');
+        await settle();
+      }
+      const saved = await store.read(key, Date.now());
+      assert.equal(saved.length, 1);
+      first.dispose();
+      second = harness({}, { storageDirectory: directory, pendingNetwork: true });
+      await settle();
+      second.completeRequest(0);
+      while ((await store.read(key, Date.now())).length < 2) {
+        assert.ok(Date.now() < deadline, 'Second activation did not retain the first observation');
+        await settle();
+      }
+      const restored = await store.read(key, Date.now());
+      assert.ok(restored.some(item => item.at === saved[0]!.at));
+      assert.ok(second.api.getModel().history.length >= 1);
+    } finally {
+      first.dispose();
+      second?.dispose();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
   for (const plan of ['personal', 'Business']) {
     it(`preserves normal ${plan} login and quota requests without an extra picker`, async () => {
       const host = harness({}, { authenticate: async () => session(plan) });
@@ -378,6 +450,7 @@ describe('Connection integration with native VS Code services', () => {
         assert.equal(host.api.getState().account, undefined);
         assert.equal(host.api.getState().updatedAt, undefined);
         assert.equal(host.api.getModel().accountLabel, '');
+        assert.equal(host.api.getModel().history.length, 0);
         assert.equal(host.api.getModel().used, '—');
         assert.equal(host.requests[1]?.signal.aborted, true);
         await refresh;
@@ -427,16 +500,19 @@ describe('Connection integration with native VS Code services', () => {
       host.completeRequest(0);
       await settle();
       assert.equal(host.api.getModel().accountLabel, 'personal');
+      assert.equal(host.api.getModel().history.length, 1);
       selected = 'Business';
       host.sessionChanged('github');
       assert.equal(host.api.getState().snapshot, undefined);
       assert.equal(host.api.getState().account, undefined);
+      assert.equal(host.api.getModel().history.length, 0);
       await settle();
       assert.equal(host.api.getModel().accountLabel, 'Business');
       assert.equal(host.api.getState().snapshot, undefined);
       host.completeRequest(1);
       await settle();
       assert.equal(host.api.getState().phase, 'ready');
+      assert.equal(host.api.getModel().history.length, 1);
       assert.ok(host.authCalls.every(call => call.provider === 'github' && call.options.silent));
     } finally { host.dispose(); }
   });

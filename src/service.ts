@@ -1,5 +1,7 @@
 import { normalizeQuota, systemClock, type Clock, type Snapshot } from './domain';
-import { responseError, SafeError, type HttpTransport, type SessionAccount, type SessionProvider } from './transport';
+import { responseError, SafeError, type HttpTransport, type Session, type SessionAccount, type SessionProvider } from './transport';
+import type { DailyUsageProvider } from './billing';
+import type { DailyUsage } from './daily';
 
 export interface ServiceState {
   phase: 'loading' | 'ready' | 'disconnected' | 'error';
@@ -7,8 +9,9 @@ export interface ServiceState {
   updatedAt?: number;
   failure?: SafeError;
   account?: SessionAccount;
+  dailyUsage?: DailyUsage[];
 }
-export interface ServiceDependencies { sessions: SessionProvider; transport: HttpTransport; dataClock: Clock; wallClock?: Clock }
+export interface ServiceDependencies { sessions: SessionProvider; transport: HttpTransport; dataClock: Clock; wallClock?: Clock; dailyUsage?: DailyUsageProvider }
 
 export class QuotaService {
   private state: ServiceState = { phase: 'loading' };
@@ -27,7 +30,7 @@ export class QuotaService {
     this.wallClock = deps.wallClock ?? systemClock;
   }
   get current(): ServiceState { return this.state; }
-  get nextAllowedAt(): number { return this.retryAt; }
+  get nextAllowedAt(): number { return Math.max(this.retryAt, this.deps.dailyUsage?.nextAllowedAt ?? 0); }
   private publish(state: ServiceState) {
     this.state = state;
     this.onChange(state);
@@ -35,6 +38,7 @@ export class QuotaService {
   reset() {
     this.generation++;
     this.abort?.abort();
+    this.deps.dailyUsage?.reset();
     this.inFlight = undefined;
     this.inFlightInteractive = false;
     this.pendingConnect = undefined;
@@ -61,8 +65,9 @@ export class QuotaService {
       }
       return this.pendingConnect;
     }
-    if (this.wallClock.now().getTime() < this.retryAt) return Promise.resolve();
+    if (this.wallClock.now().getTime() < this.nextAllowedAt) return Promise.resolve();
     const generation = this.generation;
+    this.abort?.abort();
     const abort = new AbortController();
     this.abort = abort;
     this.publish({ ...this.state, phase: 'loading', failure: undefined });
@@ -95,10 +100,12 @@ export class QuotaService {
       if (!active()) return;
       if (!session) {
         this.sessionId = undefined;
+        this.deps.dailyUsage?.reset();
         this.publish({ phase: 'disconnected' });
         return;
       }
       if (session.id !== this.sessionId || session.account.id !== this.state.account?.id) {
+        this.deps.dailyUsage?.reset();
         this.sessionId = session.id;
         this.reauthenticate = false;
         this.publish({ phase: 'loading', account: session.account });
@@ -117,7 +124,9 @@ export class QuotaService {
         phase: 'ready', snapshot,
         updatedAt: this.wallClock.now().getTime(),
         account: session.account,
+        dailyUsage: this.state.dailyUsage,
       });
+      void this.readDailyUsage(session, snapshot, response.body, generation, signal);
     } catch (error) {
       if (!active()) return;
       const failure = error instanceof SafeError ? error : new SafeError('network', 'Could not refresh your usage.');
@@ -135,6 +144,17 @@ export class QuotaService {
         snapshot: discard ? undefined : this.state.snapshot,
         updatedAt: discard ? undefined : this.state.updatedAt,
       });
+    }
+  }
+  private async readDailyUsage(session: Session, snapshot: Snapshot, quota: unknown, generation: number, signal: AbortSignal) {
+    if (!this.deps.dailyUsage) return;
+    try {
+      const dailyUsage = await this.deps.dailyUsage.read(session, snapshot, quota, signal);
+      if (this.disposed || signal.aborted || this.generation !== generation || this.state.snapshot !== snapshot ||
+          this.state.phase !== 'ready' || this.sessionId !== session.id || this.state.account?.id !== session.account.id) return;
+      this.publish({ ...this.state, dailyUsage });
+    } catch {
+      // Billing is optional; keep the accepted quota and locally observed history.
     }
   }
   dispose() {

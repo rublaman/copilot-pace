@@ -37,7 +37,13 @@ describe('Installed production VSIX', () => {
     assert.deepEqual(manifest.contributes.commands.map((item: { command: string }) => item.command), [
       'copilotPace.showDetails', 'copilotPace.refresh', 'copilotPace.connect',
     ]);
-    assert.deepEqual(Object.keys(manifest.contributes.configuration.properties).sort(), ['copilotPace.authProvider', 'copilotPace.dayMode', 'copilotPace.language', 'copilotPace.pollIntervalMinutes']);
+    assert.deepEqual(Object.keys(manifest.contributes.configuration.properties).sort(), ['copilotPace.authProvider', 'copilotPace.chartMetric', 'copilotPace.chartStyle', 'copilotPace.dayMode', 'copilotPace.language', 'copilotPace.pollIntervalMinutes', 'copilotPace.statusStyle']);
+    assert.equal(manifest.contributes.configuration.properties['copilotPace.chartMetric'].default, 'cumulative');
+    assert.deepEqual(manifest.contributes.configuration.properties['copilotPace.chartMetric'].enum, ['cumulative', 'daily']);
+    assert.equal(manifest.contributes.configuration.properties['copilotPace.chartStyle'].default, 'area');
+    assert.deepEqual(manifest.contributes.configuration.properties['copilotPace.chartStyle'].enum, ['area', 'line', 'columns']);
+    assert.equal(manifest.contributes.configuration.properties['copilotPace.statusStyle'].default, 'text');
+    assert.deepEqual(manifest.contributes.configuration.properties['copilotPace.statusStyle'].enum, ['text', 'compact', 'bar', 'dots']);
     assert.equal(manifest.contributes.configuration.properties['copilotPace.authProvider'].default, 'auto');
     assert.deepEqual(manifest.contributes.configuration.properties['copilotPace.authProvider'].enum, ['auto', 'github', 'github-enterprise']);
     assert.equal(manifest.contributes.configuration.properties['copilotPace.language'].default, 'en');
