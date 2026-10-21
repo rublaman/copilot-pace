@@ -24,7 +24,7 @@ Build mode is explicit and independent of the branch.
 
 Open the repository in VS Code and press F5 with **Copilot Pace: Extension** selected. The launcher starts a separate development host with `.vscode-test/debug-profile`, disables other extensions and attaches on `127.0.0.1:9333`. This avoids the native `extensionHost` startup crash described in [the upstream issue](https://github.com/microsoft/vscode/issues/336233).
 
-The launcher reuses a matching host. Close its window before F5 to load rebuilt code; initial activation can finish before the debugger attaches. It refuses to attach if the port belongs to another process or profile. The task message **Terminal will be reused by tasks** means the build finished.
+The launcher reuses a matching host. Close its window before F5 to load rebuilt code; initial activation can finish before the debugger attaches. It refuses to attach if the port belongs to another process or profile.
 
 Run **Copilot Pace: Try Demo Scenarios** in that host. **Copilot Pace: Use GitHub** returns to the real adapter. Demo usage is fixed, but dates and pace labels follow the current UTC calendar. Tests inject fixed clocks for threshold assertions.
 

@@ -1,15 +1,15 @@
 # Validation
 
-**The maintainer confirmed that the 1.2.0 pilot works correctly in both GitHub.com and corporate GitHub Enterprise (GHE) environments on October 19, 2026, and requested stable publication. Version 1.2.1 retains that runtime behavior and updates release metadata and documentation.**
+Validation records identify the tested source, artifact, environment and scope. Local checks, CI and maintainer-reported account acceptance are recorded separately.
 
 ## GitHub.com and GHE acceptance: October 19, 2026
 
 - Maintainer report: the distributed 1.2.0 pilot was validated in both environments and works correctly. This is real-environment acceptance reported by the maintainer, separate from the earlier synthetic connection fixtures.
 - Accepted pilot: [v1.2.0](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.0), commit `1ffd75220eecfecdc6310880c3667f4efd62e073`, VSIX SHA-256 `4e4a23aa7bd4ee39c6f2d37b07c49e5574c35639dba9077c70f2ea22d6027ccf`.
 - Scope: GitHub.com and the maintainer's corporate GHE environment. Exact editor versions and individual account-switching, cancellation, proxy/certificate and quota-comparison checklist results were not separately supplied. Do not infer universal GitHub Enterprise Server compatibility or record unreported individual checks.
-- Stable 1.2.1 changes version/preview metadata and documentation only; no authentication, transport, service or quota-normalization logic changes. Its final tagged VSIX must pass separate CI, content/checksum inspection and installed-package tests. Final SHA and artifact evidence belong in the [1.2.1 release record](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.1).
+- Stable 1.2.1 retains the pilot's runtime and changes release metadata and documentation. Its final SHA and artifact validation are recorded in the [1.2.1 release record](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.1).
 
-Earlier evidence below is historical and retains the scope recorded at the time.
+Earlier records describe the state at the date of each check, including any publication or validation steps then pending.
 
 ## Stable 1.0.0: October 15, 2026
 
@@ -26,7 +26,7 @@ The maintainer's manual confirmation covers GitHub connection, quota and renewal
 
 ## Historical local records
 
-The previous validation notes reported these Windows results. They did not record a full commit SHA and SHA-256, so they are development records rather than release approval.
+These local Windows checks did not record a full commit SHA and artifact checksum, so they cannot identify an approved release artifact.
 
 | Version | Date | Unit/service | Integration per VS Code version | Installed VSIX |
 | --- | --- | --- | --- | --- |

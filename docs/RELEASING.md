@@ -4,7 +4,7 @@ This guide defines version preparation, validation and distribution. Read the wo
 
 ## Stable 1.2.1
 
-The maintainer confirmed that the published 1.2.0 pilot works correctly in both GitHub.com and corporate GitHub Enterprise (GHE) environments on October 19, and explicitly requested a new stable release. Version 1.2.1 sets `preview: false`, documents GitHub.com/GHE support and removes pilot/test-environment narrative from the README. Runtime behavior is unchanged apart from the build-time version value. The [acceptance record](validation.md#githubcom-and-ghe-acceptance-october-19-2026) identifies the tested pilot and the scope of the maintainer's confirmation.
+Version 1.2.1 promotes the accepted 1.2.0 runtime to stable with `preview: false` and updated GitHub.com/GHE setup documentation. The [acceptance record](validation.md#githubcom-and-ghe-acceptance-october-19-2026) identifies the tested pilot, environments and reported checks.
 
 Prepared through [PR #41](https://github.com/rublaman/copilot-pace/pull/41) to `develop` and promoted to `main` through [PR #42](https://github.com/rublaman/copilot-pace/pull/42) with a merge commit at `733381fcc2557e46fc08d4c2a63df01cfe3a74a2`. The annotated `v1.2.1` release is stable with Latest. Its [release record](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.1), attached `build-info.json` and `SHA256SUMS.txt` retain the exact final tagged CI run, clean SHA and tested VSIX checksum. Publish and download the tested artifact unchanged; Marketplace upload/store verification remain separate. The published 1.2.0 pilot and previous tags/assets are unchanged.
 
@@ -18,7 +18,7 @@ Reviewed on October 19, 2026:
 
 - Stable: [1.2.1](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.1) from `main`, `preview: false`, publisher `rubenblancomanzano`. The [main CI](https://github.com/rublaman/copilot-pace/actions/runs/39267811489) and tagged release artifact validation identify the tested source and package. See the release's attached build record/checksum for artifact provenance.
 - Account support: GitHub.com personal/Business and GitHub Enterprise (GHE), with maintainer-reported real-environment acceptance of the 1.2.0 pilot. The stable runtime retains that behavior. The README contains account/setup guidance instead of test-environment history.
-- The synchronization PR carries `main` ancestry back into `develop` with a merge commit and records this publication; do not squash it.
+- [PR #43](https://github.com/rublaman/copilot-pace/pull/43) synchronized `main` back into `develop` with a merge commit on October 19.
 - Marketplace upload and store verification of the exact tested 1.2.1 VSIX remain pending and separate from GitHub publication. Published pilots and older assets are retained.
 
 ## Previous stable release history
@@ -113,33 +113,18 @@ Use GitHub prereleases for beta testing rather than `-beta` or `-rc` tags. Ordin
 
 Only the draft job has `contents: write`; it does not check out or execute candidate code. Neither workflow publishes to Marketplace or publishes the GitHub draft automatically.
 
-Integrate the workflows into `develop` before the pilot. Tag pushes run the workflow from the tagged commit, so the pilot does not require promoting the extension to `main`. Manual Actions dispatch requires the workflow on the default branch. Push tags with the maintainer's identity: events created using `GITHUB_TOKEN` generally do not start another workflow. [GitHub event reference](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
+Tag pushes run the workflow from the tagged commit. A pilot can therefore run from `develop` without promotion to `main`; manual Actions dispatch requires the workflow on the default branch. Push tags with the maintainer's identity: events created using `GITHUB_TOKEN` generally do not start another workflow. [GitHub event reference](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
+
+## Repository setup record
+
+- Initial MVP/workflow integration passed CI at `7104271`. Pilot preparation used [PR #2](https://github.com/rublaman/copilot-pace/pull/2), [#5](https://github.com/rublaman/copilot-pace/pull/5), [#10](https://github.com/rublaman/copilot-pace/pull/10) and [#12](https://github.com/rublaman/copilot-pace/pull/12).
+- Branch protections were configured to require PRs, resolved conversations, current branches and all five CI jobs, including for admins. Force pushes/deletion were blocked; merge commits remained enabled. No external approval was required with one maintainer.
+- Tag protection was configured through the [immutability ruleset](https://github.com/rublaman/copilot-pace/rules/25017697) and the [creation ruleset](https://github.com/rublaman/copilot-pace/rules/25017698). Updates/deletion were blocked without bypass; creation was restricted to `rublaman`.
+
+These are setup records. Check the live repository rules before relying on them. Completed releases, branch synchronizations and acceptance results are recorded in [the release history](#previous-stable-release-history) and [validation.md](validation.md).
 
 ## Release readiness
 
-- [x] Integrate the MVP and workflows into `develop`; CI passed at `7104271`.
-- [x] Merge the [pilot preparation PR](https://github.com/rublaman/copilot-pace/pull/2), validate its final commit remotely and create the annotated `v0.2.0` tag.
-- [x] Exercise tag-triggered automation, inspect and test the downloaded VSIX, publish the pilot without Latest and verify anonymous downloads.
-- [x] Merge the [0.2.1 preparation PR](https://github.com/rublaman/copilot-pace/pull/5), validate its final commit and tagged artifact, and publish the updated pilot without replacing `0.2.0`.
-- [x] Merge the [0.2.2 preparation PR](https://github.com/rublaman/copilot-pace/pull/10), validate the merged and tagged commit, test the downloaded VSIX without rebuilding, and publish the pilot with a matching anonymous download checksum.
-- [x] Add the MIT license and align `package.json` and the lockfile. Packaging requires the license; release validation checks that it is tracked.
-- [x] Prepare `0.2.1`, `preview: true` and its dated changelog entry. The workflow derives draft release notes from the changelog; package validation checks README, license, identity and required images.
-- [x] Protect `main` and `develop`: PRs, resolved conversations, current branches and all five CI jobs are required, including for admins. Force pushes/deletion are blocked; merge commits remain allowed. No external approval is required while there is one maintainer.
-- [x] Protect `refs/tags/v*`: the [immutability ruleset](https://github.com/rublaman/copilot-pace/rules/25017697) blocks updates/deletion without bypass, and the [creation ruleset](https://github.com/rublaman/copilot-pace/rules/25017698) permits creation only by `rublaman`.
-- [x] Select the personal Marketplace publisher `rubenblancomanzano`, created by the maintainer at [Manage Publishers](https://marketplace.visualstudio.com/manage/publishers/rubenblancomanzano), and align the 0.2.3 manifest, release workflow and tests with it.
-- [x] Merge the [0.2.3 preparation PR](https://github.com/rublaman/copilot-pace/pull/12), validate its merged/tagged commit, test the unchanged downloaded VSIX and replacement of the old identity, then publish the GitHub pilot with a matching anonymous download checksum.
-- [x] Obtain the maintainer's confirmation of real-account acceptance of 0.2.3 and the saved publisher profile name, **Ruben Blanco Manzano**, on October 15, 2026. The acceptance scope and limits are recorded below.
-- [x] Prepare `1.0.0` with `preview: false` through [PR #14](https://github.com/rublaman/copilot-pace/pull/14), promote `develop` to `main` with a merge commit through [PR #15](https://github.com/rublaman/copilot-pace/pull/15), validate the final SHA/VSIX and publish that same tested file as the stable GitHub Release with Latest. The anonymous public download matched the tested checksum.
-- [x] Verify that the public Marketplace listing shows `1.0.0` under **Ruben Blanco Manzano** on October 15, 2026.
-- [x] Merge the 1.0.1 preparation PR into `develop`, promote to `main` with a merge commit, validate the final SHA and tagged VSIX, and publish the stable GitHub Release with Latest. Previous release tags and assets remain unchanged.
-- [x] Synchronize `main` back into `develop` with a merge commit through PR #20.
-- [x] Prepare 1.1.1 with `preview: false` through PR #23, promote `develop` to `main` through PR #24 with a merge commit, validate the final SHA and tagged VSIX, and publish the stable GitHub Release with Latest. Preserve the published 1.1.0 pilot and its assets.
-- [x] Synchronize `main` back into `develop` with a merge commit through PR #25.
-- [x] Prepare 1.1.2 with `preview: false` through PR #28, promote `develop` to `main` through PR #29 with a merge commit, validate the tagged VSIX and publish the stable GitHub Release with Latest. Preserve the 1.1.1 release and all earlier assets.
-- [x] Synchronize `main` back into `develop` with a merge commit through PR #30.
-- [x] Prepare 1.1.3 with `preview: false` through [PR #33](https://github.com/rublaman/copilot-pace/pull/33), promote `develop` to `main` through [PR #34](https://github.com/rublaman/copilot-pace/pull/34) with a merge commit, validate the tagged VSIX and publish the stable GitHub Release with Latest. Preserve the 1.1.2 release and all earlier assets.
-- [x] Synchronize `main` back into `develop` with a merge commit through PR #37.
-- [x] Prepare 1.2.1 through PR #41, promote it to `main` through PR #42 with a merge commit, validate the final tagged artifact and publish stable with Latest after the maintainer's GitHub.com/GHE acceptance.
 - [ ] Upload the exact tested 1.2.1 VSIX to Marketplace and verify the listing, package hash and isolated store installation.
 
 ## Create and review a candidate
@@ -197,7 +182,7 @@ Reported by the maintainer on October 15, 2026, for the Windows 11 development e
 
 English listing copy is maintained in [MARKETPLACE.md](MARKETPLACE.md). The root README supplies the full overview, with the existing brand banner and [documented UI screenshots](images/README.md). Commit and push all referenced assets before packaging a publication candidate so the rewritten image URLs resolve to that commit.
 
-Marketplace automation remains pending. The selected publisher is `rubenblancomanzano`, and the manifest, release workflow and tests use `rubenblancomanzano.copilot-pace`. The maintainer confirmed the saved public publisher name **Ruben Blanco Manzano** on October 15, 2026. Keep the publisher profile suitable for multiple extensions; the extension manifest owns Copilot Pace's repository and issue links. The 0.2.3 release remains a GitHub pilot. Stable 1.2.1 is published on GitHub from `main`; its Marketplace upload and store verification remain pending. Marketplace's separate prerelease channel is unconfigured. Use an environment with restricted publishing permissions and verify the current [secure publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace) before implementing automation.
+Marketplace upload and store verification of stable 1.2.1 remain pending. The extension ID is `rubenblancomanzano.copilot-pace`; publisher details are in [MARKETPLACE.md](MARKETPLACE.md). Automated publishing and the Marketplace prerelease channel are unconfigured. Before adding automation, use restricted publishing permissions and check the current [secure publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace).
 
 Publish the same VSIX from the reviewed GitHub Release, through the publisher portal or `vsce publish --azure-credential --packagePath <tested.vsix>` with configured credentials. Verify the listing and an install/update before recording success. Do not rebuild or use `--skip-duplicate` to hide an existing version.
 

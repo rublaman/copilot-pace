@@ -4,15 +4,18 @@ English listing copy and publication reference for Copilot Pace. See [RELEASING.
 
 ## Publisher setup
 
-On October 15, 2026, the maintainer created and selected the personal publisher ID `rubenblancomanzano` for this and future extensions, and confirmed that **Details → Name** is saved as **Ruben Blanco Manzano**. This is separate from the extension's display name, **Copilot Pace**. The unused `CopilotPace` publisher does not need to be deleted to continue.
+| Field | Value |
+| --- | --- |
+| Publisher ID | `rubenblancomanzano` |
+| Publisher name | Ruben Blanco Manzano |
+| Extension ID | `rubenblancomanzano.copilot-pace` |
+| Display name | Copilot Pace |
 
-1. Open the selected publisher's [management page](https://marketplace.visualstudio.com/manage/publishers/rubenblancomanzano) and select **Details**.
-2. Set **Name** to **Ruben Blanco Manzano** and save. Keep the immutable **ID** `rubenblancomanzano`. The publisher profile represents the developer across extensions: use a personal website or GitHub profile, a general contact if desired, and leave the source repository empty unless there is a shared repository. Copilot Pace's own repository and issue tracker belong in its extension manifest.
-3. Version 0.2.3 and later use `rubenblancomanzano.copilot-pace`; the manifest, release workflow and installed-package tests use this identity. Pilots through 0.2.2 retain `rublaman.copilot-pace`. Migration details remain in the [release guide](RELEASING.md#current-state), since this is a separate extension rather than an automatic update.
-4. Follow the stable release workflow in [RELEASING.md](RELEASING.md). Validate the final package independently of any earlier runtime acceptance.
-5. Upload the exact tested VSIX identified in the release record under **Ruben Blanco Manzano**. Verify its public listing, package hash and store installation. Keep published artifacts unchanged.
+Edit the publisher profile through its [management page](https://marketplace.visualstudio.com/manage/publishers/rubenblancomanzano). The extension's repository and issue links are configured in `package.json`.
 
-The publisher profile is managed separately from the repository. The manifest points to `rublaman/copilot-pace` for source and issue links. Marketplace prerelease publishing is unconfigured; stable releases follow [RELEASING.md](RELEASING.md).
+Pilots through 0.2.2 used `rublaman.copilot-pace`, a separate extension ID. Migration instructions are in the [changelog](../CHANGELOG.md).
+
+Follow [RELEASING.md](RELEASING.md) to upload the tested release VSIX, then verify the listing, package hash and store installation. Marketplace prerelease publishing is unconfigured.
 
 ## Display name
 

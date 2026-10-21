@@ -8,7 +8,10 @@ const original = new Map<string, unknown>();
 const keys = ['dataSource', 'mockScenario', 'dayMode', 'pollIntervalMinutes', 'language', 'authProvider'];
 async function waitFor(check: () => boolean) {
   const end = Date.now() + 5000;
-  while (!check()) { if (Date.now() > end) throw new Error('The extension did not reach the expected state'); await new Promise(resolve => setTimeout(resolve, 20)); }
+  while (!check()) {
+    if (Date.now() > end) throw new Error('The extension did not reach the expected state');
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
 }
 async function scenario(name: MockScenario) {
   await vscode.workspace.getConfiguration('copilotPace').update('mockScenario', name, vscode.ConfigurationTarget.Global);
@@ -36,7 +39,8 @@ describe('Copilot Pace in the Extension Development Host', () => {
     await config.update('dayMode', 'all', vscode.ConfigurationTarget.Global);
     await config.update('dataSource', 'mock', vscode.ConfigurationTarget.Global);
     const extension = vscode.extensions.getExtension<TestApi>('rubenblancomanzano.copilot-pace');
-    assert.ok(extension); api = await extension.activate();
+    assert.ok(extension);
+    api = await extension.activate();
     await waitFor(() => api.getModel().demo && api.getState().phase === 'ready' && api.getModel().percentage === '40%');
   });
   after(async () => {
@@ -61,7 +65,8 @@ describe('Copilot Pace in the Extension Development Host', () => {
   }
   it('uses the current UTC date and month in demo mode', () => {
     const now = new Date();
-    const snapshot = api.getState().snapshot; assert.ok(snapshot);
+    const snapshot = api.getState().snapshot;
+    assert.ok(snapshot);
     assert.ok(Math.abs(snapshot.asOf - now.getTime()) < 5000);
     assert.deepEqual(snapshot.cycle, {
       start: Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
@@ -76,8 +81,10 @@ describe('Copilot Pace in the Extension Development Host', () => {
     for (const command of ['showDetails', 'refresh', 'connect', 'demo', 'useGitHub']) assert.ok(commands.includes(`copilotPace.${command}`));
   });
   it('renders a compact native hover with a restricted command allowlist', () => {
-    const tooltip = api.getTooltip(); assert.ok(tooltip instanceof vscode.MarkdownString);
-    assert.equal(tooltip.supportThemeIcons, true); assert.equal(tooltip.supportHtml, true);
+    const tooltip = api.getTooltip();
+    assert.ok(tooltip instanceof vscode.MarkdownString);
+    assert.equal(tooltip.supportThemeIcons, true);
+    assert.equal(tooltip.supportHtml, true);
     assert.deepEqual(tooltip.isTrusted, { enabledCommands: ['copilotPace.showDetails', 'copilotPace.refresh', 'copilotPace.connect', 'copilotPace.demo'] });
     assert.ok(tooltip.value.includes('Remaining: **6,000 credits**'));
     assert.ok(!tooltip.value.includes('Today:'));
@@ -103,10 +110,13 @@ describe('Copilot Pace in the Extension Development Host', () => {
   });
   it('opens and reuses the detail panel', async () => {
     await vscode.commands.executeCommand('copilotPace.showDetails');
-    const panel = api.getPanel(); assert.ok(panel);
+    const panel = api.getPanel();
+    assert.ok(panel);
     await waitFor(() => api.isPanelReady());
-    assert.ok(panel.webview.html.includes('Simulated data')); assert.ok(panel.webview.html.includes('Daily pace'));
-    await vscode.commands.executeCommand('copilotPace.showDetails'); assert.equal(api.getPanel(), panel);
+    assert.ok(panel.webview.html.includes('Simulated data'));
+    assert.ok(panel.webview.html.includes('Daily pace'));
+    await vscode.commands.executeCommand('copilotPace.showDetails');
+    assert.equal(api.getPanel(), panel);
   });
   it('updates the calculation when switching to weekdays', async () => {
     const old = api.getModel();
@@ -125,13 +135,15 @@ describe('Copilot Pace in the Extension Development Host', () => {
   it('ignores messages outside the allowed actions', async () => {
     await api.receiveMessage({ action: 'dayMode', value: 'invalid' });
     await api.receiveMessage({ action: 'executeCommand', value: 'workbench.action.closeWindow' });
-    await api.receiveMessage(null); assert.equal(api.getModel().dayMode, 'all');
+    await api.receiveMessage(null);
+    assert.equal(api.getModel().dayMode, 'all');
     await api.receiveMessage({ action: 'language', value: 'fr' });
     await api.receiveMessage({ action: 'language', value: ['es-ES'] });
     assert.equal(api.getModel().language, 'en');
   });
   it('persists Spanish from the detail panel and updates the existing view without refreshing usage', async () => {
-    const panel = api.getPanel(); assert.ok(panel);
+    const panel = api.getPanel();
+    assert.ok(panel);
     const snapshot = api.getState().snapshot;
     const updatedAt = api.getState().updatedAt;
     const color = api.getStatus().color;
@@ -158,7 +170,8 @@ describe('Copilot Pace in the Extension Development Host', () => {
   });
   it('colors the status and native hover according to the current pace for each budget', async () => {
     for (const [name, used] of [['3900-on-track', 45], ['3900-over-pace', 60], ['budget-10000', 19.5]] as const) {
-      await scenario(name); assertCurrentPace(used);
+      await scenario(name);
+      assertCurrentPace(used);
       const color = api.getStatus().color;
       if (color instanceof vscode.ThemeColor) {
         assert.ok(api.getTooltip()?.value.includes(`color:var(--vscode-${color.id.replace('.', '-')});`));
@@ -166,33 +179,45 @@ describe('Copilot Pace in the Extension Development Host', () => {
     }
   });
   it('changes the budget without increasing accumulated usage', async () => {
-    await scenario('budget-3900'); const used = api.getModel().used;
+    await scenario('budget-3900');
+    const used = api.getModel().used;
     assert.equal(api.getModel().percentage, '50%');
-    await scenario('budget-10000'); assert.equal(api.getModel().used, used); assert.equal(api.getModel().percentage, '19.5%');
+    await scenario('budget-10000');
+    assert.equal(api.getModel().used, used);
+    assert.equal(api.getModel().percentage, '19.5%');
   });
   it('handles exhausted, unknown, incomplete, disconnected and error scenarios', async () => {
     const expected: Record<string, string> = { exhausted: 'ready', 'usage-only': 'ready', incomplete: 'ready', disconnected: 'disconnected', timeout: 'error', '401': 'error', '403': 'error', '429': 'error', '500': 'error' };
     for (const [name, phase] of Object.entries(expected)) {
-      await scenario(name as MockScenario); assert.equal(api.getState().phase, phase, name); assert.ok(api.getStatus().text.endsWith('Demo'));
+      await scenario(name as MockScenario);
+      assert.equal(api.getState().phase, phase, name);
+      assert.ok(api.getStatus().text.endsWith('Demo'));
       if (name !== 'exhausted') assert.equal(api.getStatus().color, undefined, name);
       if (name !== 'exhausted') assert.ok(!api.getTooltip()?.value.includes('<span'), name);
     }
   });
   it('recovers from an error without retaining previous data or cooldown', async () => {
-    await scenario('10000-comfortable'); assertCurrentPace(40);
-    await api.receiveMessage({ action: 'refresh' }); assert.equal(api.getState().phase, 'ready');
-    await api.receiveMessage({ action: 'connect' }); assert.equal(api.getState().phase, 'ready');
+    await scenario('10000-comfortable');
+    assertCurrentPace(40);
+    await api.receiveMessage({ action: 'refresh' });
+    assert.equal(api.getState().phase, 'ready');
+    await api.receiveMessage({ action: 'connect' });
+    assert.equal(api.getState().phase, 'ready');
   });
   it('creates a new panel after closing the old one', async () => {
-    const panel = api.getPanel(); assert.ok(panel); panel.dispose();
+    const panel = api.getPanel();
+    assert.ok(panel);
+    panel.dispose();
     await waitFor(() => api.getPanel() === undefined);
-    await vscode.commands.executeCommand('copilotPace.showDetails'); assert.notEqual(api.getPanel(), panel);
+    await vscode.commands.executeCommand('copilotPace.showDetails');
+    assert.notEqual(api.getPanel(), panel);
     await waitFor(() => api.isPanelReady());
   });
   it('clears demo data when returning to GitHub and never falls back to mocks', async () => {
     await vscode.commands.executeCommand('copilotPace.useGitHub');
     await waitFor(() => !api.getModel().demo && api.getState().phase === 'disconnected');
-    assert.equal(api.getState().snapshot, undefined); assert.ok(!api.getStatus().text.includes('Demo'));
+    assert.equal(api.getState().snapshot, undefined);
+    assert.ok(!api.getStatus().text.includes('Demo'));
     assert.equal(api.getModel().accountLabel, '');
     assert.equal(api.getModel().connectLabel, 'Connect GitHub');
     assert.ok(api.getTooltip()?.value.includes('[Connect GitHub](command:copilotPace.connect)'));
