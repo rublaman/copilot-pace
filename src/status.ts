@@ -11,7 +11,7 @@ export function statusText(style: StatusStyle, percentage: string, usedPercent: 
     if (style === 'text') text = `${percentage} · ${summary}`;
     else if (style === 'compact') text = `$(github-copilot) ${percentage}`;
     else {
-      const count = style === 'bar' ? 8 : 5;
+      const count = 8;
       const filled = fraction > 0 ? Math.max(1, Math.floor(fraction * count)) : 0;
       const on = style === 'bar' ? '▰' : '●';
       const off = style === 'bar' ? '▱' : '○';
