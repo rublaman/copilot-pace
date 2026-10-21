@@ -1,6 +1,6 @@
 # Corporate authentication
 
-Feature [#39](https://github.com/rublaman/copilot-pace/issues/39), implemented on `feature/corporate-authentication` on October 19, 2026 and distributed in the 1.2.0 pilot. The maintainer subsequently confirmed correct operation in both GitHub.com and corporate GitHub Enterprise (GHE) environments and requested stable 1.2.1 publication. See [acceptance evidence](validation.md#githubcom-and-ghe-acceptance-october-19-2026). The implementation and automated preflight evidence below predates that confirmation; references to pending acceptance in those historical records do not describe the current acceptance state.
+Enterprise support was added in [#39](https://github.com/rublaman/copilot-pace/issues/39) and shipped in the 1.2.0 pilot. The maintainer accepted that pilot on GitHub.com and corporate GHE before stable 1.2.1 publication; see the [acceptance record](validation.md#githubcom-and-ghe-acceptance-october-19-2026). The implementation below includes the subsequent [switching and sign-out fixes](security-review.md). Historical test results are listed separately.
 
 ## Account selection
 
@@ -10,7 +10,7 @@ Feature [#39](https://github.com/rublaman/copilot-pace/issues/39), implemented o
 | --- | --- |
 | `auto` (default) | Follow `github.copilot.advanced.authProvider`; use GitHub.com otherwise |
 | `github` | Use GitHub.com, including personal and Business accounts |
-| `github-enterprise` | Use VS Code's configured Enterprise instances |
+| `github-enterprise` | Use VS Code's configured Enterprise instance |
 
 A corporate instance configured for another extension does not automatically change Pace's provider. With no Enterprise configuration, Connect keeps the original GitHub.com flow without an additional picker. When Enterprise is configured, Connect/Switch offers the two providers through a native Quick Pick, with the current provider first. The choice is saved for Pace only; resetting the preference to `auto` follows Copilot again. After changing Enterprise instance settings while Pace is active, reload VS Code before using the corporate connection; GitHub.com remains available.
 
@@ -35,11 +35,11 @@ Enterprise origins must be HTTPS DNS hosts, optionally with port 443 and a trail
 | --- | --- |
 | `github` | `https://api.github.com/copilot_internal/user` |
 | `github-enterprise`, one valid origin | `https://api.<instance-host>/copilot_internal/user` |
-| Missing, invalid or multiple Enterprise origins | No authenticated HTTP quota request; localized configuration error |
+| Missing, invalid or multiple Enterprise origins | No session or HTTP quota request; localized configuration error |
 
 This Enterprise API mapping follows the Copilot bundle in the locally cached VS Code 1.141.0 and is covered by the maintainer's subsequent GHE environment acceptance. It does not establish that every custom GitHub Enterprise Server exposes that endpoint. Do not substitute `/api/v3`, use a repository path or fall back to GitHub.com on an error.
 
-VS Code can handle Enterprise sign-in with multiple configured instances. This version delegates that login to the provider but blocks quota requests because the stable `AuthenticationSession` type pinned by the project does not expose the selected authorization server. It does not parse labels/session IDs or use proposed APIs to guess the host. At startup with a single configured origin, it relies on the built-in provider restricting its sessions to that instance. A change to the effective instance configuration during activation blocks further Enterprise session/HTTP requests until VS Code reloads: this prevents pairing a provider's old cached session with the new quota destination while its asynchronous configuration update is still pending.
+The pinned stable `AuthenticationSession` type does not expose the selected authorization server. Pace therefore requires one valid origin before requesting a session or querying usage. It relies on the built-in provider restricting sessions to that instance; labels and session IDs are not used to infer a host. Effective instance changes block Enterprise session and HTTP requests until reload, because the provider may still expose an old cached session while applying its settings.
 
 ## Lifecycle and transport
 
@@ -57,7 +57,9 @@ Configuration errors stay distinct from authentication errors and discard prior 
 
 Regression tests cover unchanged GitHub.com behavior for synthetic personal/Business accounts, provider selection, separate preferences, cancelled login, host pairing, malformed settings, old/new provider manifests, explicit empty lists, untrusted configuration, selected-provider events, cross-host fallback prevention and obsolete in-flight work. Real Extension Development Host and installed-VSIX tests exercise settings and recovery without interactive sign-in.
 
-Local validation on Windows 11 with standalone Node 26.11.1 / npm 11.20.0:
+## Historical validation: October 19, 2026
+
+The following checks preceded the published pilot and the maintainer's acceptance. Local Windows 11 validation used standalone Node 26.11.1 / npm 11.20.0:
 
 - `npm ci --no-audit --no-fund`: pinned dependencies installed; lockfile unchanged.
 - `npm run check`: lint/types, 198 unit/regression tests and 8 release-script tests passed.
@@ -67,38 +69,37 @@ Local validation on Windows 11 with standalone Node 26.11.1 / npm 11.20.0:
 
 Local test artifact: `dist/copilot-pace-1.1.3.vsix`, SHA-256 `85e48ef1b85e3ad9284d699730c2ba5ed66b5458fb2d8782238b0e86d4cdc6dd`. Its build record identifies base commit `4691dc6012631b7ed31b6fee4852e4023ab179dc` with `dirty: true`, not a committed/released candidate. It retains the current manifest version for local testing and must not replace the published 1.1.3 package.
 
-These local results do not establish remote CI, Node 24 validation or successful authentication/quota access with a real personal, Business or Enterprise account. Before publication, prepare a new version, validate its final VSIX and record real-account acceptance, quota comparisons, cancellation/reconnection and corporate proxy/certificate behavior. Never replace an existing release or publish the development package under an already distributed version.
+These were local checks of an uncommitted build. Published pilot CI and real-account acceptance are recorded in [validation.md](validation.md#githubcom-and-ghe-acceptance-october-19-2026).
 
 ### Additional native login attempt
 
-On October 19, the maintainer requested a real login check. The installed test package above was launched in additional isolated VS Code 1.141.0 profiles through the project's test runner:
+The same package was tested in additional isolated VS Code 1.141.0 profiles:
 
-- With a reserved `.invalid` Enterprise fixture and GitHub.com selected, the native Connect command stayed pending at provider selection, with no account or quota. This verifies the command reaches the native picker path, not corporate authentication or endpoint compatibility. Window capture failed after the documented recovery attempt, so no visual approval is recorded.
-- With no corporate configuration, the native Connect command returned an authentication error. A direct call to VS Code's GitHub provider established the test-host restriction: `DialogService: refused to show dialog in tests`. The assertion expecting a pending login did not pass; this result must not be described as a successful real login or a confirmed application regression.
-- The regular editor's user settings did not contain an Enterprise instance configuration. No corporate hostname was inferred, no credentials were entered or extracted, and no real account quota was validated.
+- With a reserved `.invalid` Enterprise fixture and GitHub.com selected, Connect remained pending at provider selection, with no account or quota. Window capture failed, so this check has no visual verification.
+- Without corporate configuration, Connect returned an authentication error. A direct provider call reported `DialogService: refused to show dialog in tests`. The assertion expecting a pending login failed because the test host blocked the dialog; no real login was validated.
 
-The Windows Computer Use skill prohibits automating user authentication dialogs. Real account acceptance still requires user-completed sign-in outside the test runner and inspection of the resulting quota. The extra probe scripts/profiles are ignored local test material, not production source or VSIX content. The tested package hash and runtime source are unchanged.
+Interactive acceptance requires sign-in outside the test runner. The probe scripts and profiles are ignored test material and excluded from the VSIX; the package hash above was unchanged.
 
 ### Regular desktop session check
 
-On the maintainer's subsequent request to use Computer Use, the regular VS Code desktop window became accessible after activation. A read-only bundle comparison confirmed that the installed extension matches the tested candidate, including its provider setting. The editor is VS Code 1.142.0, separate from the two pinned test-host versions above.
+The installed extension in the regular VS Code 1.142.0 profile matched the test package's bundle and provider setting. That profile had no Enterprise instance configured.
 
-The initial UI showed an authorization error with no quota. Running **Copilot Pace: Refresh Usage** through the command palette cleared the authorization error without an interactive login. The panel then displayed **Quota unavailable**, **Your budget or usage is unavailable**, and billing-cycle information. This records successful reuse of the existing GitHub.com session and a processed quota response, but not a usable credit budget or quota comparison for this account. No account identifiers or response bodies are recorded here.
+**Refresh Usage** cleared an authorization error using the existing GitHub.com session. The panel showed **Quota unavailable**, **Your budget or usage is unavailable**, and billing-cycle information. A quota response was processed, but it did not provide a usable budget for comparison.
 
-Running **Copilot Pace: Connect GitHub** opened the native **The extension 'Copilot Pace' wants to sign in using GitHub** consent dialog. The agent stopped before interacting with that authentication dialog and requested user completion. The user reported completion, after which the panel again showed **Quota unavailable** without an authorization error. Repeating **Refresh Usage** reused the session without another login prompt and retained the same unavailable-budget state. This validates the native connection handoff and session reuse for the account present in this desktop session, not a new-session issuance, switching between accounts, numeric quota correctness or all personal/Business plans.
+**Connect GitHub** opened VS Code's consent dialog. After user-completed sign-in, the panel showed the same unavailable-budget state without an authorization error. Repeated refresh reused the session without a prompt. This checked connection handoff and session reuse; it did not check account switching, numeric quota correctness or all personal/Business plans.
 
-Enterprise validation remains pending because the regular editor did not have an Enterprise instance configured. The user confirmed that the corporate connection is on another computer. No corporate instance was added or changed in the regular profile, and no authentication credential was entered by the agent. The quota-normalization source was not changed by this feature; the unavailable-budget result requires separate investigation before accepting quota display for this account.
+The corporate connection was on another computer and was not tested in this profile. Quota normalization was unchanged; this result did not establish numeric quota acceptance for the desktop account.
 
 ### Synthetic prueba.ghe.com simulation
 
-At the maintainer's request, an isolated VS Code 1.141.0 profile was configured with `github-enterprise.uris: ["https://prueba.ghe.com"]` and `copilotPace.authProvider: "auto"`. The existing tested production package was loaded without rebuilding. Its connection command remained pending at provider selection; cancellation completed with the state still disconnected, no quota snapshot and the preference still `auto`. This native-host probe passed. Windows Computer Use could not capture the test window: `window id 1247380 no longer belongs to Microsoft.VisualStudioCode; current owner is Microsoft.VisualStudioCode`, repeated after the documented recovery attempt. No visual verification is claimed.
+An isolated VS Code 1.141.0 profile loaded the same package with `github-enterprise.uris: ["https://prueba.ghe.com"]` and `copilotPace.authProvider: "auto"`. Connect remained pending at provider selection. Cancellation left the state disconnected with no quota and the preference still `auto`. The native-host probe passed; window capture failed, so there is no visual verification.
 
-The existing connection activation regression suite was also run against that exact production bundle, substituting `prueba.ghe.com` for the corporate fixture. All 16 checks passed with synthetic authentication and intercepted HTTP requests, covering Enterprise provider/API pairing, both picker choices, switching back to GitHub.com, personal/Business defaults, cancellation and stale-session isolation. No credentials were sent to the example domain and no real Enterprise authentication or quota was validated. The isolated scripts/profile remain ignored under `.vscode-test/ghe-simulation-prueba`; the normal editor's settings and tested VSIX hash are unchanged.
+The connection activation suite also passed all 16 checks against that production bundle with `prueba.ghe.com` substituted for the corporate fixture. Authentication and HTTP requests were simulated; no credentials were sent to that domain. The ignored scripts/profile are under `.vscode-test/ghe-simulation-prueba`. The normal profile and VSIX hash were unchanged.
 
 Enterprise availability comes from VS Code's configured instance or the selected provider; it is not discovered from the corporate network or repository URL. With `auto`, merely configuring an instance makes provider selection available while GitHub.com remains the default unless Copilot is configured to use Enterprise.
 
 ### 1.2.0 pilot preflight
 
-The maintainer requested a downloadable prerelease on October 19. The pilot uses version 1.2.0 with `preview: true`; it does not replace the stable 1.1.3 release or publish to Marketplace. Local preflight with standalone Node 26.11.1 / npm 11.20.0 passed `npm ci`, `npm run check` (198 unit/regression and 8 release-script tests), `npm run test:integration` (18 tests each on VS Code 1.120.0 and 1.141.0), `npm run test:package` (8 installed-package tests and content inspection), `npm audit` (zero vulnerabilities) and `git diff --check`.
+Version 1.2.0 was prepared with `preview: true`. Local preflight with standalone Node 26.11.1 / npm 11.20.0 passed `npm ci`, `npm run check` (198 unit/regression and 8 release-script tests), `npm run test:integration` (18 tests each on VS Code 1.120.0 and 1.141.0), `npm run test:package` (8 installed-package tests and content inspection), `npm audit` (zero vulnerabilities) and `git diff --check`.
 
-Those local checks describe the prepared working tree. The final tagged CI run, clean commit, downloadable VSIX and checksum must be retained in the [1.2.0 release notes](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.0). Publish the tested CI artifact unchanged; do not substitute the earlier dirty local 1.1.3 test build. Real corporate acceptance remains pending.
+The final tagged CI run, commit, published VSIX and checksum are recorded in the [1.2.0 release notes](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.0). The subsequent [acceptance record](validation.md#githubcom-and-ghe-acceptance-october-19-2026) covers the published pilot, rather than the earlier local 1.1.3 test build.

@@ -21,7 +21,7 @@ export const scenarioLabels = {
 } as const;
 export type MockScenario = keyof typeof scenarioLabels;
 export function isScenario(value: string): value is MockScenario { return Object.hasOwn(scenarioLabels, value); }
-// Preserve 0.1.0 settings when upgrading to the English-only interface.
+// Map scenario names saved by 0.1.0 to the current setting values.
 const legacyScenarios: Record<string, MockScenario> = {
   '10000-de-sobra': '10000-comfortable', '3900-justo': '3900-on-track', '3900-pasado': '3900-over-pace',
   'presupuesto-3900': 'budget-3900', 'presupuesto-10000': 'budget-10000', agotada: 'exhausted',

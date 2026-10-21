@@ -7,26 +7,18 @@
 [![VS Code 1.120+](https://img.shields.io/badge/VS_Code-1.120%2B-007ACC)](https://marketplace.visualstudio.com/items?itemName=rubenblancomanzano.copilot-pace)
 [![MIT license](https://img.shields.io/github/license/rublaman/copilot-pace)](https://github.com/rublaman/copilot-pace/blob/main/LICENSE)
 
-**Know your Copilot budget. Keep your pace in view.**
-
-Track GitHub Copilot credits from your VS Code status bar. See what you have used, what remains, and where your current daily pace could take you by renewal.
-
-Works with personal and Business accounts on GitHub.com and GitHub Enterprise (GHE) accounts.
-
-**GitHub.com and Enterprise GHE · Desktop VS Code 1.120+**
+Copilot Pace is a VS Code extension that displays GitHub Copilot credit usage and estimates consumption at the next renewal. It supports personal and Business accounts on GitHub.com and GitHub Enterprise (GHE) accounts on Windows, with VS Code 1.120 or later.
 
 [Get started](#get-started) · [Commands](#commands) · [Settings](#settings) · [Report an issue](https://github.com/rublaman/copilot-pace/issues)
 
-## Your usage, at a glance
+## Usage
 
-- **Status bar:** budget used and a color-coded pace indicator while you work.
-- **Hover summary:** pace status, remaining credits, daily allowance, projected usage and last update.
-- **Detail panel:** compare credits used with cycle progress and see the numbers behind the estimate.
-- **Consistent pace colors:** green for Comfortable, yellow for On track and red for Over pace in the status bar, hover and detail panel, following your VS Code theme.
-- **Flexible calendar:** switch between Every day and Mon–Fri to match your working week.
-- **Display language:** English by default, with Spanish (Spain) available from the detail panel.
-- **Account controls:** see which GitHub account is being queried, switch accounts or reconnect when needed.
-- **Automatic refresh:** check every 15 minutes by default, with a manual refresh whenever you need it.
+- **Status bar:** percentage of budget used and projected pace.
+- **Hover:** selected account, remaining credits, daily allowance, projection and last update.
+- **Detail panel:** usage and cycle progress, daily average and allowance, renewal date and account controls.
+- **Calendar:** Every day or Mon–Fri, without a public holiday calendar.
+- **Language:** English by default; Spanish (Spain) is available in the detail panel.
+- **Refresh:** every 15 minutes by default, or manually from the panel or Command Palette.
 
 Hover over the status item for a quick summary. Click it to open the detail panel beside your editor.
 
@@ -34,9 +26,9 @@ Hover over the status item for a quick summary. Click it to open the detail pane
   <img src="docs/images/hover-dark.gif" alt="Animated dark tooltip and status bar: 45% used is green, 50% is yellow and 60% is red as projected usage increases" />
 </p>
 
-## See your pace
+## Detail panel
 
-The panel puts your remaining budget and daily allowance next to your average consumption. Usage and cycle progress have separate bars, so you can compare how quickly you are spending credits with how much of the cycle has elapsed.
+The panel compares credits used with elapsed cycle time. Daily average, available credits per day and projected usage use the selected calendar.
 
 <p align="center">
   <img src="docs/images/details-dark.gif" alt="Animated dark detail panel: 45%, 50% and 60% of a 3,900-credit budget used, with green, yellow and red pace indicators" />
@@ -54,8 +46,6 @@ The color follows **projected usage at renewal**, calculated from your average c
 | **On track** · yellow | 90–100% of budget | Your projection is close to the cycle's budget. |
 | **Over pace** · red | Above 100% of budget | You may exceed your budget before renewal. |
 
-These are estimates based on your average so far. They change as your usage changes.
-
 ## Get started
 
 1. In VS Code, open **Extensions** (`Ctrl+Shift+X`) and search for **Copilot Pace** by **Ruben Blanco Manzano**. Select **Install**.
@@ -66,17 +56,15 @@ You can also download the stable VSIX from [GitHub Releases](https://github.com/
 
 ### Choose the right account
 
-Copilot Pace uses VS Code's GitHub authentication. Its authorization and account selection are separate from Copilot's own connection.
-
-The hover and detail panel identify the account being queried. Use **Switch GitHub account…** to select another account through VS Code, or **Reconnect GitHub** to renew authorization. Copilot Pace shows one account at a time; switching it does not change the account used by Copilot itself.
+Copilot Pace uses VS Code's GitHub authentication and shows the selected account in the hover and detail panel. Use **Switch GitHub account…** to choose another account or **Reconnect GitHub** to renew authorization. This selection is independent of Copilot's account.
 
 By default, Copilot Pace follows Copilot's configured authentication provider and otherwise uses GitHub.com. When a corporate instance is configured, **Connect GitHub** offers **GitHub.com** for personal and Business accounts or **GitHub Enterprise** for GHE accounts. VS Code handles account selection and sign-in. The choice is saved only for Copilot Pace; use `copilotPace.authProvider: "auto"` to follow Copilot again.
 
-For GHE, use the corporate instance already configured in VS Code's GitHub Enterprise settings. Configure a single HTTPS instance address, without a login, project or repository path. Recent VS Code versions use `github-enterprise.uris`; older versions use `github-enterprise.uri`. Usage queries require one configured instance.
+For GHE, configure one HTTPS instance address in VS Code's GitHub Enterprise settings, without a login, project or repository path. Recent VS Code versions use `github-enterprise.uris`; older versions use `github-enterprise.uri`.
 
 After changing the Enterprise instance settings, reload VS Code before reconnecting.
 
-To sign out, use VS Code's **Accounts** menu. Switching accounts in Pace does not sign an account out of VS Code. When VS Code reports a session change for the selected provider, Pace clears the previous usage and checks the currently authorized session silently. If no session is available, it shows **Connect GitHub**. With other authorized accounts still signed in, VS Code may return another account; check the account shown in the hover or panel and use **Switch GitHub account…** to choose explicitly.
+To sign out, use VS Code's **Accounts** menu. Pace clears the previous usage when that provider's session changes, then checks for an authorized session without opening a login dialog. If none is available, it shows **Connect GitHub**. If other authorized accounts remain signed in, VS Code may return one of them; check the displayed account or use **Switch GitHub account…** to choose explicitly.
 
 ## Commands
 
@@ -92,7 +80,7 @@ Open the Command Palette and type **Copilot Pace**:
 
 The panel also offers **Refresh usage** and the appropriate account action. **Every day / Mon–Fri** changes the calendar used for the estimate.
 
-Use **Spanish** in the detail panel's header to switch to Spanish (Spain); the button becomes **Inglés** to switch back. The preference is saved across VS Code restarts and is independent of the editor's display language. Status, hover, panel text, numbers and dates update immediately. The language switch appears only in the detail panel, not in the hover. Calculations continue to use UTC.
+Use **Spanish** in the detail panel's header to switch to Spanish (Spain), and **Inglés** to switch back. The saved preference is independent of VS Code's display language. Text, numbers and dates update immediately; calculations continue to use UTC.
 
 ## How the estimate works
 
@@ -107,7 +95,7 @@ All amounts represent **credits**. The budget and used percentage come from GitH
 
 Calculations use **UTC**, include partial days and require a known budget and a recognized monthly cycle. **Mon–Fri** excludes Saturdays and Sundays, without a public holiday calendar. Before one eligible day has elapsed, the extension shows **Calculating pace**.
 
-The hover reuses **Available per day** as **Daily allowance**, following the selected calendar. It is the sustainable daily average for the remaining cycle, not today's consumption or the average already used. All amounts are credits, not tokens. The quota connection supplies a monthly total without a daily breakdown, even for a connected account, so today's consumption is omitted rather than inferred from the monthly average.
+**Daily allowance** in the hover is the panel's **Available per day**: remaining credits divided by eligible days left. The source provides monthly totals, so Pace cannot show today's consumption.
 
 ## Settings
 
@@ -140,9 +128,7 @@ Supports **GitHub.com personal and Business accounts** and **GitHub Enterprise (
 
 Copilot Pace uses an internal GitHub endpoint that may change. Browser-based VS Code is unsupported.
 
-Daily history, individual sessions and usage by model are unavailable.
-
-The panel omits model usage because the quota connection supplies no per-model breakdown. GitHub's separate [billing API](https://docs.github.com/en/rest/billing/usage) provides model-level credit quantities with billing access; its [AI usage reports](https://docs.github.com/en/billing/reference/billing-reports) include token counts by model. Neither is integrated here. Saving quota totals locally cannot recover model identities or token counts, and credits are not converted into token estimates.
+The quota endpoint provides no daily history, individual sessions or per-model breakdown. Pace displays credits, does not estimate token counts and does not integrate GitHub's separate billing reports.
 
 ### When a value is unavailable
 

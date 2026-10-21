@@ -28,7 +28,10 @@ export class QuotaService {
   }
   get current(): ServiceState { return this.state; }
   get nextAllowedAt(): number { return this.retryAt; }
-  private publish(state: ServiceState) { this.state = state; this.onChange(state); }
+  private publish(state: ServiceState) {
+    this.state = state;
+    this.onChange(state);
+  }
   reset() {
     this.generation++;
     this.abort?.abort();
@@ -51,7 +54,9 @@ export class QuotaService {
         const pending = this.inFlight.then(() => {
           if (this.pendingConnect === pending) this.pendingConnect = undefined;
           if (!this.disposed && generation === this.generation) return this.refresh(true);
-        }).finally(() => { if (this.pendingConnect === pending) this.pendingConnect = undefined; });
+        }).finally(() => {
+          if (this.pendingConnect === pending) this.pendingConnect = undefined;
+        });
         this.pendingConnect = pending;
       }
       return this.pendingConnect;
@@ -63,7 +68,10 @@ export class QuotaService {
     this.publish({ ...this.state, phase: 'loading', failure: undefined });
     this.inFlightInteractive = interactive;
     const operation = this.read(interactive, generation, abort.signal).finally(() => {
-      if (this.inFlight === operation) { this.inFlight = undefined; this.inFlightInteractive = false; }
+      if (this.inFlight === operation) {
+        this.inFlight = undefined;
+        this.inFlightInteractive = false;
+      }
     });
     this.inFlight = operation;
     return operation;
@@ -72,14 +80,25 @@ export class QuotaService {
     const active = () => !this.disposed && generation === this.generation && !signal.aborted;
     try {
       let session;
-      try { session = await this.deps.sessions.get(interactive, interactive && this.reauthenticate); }
-      catch (error) { throw error instanceof SafeError && ['configuration', 'configurationChanged'].includes(error.code) ? error : new SafeError('auth', 'GitHub authorization failed. Try connecting again.'); }
+      try {
+        session = await this.deps.sessions.get(interactive, interactive && this.reauthenticate);
+      } catch (error) {
+        if (error instanceof SafeError && ['configuration', 'configurationChanged'].includes(error.code)) throw error;
+        throw new SafeError('auth', 'GitHub authorization failed. Try connecting again.');
+      }
       if (!active()) return;
-      if (!session) { this.sessionId = undefined; this.publish({ phase: 'disconnected' }); return; }
+      if (!session) {
+        this.sessionId = undefined;
+        this.publish({ phase: 'disconnected' });
+        return;
+      }
       if (session.id !== this.sessionId || session.account.id !== this.state.account?.id) {
-        this.sessionId = session.id; this.reauthenticate = false;
+        this.sessionId = session.id;
+        this.reauthenticate = false;
         this.publish({ phase: 'loading', account: session.account });
-      } else { this.publish({ ...this.state, account: session.account }); }
+      } else {
+        this.publish({ ...this.state, account: session.account });
+      }
       const response = await this.deps.transport.request(session.accessToken, signal);
       if (!active()) return;
       const failure = responseError(response, this.wallClock.now().getTime());
@@ -88,7 +107,11 @@ export class QuotaService {
       this.failures = 0;
       this.retryAt = 0;
       this.reauthenticate = false;
-      this.publish({ phase: 'ready', snapshot, updatedAt: this.wallClock.now().getTime(), account: session.account });
+      this.publish({
+        phase: 'ready', snapshot,
+        updatedAt: this.wallClock.now().getTime(),
+        account: session.account,
+      });
     } catch (error) {
       if (!active()) return;
       const failure = error instanceof SafeError ? error : new SafeError('network', 'Could not refresh your usage.');
@@ -96,11 +119,20 @@ export class QuotaService {
       this.failures++;
       if (failure.retryAt) this.retryAt = failure.retryAt;
       else if (['server', 'network', 'timeout', 'invalidResponse'].includes(failure.code)) {
-        this.retryAt = this.wallClock.now().getTime() + Math.min(15 * 60_000, 30_000 * 2 ** Math.min(5, this.failures - 1));
+        const delay = Math.min(15 * 60_000, 30_000 * 2 ** Math.min(5, this.failures - 1));
+        this.retryAt = this.wallClock.now().getTime() + delay;
       }
       const discard = ['unauthorized', 'forbidden', 'auth', 'configuration', 'configurationChanged'].includes(failure.code);
-      this.publish({ phase: 'error', failure, account: this.state.account, snapshot: discard ? undefined : this.state.snapshot, updatedAt: discard ? undefined : this.state.updatedAt });
+      this.publish({
+        phase: 'error', failure,
+        account: this.state.account,
+        snapshot: discard ? undefined : this.state.snapshot,
+        updatedAt: discard ? undefined : this.state.updatedAt,
+      });
     }
   }
-  dispose() { this.disposed = true; this.reset(); }
+  dispose() {
+    this.disposed = true;
+    this.reset();
+  }
 }

@@ -1,30 +1,30 @@
 # Account switching and sign-out review
 
-Reviewed on October 20, 2026, against `develop` at `8049e2a` and the changes in this branch. This is a focused source review with synthetic regression coverage, not an independent security certification or a new real-account acceptance record.
+Reviewed on October 20, 2026. Base: `develop` at `8049e2a`. Scope: authentication, account switching, sign-out and credential routing, with synthetic regression tests.
 
 ## Findings and changes
 
-1. **Sign-in completion race (reproduced and fixed).** VS Code can emit a session event before an interactive `getSession` call has finished granting access and saving the selected account preference. Pace correctly invalidates the pending read, but its immediate silent refresh can find no session yet and leave the UI disconnected after successful login. After an invalidated interactive read settles, Pace now checks the current session silently. It never reuses the invalidated login result. Regression tests reproduce the original failure for both GitHub.com and Enterprise and verify that a late login after sign-out cannot restore access or quota.
-2. **Ambiguous Enterprise configuration (hardening).** Several configured Enterprise origins already blocked quota requests at the transport boundary, but Pace still requested a native authentication session first. Authentication now also requires exactly one valid origin, before any silent or interactive session request. No cross-host credential disclosure was reproduced.
+1. **Sign-in completion race.** A native session event can invalidate the interactive read before `getSession` finishes saving access and account preferences. The immediate silent refresh may then find no session, leaving Pace disconnected after login. The fix resolves the current session silently once the interactive call settles. Tests reproduce the original failure for both providers and check that a login invalidated by sign-out is not reused.
+2. **Ambiguous Enterprise configuration.** Multiple origins blocked HTTP quota requests but still allowed a native session request. Authentication now also requires exactly one valid origin. No cross-host credential disclosure was reproduced.
 
 ## Reviewed boundaries
 
 | Scenario | Behavior and evidence |
 | --- | --- |
-| GitHub.com personal / Business | Both use `github` with `read:user` and `api.github.com`. Native account selection belongs to Pace independently of Copilot. Account changes clear the previous quota, including when session IDs are reused. |
-| GitHub.com ↔ Enterprise | Replacing the service aborts the old request and invalidates late authentication/results. Tests use matching account IDs across providers and verify token-to-host pairing in both directions. |
-| Sign-out / access removal | A selected-provider session event clears account, quota and timestamp immediately, cancels pending usage, and refreshes silently. A late network response or interactive login result cannot repopulate the cleared state. Unrelated-provider events leave the active state unchanged. |
-| Other accounts remain signed in | VS Code may return another authorized session during silent resolution. Pace displays that account and clears the previous quota before reading its usage. Pace does not pin a signed-out account or sign accounts out globally. |
+| GitHub.com personal / Business | `github`, `read:user`, `api.github.com`. Account selection is independent of Copilot. Changing account clears quota even if the session ID is reused. |
+| GitHub.com ↔ Enterprise | Service replacement aborts the old request and rejects late results. Tests use matching account IDs and check credential destinations in both directions. |
+| Sign-out / access removal | Selected-provider events clear account, quota and timestamp, abort usage and refresh silently. Late results are discarded; other-provider events are ignored. |
+| Other accounts remain signed in | Silent resolution may return another authorized account. Pace displays its identity and clears the old quota before querying usage. |
 | Cancelled login / expired token | No fallback to the other provider. Authentication/authorization failures discard quota; a 401 requests renewed authorization only on an explicit connection action. |
-| Enterprise destination changes | Effective instance changes block further Enterprise authentication/requests until reload. Invalid, empty or multiple origins cannot route a quota request. Untrusted workspace instance settings are ignored. |
+| Enterprise destination changes | Instance changes block Enterprise authentication/requests until reload. Invalid, empty or multiple origins block authentication and HTTP. Untrusted workspace instance settings are ignored. |
 | Transport | Fixed HTTPS quota destination per connection, no redirects or host fallback, normal TLS verification and VS Code proxy/certificate integration, timeout, cancellation and response-size limit. |
-| Presentation / credentials | Account labels are escaped in Markdown and inserted as text in the nonce-protected webview. Explicit message/command allowlists remain. Session tokens are absent from service state, view models and hover output; no new credential storage, logs, telemetry or workspace reads were added. |
+| Presentation / credentials | Escaped Markdown, webview `textContent`, nonce CSP and explicit action allowlists. Tokens are absent from service state, view models and hover output. No credential storage, telemetry or workspace reads. |
 
 The [VS Code authentication API](https://code.visualstudio.com/api/references/vscode-api#authentication) delegates session selection and permissions to the editor. Its session-change event identifies the provider, without identifying the removed account; Pace therefore clears and re-resolves the selected provider rather than assuming which session changed.
 
 ## Validation
 
-Automated coverage is in `test/unit/connection-activation.test.ts`, `sessions.test.ts`, `service.test.ts`, `transport.test.ts` and `presentation.test.ts`. The activation harness runs the compiled extension against simulated native services; it does not sign in to real GitHub accounts. Actual VS Code host and installed-package checks are recorded separately in the pull request.
+Coverage: `test/unit/connection-activation.test.ts`, `sessions.test.ts`, `service.test.ts`, `transport.test.ts` and `presentation.test.ts`. The activation harness uses the compiled extension with simulated authentication and HTTP. The host and package suites below run in VS Code without real sign-in.
 
 Local Windows 11 validation with standalone Node 26.11.1 / npm 11.20.0 passed:
 
@@ -33,9 +33,9 @@ Local Windows 11 validation with standalone Node 26.11.1 / npm 11.20.0 passed:
 - `npm run test:package`: 8 installed-production-VSIX tests on VS Code 1.141.0 and package content inspection. The internal review document remains excluded from distribution.
 - `npm audit`: zero vulnerabilities; `git diff --check`, local documentation links and all four badge endpoints also passed.
 
-These results apply to the development working tree. The local package retains manifest version 1.2.1 for testing and is not a new release or a replacement for the published 1.2.1 artifact. Remote CI validates the PR commit separately; no version, tag or published asset is changed here.
+These results apply to the October 20 working tree. Its local 1.2.1 VSIX is a test build. CI results for the committed changes are linked in the PR; published 1.2.1 artifacts are unchanged.
 
-## Manual acceptance still required
+## Manual checks pending
 
 Use an identified candidate VSIX in an isolated authorized profile, without recording credentials, full responses or account identifiers:
 

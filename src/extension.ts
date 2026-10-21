@@ -57,7 +57,8 @@ class CopilotPace implements vscode.Disposable {
       vscode.authentication.onDidChangeSessions(event => {
         if (!this.disposed && event.provider.id === this.connection.provider && !this.demo) {
           this.sessionRevision++;
-          this.service.reset(); void this.refresh();
+          this.service.reset();
+          void this.refresh();
         }
       }),
     );
@@ -78,7 +79,10 @@ class CopilotPace implements vscode.Disposable {
     const supportsPlural = (Array.isArray(contributions) ? contributions : [contributions])
       .some(contribution => contribution?.properties && Object.hasOwn(contribution.properties, 'github-enterprise.uris'));
     const plural = enterprise.inspect<unknown>('uris');
-    const hasPlural = supportsPlural && plural && (plural.globalValue !== undefined || (trusted && (plural.workspaceValue !== undefined || plural.workspaceFolderValue !== undefined)));
+    const hasPlural = supportsPlural && plural && (
+      plural.globalValue !== undefined ||
+      (trusted && (plural.workspaceValue !== undefined || plural.workspaceFolderValue !== undefined))
+    );
     const instanceValue = (key: string) => trusted ? enterprise.get<unknown>(key) : enterprise.inspect<unknown>(key)?.globalValue;
     const copilot = vscode.workspace.getConfiguration('github.copilot');
     const connection = resolveConnection({
@@ -88,34 +92,46 @@ class CopilotPace implements vscode.Disposable {
       enterpriseUris: hasPlural ? instanceValue('uris') : undefined,
     });
     const enterpriseKey = JSON.stringify([connection.invalid, connection.origins]);
-    if (this.enterpriseConfigurationKey !== undefined && enterpriseKey !== this.enterpriseConfigurationKey) this.enterpriseRequiresReload = true;
+    if (this.enterpriseConfigurationKey !== undefined && enterpriseKey !== this.enterpriseConfigurationKey) {
+      this.enterpriseRequiresReload = true;
+    }
     this.enterpriseConfigurationKey = enterpriseKey;
-    // A provider may still expose its old instance while applying settings asynchronously.
-    // Stable sessions have no issuer metadata: do not pair that old token with a new host.
+    // The provider applies instance changes asynchronously. Stable sessions have no
+    // issuer metadata, so reload before pairing a token with a different host.
     this.connection = connection.provider === 'github-enterprise' && this.enterpriseRequiresReload
       ? Object.freeze({ ...connection, requiresReload: true, key: `${connection.key}:reload` }) : connection;
     const source = __DEV__ && this.developmentEnabled ? getDemoSource(vscode, config, this.clock) : undefined;
     const key = source?.key ?? this.connection.key;
     if (key !== this.sourceKey) {
       this.service?.dispose();
-      this.sourceKey = key; this.demo = source !== undefined; this.scenario = source?.label ?? '';
+      this.sourceKey = key;
+      this.demo = source !== undefined;
+      this.scenario = source?.label ?? '';
       this.service = new QuotaService({
         sessions: source?.sessions ?? new GitHubSessions(vscode.authentication, () => this.language, this.connection),
         transport: source?.transport ?? new GitHubTransport(vscode.version, undefined, undefined, this.connection),
         dataClock: this.clock,
       }, () => this.render());
       void this.refresh();
-    } else { this.render(); this.schedule(); }
+    } else {
+      this.render();
+      this.schedule();
+    }
   }
   private connect(): Promise<void> {
     if (this.disposed) return Promise.resolve();
     if (this.connecting) return this.connecting;
-    const operation = this.chooseAndConnect().finally(() => { if (this.connecting === operation) this.connecting = undefined; });
+    const operation = this.chooseAndConnect().finally(() => {
+      if (this.connecting === operation) this.connecting = undefined;
+    });
     this.connecting = operation;
     return operation;
   }
   private async chooseAndConnect() {
-    if (this.demo) { await this.refresh(); return; }
+    if (this.demo) {
+      await this.refresh();
+      return;
+    }
     const originalService = this.service;
     if (this.connection.enterpriseAvailable) {
       const text = getStrings(this.language);
@@ -135,7 +151,7 @@ class CopilotPace implements vscode.Disposable {
   }
   private async updateConfig(key: string, value: string) {
     await vscode.workspace.getConfiguration('copilotPace').update(key, value, vscode.ConfigurationTarget.Global);
-    // Also apply synchronously for command callers; a subsequent config event is idempotent.
+    // Apply before the command resolves; the later configuration event is idempotent.
     if (!this.disposed) this.configure();
   }
   async refresh(interactive = false) {
@@ -143,9 +159,8 @@ class CopilotPace implements vscode.Disposable {
     const sessionRevision = this.sessionRevision;
     await service.refresh(interactive);
     if (!this.disposed && this.service === service) {
-      // A native sign-in event can invalidate this read before VS Code saves access
-      // and the account preference. Re-read silently after login has settled; never
-      // reuse its invalidated session, which may also have been signed out meanwhile.
+      // Session events can arrive before getSession saves access and preferences.
+      // Resolve the current session again; the returned login may be invalidated.
       if (interactive && sessionRevision !== this.sessionRevision) await service.refresh();
       if (!this.disposed && this.service === service) this.schedule();
     }
@@ -176,7 +191,11 @@ class CopilotPace implements vscode.Disposable {
     if (this.panel) void this.panel.webview.postMessage({ type: 'state', model });
   }
   private showDetails() {
-    if (this.panel) { this.panel.reveal(); this.render(); return; }
+    if (this.panel) {
+      this.panel.reveal();
+      this.render();
+      return;
+    }
     const iconPath = vscode.Uri.joinPath(this.imageDirectory, 'copilot-pace-ui.svg');
     const darkIconPath = vscode.Uri.joinPath(this.imageDirectory, 'copilot-pace-ui-dark.svg');
     const panel = vscode.window.createWebviewPanel('copilotPace.details', 'Copilot Pace', vscode.ViewColumn.Beside, {
@@ -188,16 +207,29 @@ class CopilotPace implements vscode.Disposable {
     const webviewIcon = panel.webview.asWebviewUri(iconPath).toString();
     panel.webview.html = renderHtml(this.model, randomBytes(18).toString('hex'), webviewIcon, panel.webview.cspSource);
     const receiver = panel.webview.onDidReceiveMessage((message: unknown) => { void this.receiveMessage(message); });
-    panel.onDidDispose(() => { receiver.dispose(); if (this.panel === panel) { this.panel = undefined; this.panelReady = false; } });
+    panel.onDidDispose(() => {
+      receiver.dispose();
+      if (this.panel === panel) {
+        this.panel = undefined;
+        this.panelReady = false;
+      }
+    });
   }
   async receiveMessage(message: unknown) {
     if (this.disposed || !message || typeof message !== 'object') return;
     const data = message as { action?: unknown; value?: unknown };
-    if (data.action === 'ready') { this.panelReady = true; this.render(); }
-    else if (data.action === 'refresh') await this.refresh();
-    else if (data.action === 'connect') await this.connect();
-    else if (data.action === 'dayMode' && (data.value === 'all' || data.value === 'weekdays')) await this.updateConfig('dayMode', data.value);
-    else if (data.action === 'language' && (data.value === 'en' || data.value === 'es-ES')) await this.updateConfig('language', data.value);
+    if (data.action === 'ready') {
+      this.panelReady = true;
+      this.render();
+    } else if (data.action === 'refresh') {
+      await this.refresh();
+    } else if (data.action === 'connect') {
+      await this.connect();
+    } else if (data.action === 'dayMode' && (data.value === 'all' || data.value === 'weekdays')) {
+      await this.updateConfig('dayMode', data.value);
+    } else if (data.action === 'language' && (data.value === 'en' || data.value === 'es-ES')) {
+      await this.updateConfig('language', data.value);
+    }
   }
   get testApi(): TestApi {
     return {
@@ -211,7 +243,8 @@ class CopilotPace implements vscode.Disposable {
     if (this.disposed) return;
     this.disposed = true;
     if (this.timer) clearTimeout(this.timer);
-    this.service.dispose(); this.panel?.dispose();
+    this.service.dispose();
+    this.panel?.dispose();
     for (const subscription of this.subscriptions) subscription.dispose();
   }
 }
