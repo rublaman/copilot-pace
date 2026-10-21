@@ -8,6 +8,8 @@ Versions 0.1.x were local development builds; 0.2.x, 1.1.0 and 1.2.0 were pilots
 - Add a local observed-usage chart with account/server separation and 90-day retention.
 - Add compact, segmented-bar and dot status indicators, selectable in the panel and settings.
 - Add gradient-area, line and column chart styles with saved selection in Customization.
+- Add a Daily / Cumulative chart switch and optional daily billing retrieval with automatic fallback to partial local observations.
+- Color usage charts green within budget pace and red above it, including line and area crossings.
 - Fix successful sign-in appearing disconnected after an early VS Code session-change event.
 - Reject Enterprise authentication when multiple instances are configured.
 - Add README badges and simplify code and documentation for account connections.

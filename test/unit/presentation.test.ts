@@ -83,9 +83,11 @@ describe('Forecast, history and appearance presentation', () => {
     const elements = panelElements(model);
     assert.equal(elements.get('historyPlot')?.hidden, false);
     const shapes = elements.get('historyPoints')!.children;
-    assert.equal(shapes.filter(shape => shape.attributes.get('class') === 'chart-line').length, 1);
-    assert.equal(shapes.filter(shape => shape.attributes.get('class') === 'chart-area').length, 1);
-    assert.equal(shapes.find(shape => shape.attributes.get('class') === 'chart-dot')?.children[0]?.textContent, model.history[0]?.label);
+    const lines = shapes.filter(shape => shape.attributes.get('class')?.startsWith('chart-line'));
+    assert.equal(lines.length, 2);
+    assert.equal(lines[0]!.attributes.get('d'), lines[1]!.attributes.get('d'));
+    assert.equal(shapes.filter(shape => shape.attributes.get('class')?.startsWith('chart-area')).length, 2);
+    assert.equal(shapes.find(shape => shape.attributes.get('class')?.startsWith('chart-dot'))?.children[0]?.textContent, model.history[0]?.label);
     assert.ok(elements.get('historyBudget')?.attributes.get('d')?.startsWith('M32 168L'));
     const empty = createViewModel({ phase: 'disconnected' }, demoClock, 'all', false, '', 0);
     const updated = panelElements(model, [empty]);
@@ -122,8 +124,8 @@ describe('Forecast, history and appearance presentation', () => {
     const line = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'en', { history, chartStyle: 'line' });
     const columns = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'es-ES', { history, chartStyle: 'columns' });
     const lineShapes = panelElements(area, [line]).get('historyPoints')!.children;
-    assert.ok(lineShapes.some(shape => shape.attributes.get('class') === 'chart-line'));
-    assert.ok(!lineShapes.some(shape => shape.attributes.get('class') === 'chart-area'));
+    assert.ok(lineShapes.some(shape => shape.attributes.get('class')?.startsWith('chart-line')));
+    assert.ok(!lineShapes.some(shape => shape.attributes.get('class')?.startsWith('chart-area')));
     assert.deepEqual(line.history, area.history);
     assert.equal(columns.history.length, 3);
     assert.equal(columns.historyColumns.length, 2);
@@ -131,12 +133,104 @@ describe('Forecast, history and appearance presentation', () => {
     const messages: unknown[] = [];
     const elements = panelElements(line, [columns], messages);
     assert.equal(elements.get('historyPoints')?.children.length, 2);
-    assert.ok(elements.get('historyPoints')?.children.every(shape => shape.attributes.get('class') === 'chart-column'));
+    assert.ok(elements.get('historyPoints')?.children.every(shape => shape.attributes.get('class')?.startsWith('chart-column')));
     assert.equal(elements.get('historyColumnsNote')?.hidden, false);
     assert.equal(elements.get('chartColumns')?.textContent, 'Columnas');
     assert.equal(elements.get('chartStyle')?.value, 'columns');
     elements.get('chartStyle')?.change('area');
     assert.equal(JSON.stringify(messages.at(-1)), JSON.stringify({ action: 'chartStyle', value: 'area' }));
+  });
+  it('renders reported daily credits with partial local fallback and keeps unknown days empty', () => {
+    const start = Date.parse('2026-10-01T00:00Z');
+    const end = Date.parse('2026-11-01T00:00Z');
+    const at = Date.parse('2026-10-12T10:00Z');
+    const history = [
+      { at, used: 100, total: 10000, start, end },
+      { at: at + 3600000, used: 150, total: 10000, start, end },
+      { at: at + 86400000, used: 300, total: 10000, start, end },
+      { at: at + 90000000, used: 325, total: 10000, start, end },
+    ];
+    const dailyUsage = [{ day: Date.parse('2026-10-12T00:00Z'), used: 200, partial: false }];
+    for (const chartStyle of ['area', 'line', 'columns'] as const) {
+      const model = createViewModel({ phase: 'ready', snapshot, dailyUsage }, demoClock, 'all', false, '', 0, 'es-ES', { history, chartMetric: 'daily', chartStyle });
+      assert.equal(model.history.length, 2);
+      assert.match(model.history[0]!.label, /200 créditos$/);
+      assert.match(model.history[1]!.label, /25 créditos · Parcial$/);
+      assert.equal(model.historyLatest, '25 créditos');
+      const messages: unknown[] = [];
+      const elements = panelElements(model, [], messages);
+      assert.equal(elements.get('metricDaily')!.attributes.get('aria-pressed'), 'true');
+      assert.equal(elements.get('historyColumnsNote')!.hidden, true);
+      assert.equal(elements.get('historyMetricLabel')!.textContent, 'Créditos diarios');
+      assert.match(elements.get('historyChart')!.attributes.get('aria-label')!, /por día UTC/);
+      elements.get('metricCumulative')!.click();
+      assert.equal(JSON.stringify(messages.at(-1)), JSON.stringify({ action: 'chartMetric', value: 'cumulative' }));
+    }
+  });
+  for (const reported of [false, true]) {
+    for (const chartStyle of ['area', 'line', 'columns'] as const) {
+      it(`colors ${reported ? 'reported' : 'local'} ${chartStyle} values green within pace and red over pace`, () => {
+        const start = Date.parse('2026-10-01T00:00Z');
+        const end = Date.parse('2026-11-01T00:00Z');
+        const day = Date.parse('2026-10-12T00:00Z');
+        const history = [
+          { at: day + 3600000, used: 5000, total: 10000, start, end },
+          { at: day + 7200000, used: 5100, total: 10000, start, end },
+          { at: day + 86400000 + 3600000, used: 5200, total: 10000, start, end },
+          { at: day + 86400000 + 7200000, used: 6000, total: 10000, start, end },
+        ];
+        const dailyUsage = reported ? [{ day, used: 100, partial: false }, { day: day + 86400000, used: 800, partial: false }] : undefined;
+        const model = createViewModel({ phase: 'ready', snapshot, dailyUsage }, demoClock, 'all', false, '', 0, 'en', { history, chartMetric: 'daily', chartStyle });
+        assert.deepEqual(model.history.map(point => point.tone), ['good', 'over']);
+        assert.equal(model.historyLatestTone, 'over');
+        assert.ok(model.history[0]!.label.includes('Within budget pace'));
+        assert.ok(model.history[1]!.label.includes('Over budget pace'));
+        assert.equal(model.history.every(point => point.partial), !reported);
+        const elements = panelElements(model);
+        const shapes = elements.get('historyPoints')!.children;
+        assert.equal(elements.get('historyWithinLabel')!.hidden, false);
+        assert.equal(elements.get('historyOverLabel')!.hidden, false);
+        assert.equal(elements.get('historyObservedLabel')!.hidden, true);
+        assert.equal(elements.get('historyLatest')!.attributes.get('data-chart-tone'), 'over');
+        if (chartStyle === 'columns') {
+          assert.match(shapes[0]!.attributes.get('class')!, /chart-column good/);
+          assert.match(shapes[1]!.attributes.get('class')!, /chart-column over/);
+        } else {
+          const within = shapes.find(shape => shape.attributes.get('class') === 'chart-line good')!;
+          const over = shapes.find(shape => shape.attributes.get('class') === 'chart-line over')!;
+          assert.equal(within.attributes.get('clip-path'), 'url(#historyWithinClip)');
+          assert.equal(over.attributes.get('clip-path'), 'url(#historyOverClip)');
+          assert.equal(within.attributes.get('d'), over.attributes.get('d'));
+          assert.ok(elements.get('historyWithinClipShape')!.attributes.get('d')!.endsWith('L552 192L32 192Z'));
+          assert.ok(elements.get('historyOverClipShape')!.attributes.get('d')!.endsWith('L552 0L32 0Z'));
+        }
+      });
+    }
+  }
+  it('compares cumulative usage with the budget at each observation rather than the full monthly limit', () => {
+    const start = Date.parse('2026-10-01T00:00Z');
+    const end = Date.parse('2026-11-01T00:00Z');
+    const at = Date.parse('2026-10-12T00:00Z');
+    const expected = 10000 * 11 / 31;
+    const history = [
+      { at, used: expected, total: 10000, start, end },
+      { at: at + 3600000, used: expected + 1000, total: 10000, start, end },
+    ];
+    const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'en', { history });
+    assert.deepEqual(model.history.map(point => point.tone), ['good', 'over']);
+  });
+  it('uses a zero weekend budget in weekday mode and stays neutral without a known budget', () => {
+    const day = Date.parse('2026-10-03T00:00Z');
+    const dailyUsage = [{ day, used: 0, partial: false }, { day: day + 86400000, used: 1, partial: false }];
+    const weekend = createViewModel({ phase: 'ready', snapshot, dailyUsage }, demoClock, 'weekdays', false, '', 0, 'en', { chartMetric: 'daily' });
+    assert.deepEqual(weekend.history.map(point => point.tone), ['good', 'over']);
+    const unknown = createViewModel({ phase: 'ready', snapshot: { kind: 'usageOnly', used: 6000, asOf: snapshot.asOf, cycle: snapshot.cycle }, dailyUsage }, demoClock, 'all', false, '', 0, 'en', { chartMetric: 'daily' });
+    assert.ok(unknown.history.every(point => point.tone === 'neutral'));
+    const elements = panelElements(unknown);
+    assert.equal(elements.get('historyWithinLabel')!.hidden, true);
+    assert.equal(elements.get('historyOverLabel')!.hidden, true);
+    assert.equal(elements.get('historyObservedLabel')!.hidden, false);
+    assert.ok(elements.get('historyPoints')!.children.every(shape => !shape.attributes.has('clip-path')));
   });
 });
 

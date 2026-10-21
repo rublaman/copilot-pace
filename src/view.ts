@@ -2,7 +2,8 @@ import { Buffer } from 'node:buffer';
 import { calculateForecast, calculatePace, equivalentDays, type Clock, type DayMode } from './domain';
 import { statusText, type StatusStyle } from './status';
 import type { Observation } from './history';
-import type { ChartStyle } from './chart';
+import { chartTone, type ChartMetric, type ChartStyle, type ChartTone } from './chart';
+import { mergeDailyUsage, observedDailyUsage, UTC_DAY } from './daily';
 import { getStrings, type Language, type Strings } from './i18n';
 import { localizeDemoScenario } from './development';
 import type { ServiceState } from './service';
@@ -40,15 +41,17 @@ export interface ViewModel {
   accountLabel: string; connectLabel: string;
   statusStyle: StatusStyle; statusDescription: string;
   depletion: string; excess: string;
-  history: Array<{ x: number; y: number; connect: boolean; label: string }>;
+  history: Array<{ x: number; y: number; connect: boolean; label: string; partial?: boolean; tone: ChartTone }>;
   historyMaximum: string; historyStart: string; historyEnd: string; historyBudget: Array<{ x: number; y: number }>;
   historyMessage: string;
-  chartStyle: ChartStyle; chartStyleName: string; historyLatest: string;
-  historyColumns: Array<{ x: number; y: number; connect: boolean; label: string }>;
+  chartStyle: ChartStyle; chartStyleName: string; historyLatest: string; chartMetric: ChartMetric;
+  historyMetricLabel: string; historyLatestDate: string; historyAria: string;
+  historyLatestTone: ChartTone;
+  historyColumns: ViewModel['history'];
 }
 export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayMode, demo: boolean, scenario: string, retryAt: number, language: Language = 'en',
-  options: { statusStyle?: StatusStyle; chartStyle?: ChartStyle; history?: readonly Observation[]; historyFailed?: boolean } = {}): ViewModel {
-  const { statusStyle: style = 'text', chartStyle = 'area', history = [], historyFailed = false } = options;
+  options: { statusStyle?: StatusStyle; chartStyle?: ChartStyle; chartMetric?: ChartMetric; history?: readonly Observation[]; historyFailed?: boolean } = {}): ViewModel {
+  const { statusStyle: style = 'text', chartStyle = 'area', chartMetric = 'cumulative', history = [], historyFailed = false } = options;
   const text = getStrings(language);
   const formatter = formatters[language];
   const amount = (value: number) => formatter.number.format(value);
@@ -105,32 +108,71 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
   }
   if (state.phase === 'ready' && validCycle && snapshot?.kind === 'bounded' && snapshot.used >= snapshot.total) depletion = text.budgetExhausted;
   const observations = validCycle ? history.filter(item => item.start === cycle.start && item.end === cycle.end && item.at <= now.getTime()) : [];
+  const daily = validCycle && !demo ? mergeDailyUsage(observedDailyUsage(observations, cycle),
+    (state.dailyUsage ?? []).filter(item => item.day >= cycle.start && item.day < cycle.end && item.day <= now.getTime())) : [];
+  const dailyMode = chartMetric === 'daily';
+  const baseRate = snapshot?.kind === 'bounded' && totalDays > 0 ? snapshot.total / totalDays : 0;
+  const knownBudget = snapshot?.kind === 'bounded' && !!validCycle && totalDays > 0;
+  const pointLabel = (at: number, used: number, pointTone: ChartTone, partial = false) => {
+    const status = { good: text.historyWithinLabel, over: text.historyOverLabel, neutral: '' }[pointTone];
+    return `${date(at)}${status ? ` · ${status}` : ''} · ${amount(used)} ${text.credits}${partial ? ` · ${text.historyPartial}` : ''}`;
+  };
   let historyMessage = text.historyNote;
+  if (dailyMode) historyMessage = daily.length ? text.historyDailyNote : text.historyDailyEmpty;
   if (demo) historyMessage = text.historyDemo;
   else if (historyFailed) historyMessage = text.historyError;
-  else if (observations.length === 0) historyMessage = text.historyEmpty;
-  const maximum = Math.max(1, snapshot?.kind === 'bounded' ? snapshot.total : 0, ...observations.map(item => item.used));
-  const points = observations.map((item, index) => {
+  else if (!dailyMode && observations.length === 0) historyMessage = text.historyEmpty;
+  const maximum = dailyMode ? Math.max(1, baseRate, ...daily.map(item => item.used))
+    : Math.max(1, snapshot?.kind === 'bounded' ? snapshot.total : 0, ...observations.map(item => item.used));
+  const points: ViewModel['history'] = dailyMode ? daily.map((item, index) => {
+    const allowance = knownBudget ? baseRate * equivalentDays(item.day, item.day + UTC_DAY, dayMode) : undefined;
+    const pointTone = chartTone(item.used, allowance);
+    return {
+      x: 32 + (item.day + UTC_DAY / 2 - cycle!.start) / (cycle!.end - cycle!.start) * 520,
+      y: 168 - item.used / maximum * 144,
+      connect: !!daily[index - 1] && item.day - daily[index - 1]!.day === UTC_DAY,
+      label: pointLabel(item.day, item.used, pointTone, item.partial),
+      partial: item.partial, tone: pointTone,
+    };
+  }) : observations.map((item, index) => {
     const previous = observations[index - 1];
+    const allowance = knownBudget ? baseRate * equivalentDays(item.start, item.at, dayMode) : undefined;
+    const pointTone = chartTone(item.used, allowance);
     return {
       x: 32 + (item.at - item.start) / (item.end - item.start) * 520,
       y: 168 - item.used / maximum * 144,
       connect: !!previous && item.at - previous.at <= 2 * 60 * 60_000 && item.used >= previous.used && item.total === previous.total,
-      label: `${date(item.at)} · ${amount(item.used)} ${text.credits}`,
+      label: pointLabel(item.at, item.used, pointTone), tone: pointTone,
     };
   });
   // Columns are cumulative snapshots, never inferred daily spending.
   const dayIndices = new Map<string, number>();
   observations.forEach((item, index) => dayIndices.set(new Date(item.at).toISOString().slice(0, 10), index));
-  const columns = [...dayIndices.values()].map(index => points[index]!);
+  const columns = dailyMode ? points : [...dayIndices.values()].map(index => points[index]!);
   const budget: Array<{ x: number; y: number }> = [];
   if (snapshot?.kind === 'bounded' && validCycle && totalDays > 0) {
     for (let cursor = cycle.start; cursor <= cycle.end; cursor += 86_400_000) {
-      budget.push({
-        x: 32 + (cursor - cycle.start) / (cycle.end - cycle.start) * 520,
-        y: 168 - snapshot.total / maximum * equivalentDays(cycle.start, cursor, dayMode) / totalDays * 144,
-      });
+      if (dailyMode && cursor < cycle.end) {
+        const allowance = baseRate * equivalentDays(cursor, cursor + UTC_DAY, dayMode);
+        const y = 168 - allowance / maximum * 144;
+        budget.push({ x: 32 + (cursor - cycle.start) / (cycle.end - cycle.start) * 520, y },
+          { x: 32 + (cursor + UTC_DAY - cycle.start) / (cycle.end - cycle.start) * 520, y });
+      } else if (!dailyMode) {
+        budget.push({
+          x: 32 + (cursor - cycle.start) / (cycle.end - cycle.start) * 520,
+          y: 168 - snapshot.total / maximum * equivalentDays(cycle.start, cursor, dayMode) / totalDays * 144,
+        });
+      }
     }
+  }
+  let historyLatest = '—';
+  let historyLatestDate = '';
+  if (dailyMode && daily.length) {
+    const latest = daily[daily.length - 1]!;
+    historyLatest = `${amount(latest.used)} ${text.credits}`;
+    historyLatestDate = `${date(latest.day)}${latest.partial ? ` · ${text.historyPartial}` : ''}`;
+  } else if (!dailyMode && observations.length) {
+    historyLatest = `${amount(observations[observations.length - 1]!.used)} ${text.credits}`;
   }
   return {
     language, text,
@@ -140,8 +182,11 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
     historyStart: validCycle ? date(cycle.start) : '', historyEnd: validCycle ? date(cycle.end) : '',
     historyBudget: budget,
     historyMessage,
-    chartStyle, chartStyleName: { area: text.chartArea, line: text.chartLine, columns: text.chartColumns }[chartStyle],
-    historyLatest: observations.length ? `${amount(observations[observations.length - 1]!.used)} ${text.credits}` : '—',
+    chartStyle, chartMetric, chartStyleName: { area: text.chartArea, line: text.chartLine, columns: text.chartColumns }[chartStyle],
+    historyMetricLabel: dailyMode ? text.historyDailyLabel : text.historyMetricLabel,
+    historyAria: dailyMode ? text.historyDailyAria : text.historyAria,
+    historyLatestDate, historyLatest,
+    historyLatestTone: points[points.length - 1]?.tone ?? 'neutral',
     historyColumns: columns,
     summary, tone, message, demo, scenario: __DEV__ ? localizeDemoScenario(scenario, language) : scenario, forecastNote,
     used: snapshot && snapshot.kind !== 'unavailable' ? `${amount(snapshot.used)} ${text.credits}` : '—',

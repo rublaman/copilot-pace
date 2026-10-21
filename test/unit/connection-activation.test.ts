@@ -24,12 +24,14 @@ function harness(initial: Record<string, unknown> = {}, options: {
   pendingNetwork?: boolean;
   pluralSupported?: boolean;
   storageDirectory?: string;
+  apiResponse?: (url: string) => { status: number; body: unknown };
 } = {}) {
   const settings = { ...initial };
   const configurationListeners: Array<(event: vscode.ConfigurationChangeEvent) => void> = [];
   const sessionListeners: Array<(event: { provider: { id: string } }) => void> = [];
   const commands = new Map<string, () => Promise<void>>();
   const requests: Array<{ url: string; token: string; signal: AbortSignal }> = [];
+  const allRequests: typeof requests = [];
   const responses: Array<() => void> = [];
   const authCalls: Array<{ provider: string; options: vscode.AuthenticationGetSessionOptions; scopes: readonly string[] }> = [];
   const pickedChoices: string[][] = [];
@@ -103,7 +105,10 @@ function harness(initial: Record<string, unknown> = {}, options: {
   };
   const http = {
     request: (url: string, requestOptions: { headers: { Authorization: string }; signal: AbortSignal }, callback: (response: EventEmitter) => void) => {
-      requests.push({ url, token: requestOptions.headers.Authorization, signal: requestOptions.signal });
+      const quotaRequest = url.endsWith('/copilot_internal/user');
+      const captured = { url, token: requestOptions.headers.Authorization, signal: requestOptions.signal };
+      allRequests.push(captured);
+      if (quotaRequest) requests.push(captured);
       const request = new EventEmitter() as EventEmitter & { end(): void; destroy(error: Error): void };
       request.destroy = error => {
         request.emit('error', error);
@@ -111,14 +116,16 @@ function harness(initial: Record<string, unknown> = {}, options: {
       };
       requestOptions.signal.addEventListener('abort', () => request.destroy(new Error('Aborted')), { once: true });
       const respond = () => {
-        const response = Object.assign(new EventEmitter(), { statusCode: 200, headers: {} });
+        const result = quotaRequest ? { status: 200, body: boundedFixture(100, 25, new Date()) }
+          : options.apiResponse?.(url) ?? { status: 403, body: undefined };
+        const response = Object.assign(new EventEmitter(), { statusCode: result.status, headers: {} });
         callback(response);
-        response.emit('data', Buffer.from(JSON.stringify(boundedFixture(100, 25, new Date()))));
+        if (result.body !== undefined) response.emit('data', Buffer.from(JSON.stringify(result.body)));
         response.emit('end');
         request.emit('close');
       };
-      responses.push(respond);
-      request.end = () => queueMicrotask(() => { if (!options.pendingNetwork) respond(); });
+      if (quotaRequest) responses.push(respond);
+      request.end = () => queueMicrotask(() => { if (!quotaRequest || !options.pendingNetwork) respond(); });
       return request;
     },
   };
@@ -130,11 +137,11 @@ function harness(initial: Record<string, unknown> = {}, options: {
   runInNewContext(readFileSync('out/development/dist/extension.js', 'utf8'), {
     module, exports: module.exports,
     require: (id: string) => id === 'vscode' ? host : id === 'node:https' ? http : loadNodeModule(id),
-    Date, Intl, URL, Buffer, AbortController, setTimeout, clearTimeout,
+    Date, Intl, URL, URLSearchParams, Buffer, AbortController, AbortSignal, setTimeout, clearTimeout,
   });
   const api = module.exports.activate(context as unknown as vscode.ExtensionContext) as TestApi;
   return {
-    api, authCalls, requests, settings, pickedChoices,
+    api, authCalls, requests, allRequests, settings, pickedChoices,
     choose: (provider: string | undefined) => { choice = provider; },
     connect: () => commands.get('copilotPace.connect')!(),
     completeRequest: (index: number) => responses[index]!(),
@@ -148,6 +155,32 @@ function harness(initial: Record<string, unknown> = {}, options: {
 }
 
 describe('Connection integration with native VS Code services', () => {
+  for (const enterprise of [false, true]) {
+    it(`retrieves daily reports silently on the matched ${enterprise ? 'Enterprise' : 'GitHub.com'} API host`, async () => {
+      const now = new Date();
+      const settings = enterprise ? { 'copilotPace.authProvider': 'github-enterprise', 'github-enterprise.uri': 'https://corp.ghe.com' } : {};
+      const host = harness(settings, { apiResponse: raw => {
+        const url = new URL(raw);
+        if (url.pathname === '/user') return { status: 200, body: { login: 'octocat', id: 'same-account-id' } };
+        if (url.pathname.startsWith('/users/octocat/settings/billing/ai_credit/usage')) return { status: 200, body: {
+          user: 'octocat', timePeriod: { year: now.getUTCFullYear(), month: now.getUTCMonth() + 1,
+            ...(url.searchParams.has('day') ? { day: Number(url.searchParams.get('day')) } : {}) },
+          usageItems: [{ product: 'Copilot', unitType: 'credits', grossQuantity: 5 }],
+        } };
+        return { status: 403, body: undefined };
+      } });
+      try {
+        for (let attempt = 0; attempt < 10 && !host.api.getState().dailyUsage?.length; attempt++) await settle();
+        assert.ok(host.api.getState().dailyUsage!.length > 0);
+        assert.equal(host.api.getState().phase, 'ready');
+        assert.equal(host.authCalls.length, 1);
+        assert.deepEqual([...host.authCalls[0]!.scopes], ['read:user']);
+        assert.equal(host.authCalls[0]!.options.silent, true);
+        assert.ok(host.allRequests.every(request => new URL(request.url).origin === (enterprise ? 'https://api.corp.ghe.com' : 'https://api.github.com')));
+        assert.ok(host.allRequests.every(request => request.token === `Bearer ${enterprise ? 'github-enterprise' : 'github'}-synthetic`));
+      } finally { host.dispose(); }
+    });
+  }
   it('persists accepted account observations and restores them across extension activations', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'copilot-pace-activation-history-'));
     const key = historyIdentity('github', 'https://github.com', 'same-account-id');

@@ -128,6 +128,14 @@
           "scope": "application",
           "description": "Appearance of the status bar indicator. Colors continue to follow projected pace; failures remain visible in every style."
         },
+        "copilotPace.chartMetric": {
+          "type": "string",
+          "enum": ["cumulative", "daily"],
+          "enumDescriptions": ["Cumulative credits in the current cycle", "Credits consumed per UTC day; observed intervals can be partial"],
+          "default": "cumulative",
+          "scope": "application",
+          "description": "Usage metric shown in the history chart. Daily usage is retrieved automatically when available."
+        },
         "copilotPace.chartStyle": {
           "type": "string",
           "enum": [

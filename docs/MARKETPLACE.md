@@ -16,7 +16,7 @@ Copilot Pace is a VS Code extension that displays GitHub Copilot credit usage an
 - **Status bar:** percentage and pace, compact icon, segmented bar or dots, with colors based on projected pace.
 - **Hover:** selected account, remaining credits, daily allowance, projection and last update.
 - **Detail panel:** usage and cycle progress, daily average and allowance, estimated exhaustion, projected excess, renewal date and account controls.
-- **Local history:** a chart of observed cumulative credits against the cycle's budget pace, separated by account and server.
+- **Usage history:** cumulative and daily credit charts against the budget pace, separated by account and server.
 - **Calendar:** Every day or Mon–Fri, without a public holiday calendar.
 - **Language:** English by default; Spanish (Spain) is available in the detail panel.
 - **Refresh:** every 15 minutes by default, or manually from the panel or Command Palette.
@@ -85,7 +85,9 @@ Use **Spanish** in the **Customization** section below the chart to switch to Sp
 
 Choose **Status bar appearance** in the same section to switch between **Percentage and pace**, **Compact**, **Segmented bar** and **Dots**. These change the indicator you hover over, while its hover retains the usage details. Colors continue to follow projected pace. Errors and pending estimates remain visible in every style.
 
-**Usage chart** selects **Gradient area**, **Line** or **Columns**. All three show observed cumulative credits, with a budget-pace reference, a legend and observation details. Columns use the last observed total in each UTC day; they do not represent daily spending. The selection is saved independently of the status bar style.
+**Usage chart** selects **Gradient area**, **Line** or **Columns**. Use **Cumulative / Daily** above the chart to compare cycle totals or credits consumed per UTC day. In cumulative mode, columns show the last observed account total per day. In daily mode, columns show that day's consumption. The metric and style are saved independently of the status bar appearance.
+
+Green marks values within the budget pace; red marks values above it. Daily charts compare each day with its calendar-adjusted daily budget. Cumulative charts compare usage with the expected budget at that point in the cycle. Lines and area fills change color where they cross the dashed reference; columns use the color of their total. Without a known budget, the chart stays neutral. Partial values remain partial regardless of their color.
 
 ## How the estimate works
 
@@ -102,15 +104,19 @@ All amounts represent **credits**. The budget and used percentage come from GitH
 
 Calculations use **UTC**, include partial days and require a known budget and a recognized monthly cycle. **Mon–Fri** excludes Saturdays and Sundays, without a public holiday calendar. Before one eligible day has elapsed, the extension shows **Calculating pace**.
 
-**Daily allowance** in the hover is the panel's **Available per day**: remaining credits divided by eligible days left. The source provides monthly totals, so Pace cannot show today's consumption.
+**Daily allowance** in the hover is the panel's **Available per day**: remaining credits divided by eligible days left. It is an allowance, not today's consumption; use the **Daily** history chart for consumed credits.
 
 The exhaustion estimate uses the cycle average at the last successful observation. It shows **Not before renewal at this pace** when the budget is expected to last, and **Budget already exhausted** when no credits remain. Exhaustion and excess estimates are hidden after a failed refresh. Projected excess is a credit shortfall, not a bill or permission to spend more.
 
-### Observed usage history
+### Usage history
 
-Pace saves successful quota observations in its local extension storage and displays the current account's current cycle. The chart shows cumulative credits, with a dashed budget-pace line that follows the selected calendar. Points include their observation time and credit amount. Gaps longer than two hours, downward corrections and budget changes are not connected.
+Pace saves successful quota observations in local extension storage and displays the current account's current cycle. **Cumulative** shows recorded account totals. Gaps longer than two hours, downward corrections and budget changes are not connected. The dashed budget line follows the selected calendar.
 
-History starts when Pace observes usage; it cannot reconstruct earlier days or attribute consumption to models or projects. An observation can reflect use from other devices because it comes from the account total. Daily journals are separated by authentication provider, server and account, and expired journals are removed after 90 days when history is accessed. Demo data is never saved. Storage errors are shown in the panel and do not prevent quota refreshes.
+**Daily** automatically tries GitHub's AI-credit billing API for personal, organization-billed and enterprise-billed accounts using the current session. Billing permissions or company policies can prevent access. Pace then uses differences between nearby observations within the same UTC day, without another login or a data-source setting. Reported days take precedence over local observations; local intervals and the ongoing day are marked **Partial**. Missing days stay empty, and differences across midnight, offline gaps, budget changes or corrections are not assigned to a day. Billing reports can arrive late.
+
+Billing queries are limited to the current cycle and cached in memory. Ambiguous billing accounts and unsupported reports use the observed fallback. The current session is not guaranteed to have billing access, and Pace does not request broader permissions or a separate token. See the [personal and organization API requirements](https://docs.github.com/en/rest/billing/usage) and [enterprise requirements](https://docs.github.com/en/enterprise-cloud@latest/rest/billing/usage).
+
+Account observations can reflect usage from other devices. Daily journals are separated by authentication provider, server and account, and expired journals are removed after 90 days when history is accessed. Demo data is never saved or sent to billing. Storage errors do not prevent quota refreshes. Neither chart attributes consumption to models or projects.
 
 ## Settings
 
@@ -123,6 +129,7 @@ Search for **Copilot Pace** in VS Code Settings, or edit these application-level
 | `copilotPace.dayMode` | `"all"` | `"all"` for every day; `"weekdays"` for Monday–Friday |
 | `copilotPace.statusStyle` | `"text"` | `"text"`, `"compact"`, `"bar"` or `"dots"` |
 | `copilotPace.chartStyle` | `"area"` | `"area"`, `"line"` or `"columns"` |
+| `copilotPace.chartMetric` | `"cumulative"` | `"cumulative"` or `"daily"`; data-source selection is automatic |
 | `copilotPace.pollIntervalMinutes` | `15` | Automatic refresh interval, from 5 to 120 minutes |
 
 ```json
@@ -146,7 +153,7 @@ Supports **GitHub.com personal and Business accounts** and **GitHub Enterprise (
 
 Copilot Pace uses an internal GitHub endpoint that may change. Browser-based VS Code is unsupported.
 
-The quota endpoint provides no daily history, individual sessions or per-model breakdown. Pace displays credits, does not estimate token counts and does not integrate GitHub's separate billing reports.
+The quota endpoint provides aggregate credits. Daily billing access is optional and depends on the account, session permissions and API availability. Its new integration has synthetic coverage; real-account billing acceptance is still pending. Pace does not estimate tokens or provide individual-session or per-model analytics.
 
 ### When a value is unavailable
 

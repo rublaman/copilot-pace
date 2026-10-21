@@ -4,7 +4,7 @@ Research date: October 21, 2026. Repository reviewed: `develop` at `ecf9b2ef06dd
 
 This is a feasibility and prioritization review, not an implementation or release plan. Competitor features below are publisher claims unless a source inspection is explicitly identified. No competing extension was installed, no private billing request was made, and no local conversations were read.
 
-Follow-up: the feature branch adds exhaustion/excess estimates, observed local history and selectable status styles. The current-state tables below describe the reviewed base revision; see [architecture](architecture.md) and [validation](validation.md#forecast-history-and-status-styles-october-21-2026) for the implementation and its checks. Model-level analytics and alerts remain proposals.
+Follow-up: the feature branch adds exhaustion/excess estimates, observed local history, selectable status/chart styles and optional daily AI-credit billing retrieval with automatic observed fallback. The current-state tables below describe the reviewed base revision; see [architecture](architecture.md) and [validation](validation.md#forecast-history-and-status-styles-october-21-2026) for implementation and checks. Billing access still requires real-account validation. Model-level analytics and alerts remain proposals.
 
 ## Recommendation
 

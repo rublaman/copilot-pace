@@ -28,6 +28,25 @@ Local Windows checks on the working tree based on `01c91fa2494ab36e12f77f5ad99e8
 - Final local working-tree candidate: `dist/copilot-pace-1.2.1.vsix`, SHA-256 `526ab61a93cf8b3c700b3fed3e9ddb13061ee3f0ab1a08d4b295679e86d5cddb`. This retains the existing manifest version and is not a published release artifact.
 - `npm audit`: zero vulnerabilities. Local Markdown link targets and `git diff --check` passed. Remote CI validates the pushed PR head separately.
 
+### Daily billing and observed fallback test build
+
+Local uncommitted working tree based on `5c6b594a362dcfd8dfccb7f69df924e52ff99ef6`, October 21, 2026, Windows 11 / standalone Node 26.11.1 / npm 11.20.0:
+
+- `npm run check`: lint/types, 285 unit/service/activation tests and 8 release-script tests passed. New fixtures cover personal, Business and Enterprise report routes, gross credit quantities, permission failures, missing days, account identity, cancellation, late responses, rate limits, daily deltas and chart metric controls.
+- `npm run test:integration`: 21 tests passed on each of VS Code 1.120.0 and 1.141.0.
+- `npm run test:package`: all 8 installed-production tests passed; package contents and demo exclusion checked.
+- Tested VSIX: `dist/copilot-pace-1.2.1.vsix`, SHA-256 `fbb438036dafa12cd91fafcf2f2623cb2a12bf003e9db8000b42df78b1a5b671`. The user test copy at `dist/test/copilot-pace-1.2.1-daily-test.vsix` has the same bytes and checksum. Both retain the existing manifest version; this is a local test build, not a published release.
+- Dark browser preview inspected all three daily chart styles with illustrative reported days, a missing day and a partial ongoing day. These fixtures do not validate actual billing access or corporate policies. Real-account daily billing acceptance remains pending.
+
+### Chart budget colors follow-up
+
+On the same local working tree and environment, after adding chart budget colors:
+
+- `npm run check`: lint/types, 293 unit/service/activation tests and 8 release-script tests passed. Coverage includes all three styles with reported/local daily totals, exact-budget equality, cumulative pace, weekend budgets and neutral unknown budgets. SVG clip regions preserve disconnected paths and color crossings.
+- `npm run test:integration`: 21 tests passed on each of VS Code 1.120.0 and 1.141.0. All 8 installed-production tests and package inspection passed again.
+- Latest local test VSIX: `dist/copilot-pace-1.2.1.vsix`, SHA-256 `8fe169ab3c551ee5a6dd0e56e982861c64cdbc1705de79ca0b13e4b3db935df3`. The same bytes replace the earlier user test copy at `dist/test/copilot-pace-1.2.1-daily-test.vsix`. No release version or published artifact was changed.
+- Generated panel inspected in a dark browser preview for local/API simulations, daily/cumulative metrics and area/line/column styles: 12 chart combinations. The fixture has a 6,000-credit budget, 4,855 cumulative credits, local recording from October 8 and offline days on October 14 and 18. Both sources exercise green/red daily values; the cumulative observations cross the budget reference. API responses are simulated, not real-account acceptance.
+
 ## GitHub.com and GHE acceptance: October 19, 2026
 
 - Maintainer report: the distributed 1.2.0 pilot was validated in both environments and works correctly. This is real-environment acceptance reported by the maintainer, separate from the earlier synthetic connection fixtures.

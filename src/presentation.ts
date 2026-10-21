@@ -332,11 +332,31 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     padding: 18px 16px 14px;
   }
 
+  .good {
+    --chart-accent: var(--vscode-charts-green,#73c991);
+  }
+
+  .over {
+    --chart-accent: var(--vscode-charts-red,#f48771);
+  }
+
+  #historyLatest[data-chart-tone=good] {
+    color: var(--vscode-charts-green,#73c991);
+  }
+
+  #historyLatest[data-chart-tone=over] {
+    color: var(--vscode-charts-red,#f48771);
+  }
+
   .chart-summary {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  #chartMetrics {
     margin-bottom: 12px;
   }
 
@@ -394,10 +414,24 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     stroke: none;
   }
 
+  .chart-area.good {
+    fill: url(#historyFillGood);
+  }
+
+  .chart-area.over {
+    fill: url(#historyFillOver);
+  }
+
   .chart-dot {
     fill: var(--chart-accent);
     stroke: var(--surface);
     stroke-width: 2;
+  }
+
+  .chart-dot.partial {
+    fill: var(--surface);
+    stroke: var(--chart-accent);
+    stroke-dasharray: 2 2;
   }
 
   .chart-last {
@@ -408,6 +442,20 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
 
   .chart-column {
     fill: url(#historyColumnFill);
+  }
+
+  .chart-column.good {
+    fill: url(#historyColumnFillGood);
+  }
+
+  .chart-column.over {
+    fill: url(#historyColumnFillOver);
+  }
+
+  .chart-column.partial {
+    fill-opacity: .6;
+    stroke: var(--chart-accent);
+    stroke-dasharray: 3 3;
   }
 
   .chart-column:hover,.chart-column:focus-visible {
@@ -459,6 +507,14 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
 
   .chart-legend .budget-key::before {
     border-top: 2px dashed var(--muted);
+  }
+
+  .chart-legend .good-key::before {
+    border-color: var(--vscode-charts-green,#73c991);
+  }
+
+  .chart-legend .over-key::before {
+    border-color: var(--vscode-charts-red,#f48771);
   }
 
   .chart-labels {
@@ -723,21 +779,44 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
       <h2 id="historyHeading"></h2>
       <span id="historyMaximum"></span>
     </div>
+    <div id="chartMetrics" class="controls days" role="group">
+      <button id="metricCumulative" aria-pressed="false"></button>
+      <button id="metricDaily" aria-pressed="false"></button>
+    </div>
     <div id="historyPlot" class="history-card">
       <div class="chart-summary">
         <div>
           <p id="historyMetricLabel"></p>
           <strong id="historyLatest"></strong>
+          <p id="historyLatestDate"></p>
         </div>
         <span id="chartStyleName" class="chart-style-tag"></span>
       </div>
       <svg id="historyChart" viewBox="0 0 584 192" role="img">
         <defs>
+          <clipPath id="historyWithinClip"><path id="historyWithinClipShape"></path></clipPath>
+          <clipPath id="historyOverClip"><path id="historyOverClipShape"></path></clipPath>
           <linearGradient id="historyFill" x1="0" y1="0" x2="0" y2="1">
             <stop class="chart-gradient-top" offset="0%"></stop>
             <stop class="chart-gradient-bottom" offset="100%"></stop>
           </linearGradient>
           <linearGradient id="historyColumnFill" x1="0" y1="0" x2="0" y2="1">
+            <stop class="chart-column-top" offset="0%"></stop>
+            <stop class="chart-column-bottom" offset="100%"></stop>
+          </linearGradient>
+          <linearGradient id="historyFillGood" class="good" x1="0" y1="0" x2="0" y2="1">
+            <stop class="chart-gradient-top" offset="0%"></stop>
+            <stop class="chart-gradient-bottom" offset="100%"></stop>
+          </linearGradient>
+          <linearGradient id="historyFillOver" class="over" x1="0" y1="0" x2="0" y2="1">
+            <stop class="chart-gradient-top" offset="0%"></stop>
+            <stop class="chart-gradient-bottom" offset="100%"></stop>
+          </linearGradient>
+          <linearGradient id="historyColumnFillGood" class="good" x1="0" y1="0" x2="0" y2="1">
+            <stop class="chart-column-top" offset="0%"></stop>
+            <stop class="chart-column-bottom" offset="100%"></stop>
+          </linearGradient>
+          <linearGradient id="historyColumnFillOver" class="over" x1="0" y1="0" x2="0" y2="1">
             <stop class="chart-column-top" offset="0%"></stop>
             <stop class="chart-column-bottom" offset="100%"></stop>
           </linearGradient>
@@ -750,6 +829,8 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
       <div class="chart-labels"><span id="historyStart"></span><span id="historyEnd"></span></div>
       <div class="chart-legend">
         <span id="historyObservedLabel"></span>
+        <span id="historyWithinLabel" class="good-key"></span>
+        <span id="historyOverLabel" class="over-key"></span>
         <span id="historyBudgetLabel" class="budget-key"></span>
       </div>
       <p id="historyColumnsNote" class="explanation" hidden></p>
@@ -812,11 +893,19 @@ function drawHistory(model) {
     }
     layer.appendChild(element);
   };
+  const drawPath = (path, className) => {
+    if (model.historyBudget.length === 0) {
+      create('path', { d: path, class: className });
+      return;
+    }
+    create('path', { d: path, class: className + ' good', 'clip-path': 'url(#historyWithinClip)' });
+    create('path', { d: path, class: className + ' over', 'clip-path': 'url(#historyOverClip)' });
+  };
   if (model.chartStyle === 'columns') {
     for (const point of model.historyColumns) {
       create('rect', {
         x: point.x - 5, y: point.y, width: 10, height: Math.max(.5, 168 - point.y),
-        rx: 3, class: 'chart-column', tabindex: 0, 'aria-label': point.label,
+        rx: 3, class: 'chart-column ' + point.tone + (point.partial ? ' partial' : ''), tabindex: 0, 'aria-label': point.label,
       }, point.label);
     }
     return;
@@ -832,15 +921,23 @@ function drawHistory(model) {
     const path = segment.map((point, index) => (index === 0 ? 'M' : 'L') + point.x + ' ' + point.y).join('');
     if (segment.length > 1) {
       if (model.chartStyle === 'area') {
-        create('path', { d: path + 'L' + last.x + ' 168L' + first.x + ' 168Z', class: 'chart-area' });
+        drawPath(path + 'L' + last.x + ' 168L' + first.x + ' 168Z', 'chart-area');
       }
-      create('path', { d: path, class: 'chart-line' });
+      drawPath(path, 'chart-line');
     }
-    create('circle', { cx: first.x, cy: first.y, r: 3, class: 'chart-dot' }, first.label);
-    if (last !== first) create('circle', { cx: last.x, cy: last.y, r: 3, class: 'chart-dot' }, last.label);
+    if (model.chartMetric !== 'daily') {
+      create('circle', { cx: first.x, cy: first.y, r: 3, class: 'chart-dot ' + first.tone }, first.label);
+      if (last !== first) create('circle', { cx: last.x, cy: last.y, r: 3, class: 'chart-dot ' + last.tone }, last.label);
+    }
+  }
+  if (model.chartMetric === 'daily') {
+    for (const point of model.history) create('circle', {
+      cx: point.x, cy: point.y, r: 3.5, class: 'chart-dot ' + point.tone + (point.partial ? ' partial' : ''),
+      tabindex: 0, 'aria-label': point.label,
+    }, point.label);
   }
   const latest = model.history[model.history.length - 1];
-  if (latest) create('circle', { cx: latest.x, cy: latest.y, r: 4.5, class: 'chart-last', tabindex: 0, 'aria-label': latest.label }, latest.label);
+  if (latest) create('circle', { cx: latest.x, cy: latest.y, r: 4.5, class: 'chart-last ' + latest.tone, tabindex: 0, 'aria-label': latest.label }, latest.label);
 }
 function show(model) {
   currentLanguage = model.language;
@@ -856,8 +953,8 @@ function show(model) {
     'depletionHeading', 'excessHeading', 'forecastHint', 'historyHeading',
     'statusStyleLabel', 'styleText', 'styleCompact', 'styleBar', 'styleDots',
     'customizationHeading', 'languageLabel',
-    'chartStyleLabel', 'chartArea', 'chartLine', 'chartColumns', 'historyMetricLabel',
-    'historyObservedLabel', 'historyBudgetLabel', 'historyColumnsNote',
+    'chartStyleLabel', 'chartArea', 'chartLine', 'chartColumns', 'metricCumulative', 'metricDaily',
+    'historyObservedLabel', 'historyWithinLabel', 'historyOverLabel', 'historyBudgetLabel', 'historyColumnsNote',
   ];
   for (const id of labelIds) {
     document.getElementById(id).textContent = model.text[id];
@@ -871,7 +968,7 @@ function show(model) {
     'dailyAverage', 'allowance', 'projection', 'updated', 'retry',
     'cycleProgress', 'daysLeft', 'period', 'baseRate', 'accountLabel',
     'depletion', 'excess', 'historyMaximum', 'historyStart', 'historyEnd', 'historyMessage',
-    'historyLatest', 'chartStyleName',
+    'historyLatest', 'chartStyleName', 'historyMetricLabel', 'historyLatestDate',
   ];
   for (const id of valueIds) {
     document.getElementById(id).textContent = model[id];
@@ -880,10 +977,21 @@ function show(model) {
   document.getElementById('chartStyle').value = model.chartStyle;
   const chart = document.getElementById('historyChart');
   document.getElementById('historyPlot').hidden = model.history.length === 0;
-  chart.setAttribute('aria-label', model.text.historyAria);
-  document.getElementById('historyBudget').setAttribute('d', model.historyBudget.map((point, index) => (index === 0 ? 'M' : 'L') + point.x + ' ' + point.y).join(''));
+  chart.setAttribute('aria-label', model.historyAria);
+  chart.setAttribute('role', model.chartMetric === 'daily' ? 'group' : 'img');
+  const budgetPath = model.historyBudget.map((point, index) => (index === 0 ? 'M' : 'L') + point.x + ' ' + point.y).join('');
+  document.getElementById('historyBudget').setAttribute('d', budgetPath);
+  document.getElementById('historyWithinClipShape').setAttribute('d', budgetPath ? budgetPath + 'L552 192L32 192Z' : '');
+  document.getElementById('historyOverClipShape').setAttribute('d', budgetPath ? budgetPath + 'L552 0L32 0Z' : '');
+  document.getElementById('historyLatest').setAttribute('data-chart-tone', model.historyLatestTone);
+  document.getElementById('historyObservedLabel').hidden = model.historyBudget.length > 0;
+  document.getElementById('historyWithinLabel').hidden = model.historyBudget.length === 0;
+  document.getElementById('historyOverLabel').hidden = model.historyBudget.length === 0;
   document.getElementById('historyBudgetLabel').hidden = model.historyBudget.length === 0;
-  document.getElementById('historyColumnsNote').hidden = model.chartStyle !== 'columns';
+  document.getElementById('historyColumnsNote').hidden = model.chartStyle !== 'columns' || model.chartMetric === 'daily';
+  document.getElementById('chartMetrics').setAttribute('aria-label', model.text.chartMetricAria);
+  document.getElementById('metricCumulative').setAttribute('aria-pressed', String(model.chartMetric === 'cumulative'));
+  document.getElementById('metricDaily').setAttribute('aria-pressed', String(model.chartMetric === 'daily'));
   drawHistory(model);
   ${__DEV__ ? `document.getElementById('demo').hidden = !model.demo;
   const note = document.getElementById('demoNote');
@@ -927,6 +1035,9 @@ document.getElementById('chartStyle').addEventListener('change', event => {
 });
 for (const mode of ['all', 'weekdays']) {
   document.getElementById(mode).addEventListener('click', () => vscode.postMessage({ action: 'dayMode', value: mode }));
+}
+for (const metric of ['Cumulative', 'Daily']) {
+  document.getElementById('metric' + metric).addEventListener('click', () => vscode.postMessage({ action: 'chartMetric', value: metric.toLowerCase() }));
 }
 vscode.postMessage({ action: 'ready' });
 </script>

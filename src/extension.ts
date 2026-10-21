@@ -6,11 +6,12 @@ import { createViewModel, renderHtml, renderHover, hoverCommands, type ViewModel
 import { QuotaService, type ServiceState } from './service';
 import { GitHubSessions } from './sessions';
 import { GitHubTransport } from './transport';
+import { BillingUsage } from './billing';
 import { getStrings, resolveLanguage, type Language } from './i18n';
 import { defaultConnection, resolveConnection, type AuthProvider } from './connection';
 import { HistoryStore, historyIdentity, observation, retainObservations, type Observation } from './history';
 import { resolveStatusStyle, type StatusStyle } from './status';
-import { resolveChartStyle, type ChartStyle } from './chart';
+import { resolveChartMetric, resolveChartStyle, type ChartMetric, type ChartStyle } from './chart';
 
 export interface TestApi {
   getState(): ServiceState;
@@ -36,6 +37,7 @@ class CopilotPace implements vscode.Disposable {
   private language: Language = 'en';
   private statusStyle: StatusStyle = 'text';
   private chartStyle: ChartStyle = 'area';
+  private chartMetric: ChartMetric = 'cumulative';
   private readonly historyStore?: HistoryStore;
   private history: Observation[] = [];
   private historyKey = '';
@@ -86,6 +88,7 @@ class CopilotPace implements vscode.Disposable {
     this.language = resolveLanguage(config.get('language'));
     this.statusStyle = resolveStatusStyle(config.get('statusStyle'));
     this.chartStyle = resolveChartStyle(config.get('chartStyle'));
+    this.chartMetric = resolveChartMetric(config.get('chartMetric'));
     const enterprise = vscode.workspace.getConfiguration('github-enterprise');
     const trusted = vscode.workspace.isTrusted;
     const contributions = vscode.extensions?.getExtension('vscode.github-authentication')?.packageJSON?.contributes?.configuration;
@@ -120,10 +123,12 @@ class CopilotPace implements vscode.Disposable {
       this.sourceKey = key;
       this.demo = source !== undefined;
       this.scenario = source?.label ?? '';
+      const transport = new GitHubTransport(vscode.version, undefined, undefined, this.connection);
       this.service = new QuotaService({
         sessions: source?.sessions ?? new GitHubSessions(vscode.authentication, () => this.language, this.connection),
-        transport: source?.transport ?? new GitHubTransport(vscode.version, undefined, undefined, this.connection),
+        transport: source?.transport ?? transport,
         dataClock: this.clock,
+        dailyUsage: source ? undefined : new BillingUsage(transport, this.clock),
       }, state => {
         this.observe(state);
         this.render();
@@ -235,7 +240,8 @@ class CopilotPace implements vscode.Disposable {
   get model(): ViewModel {
     return createViewModel(this.service.current, this.clock, this.dayMode, this.demo, this.scenario,
       this.service.nextAllowedAt, this.language, {
-        statusStyle: this.statusStyle, chartStyle: this.chartStyle, history: this.history, historyFailed: this.historyFailed,
+        statusStyle: this.statusStyle, chartStyle: this.chartStyle, chartMetric: this.chartMetric,
+        history: this.history, historyFailed: this.historyFailed,
       });
   }
   private render() {
@@ -295,6 +301,8 @@ class CopilotPace implements vscode.Disposable {
       await this.updateConfig('statusStyle', data.value);
     } else if (data.action === 'chartStyle' && typeof data.value === 'string' && resolveChartStyle(data.value) === data.value) {
       await this.updateConfig('chartStyle', data.value);
+    } else if (data.action === 'chartMetric' && typeof data.value === 'string' && resolveChartMetric(data.value) === data.value) {
+      await this.updateConfig('chartMetric', data.value);
     }
   }
   get testApi(): TestApi {
