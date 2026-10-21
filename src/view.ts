@@ -2,6 +2,7 @@ import { Buffer } from 'node:buffer';
 import { calculateForecast, calculatePace, equivalentDays, type Clock, type DayMode } from './domain';
 import { statusText, type StatusStyle } from './status';
 import type { Observation } from './history';
+import type { ChartStyle } from './chart';
 import { getStrings, type Language, type Strings } from './i18n';
 import { localizeDemoScenario } from './development';
 import type { ServiceState } from './service';
@@ -42,10 +43,12 @@ export interface ViewModel {
   history: Array<{ x: number; y: number; connect: boolean; label: string }>;
   historyMaximum: string; historyStart: string; historyEnd: string; historyBudget: Array<{ x: number; y: number }>;
   historyMessage: string;
+  chartStyle: ChartStyle; chartStyleName: string; historyLatest: string;
+  historyColumns: Array<{ x: number; y: number; connect: boolean; label: string }>;
 }
 export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayMode, demo: boolean, scenario: string, retryAt: number, language: Language = 'en',
-  options: { statusStyle?: StatusStyle; history?: readonly Observation[]; historyFailed?: boolean } = {}): ViewModel {
-  const { statusStyle: style = 'text', history = [], historyFailed = false } = options;
+  options: { statusStyle?: StatusStyle; chartStyle?: ChartStyle; history?: readonly Observation[]; historyFailed?: boolean } = {}): ViewModel {
+  const { statusStyle: style = 'text', chartStyle = 'area', history = [], historyFailed = false } = options;
   const text = getStrings(language);
   const formatter = formatters[language];
   const amount = (value: number) => formatter.number.format(value);
@@ -116,6 +119,10 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
       label: `${date(item.at)} · ${amount(item.used)} ${text.credits}`,
     };
   });
+  // Columns are cumulative snapshots, never inferred daily spending.
+  const dayIndices = new Map<string, number>();
+  observations.forEach((item, index) => dayIndices.set(new Date(item.at).toISOString().slice(0, 10), index));
+  const columns = [...dayIndices.values()].map(index => points[index]!);
   const budget: Array<{ x: number; y: number }> = [];
   if (snapshot?.kind === 'bounded' && validCycle && totalDays > 0) {
     for (let cursor = cycle.start; cursor <= cycle.end; cursor += 86_400_000) {
@@ -133,6 +140,9 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
     historyStart: validCycle ? date(cycle.start) : '', historyEnd: validCycle ? date(cycle.end) : '',
     historyBudget: budget,
     historyMessage,
+    chartStyle, chartStyleName: { area: text.chartArea, line: text.chartLine, columns: text.chartColumns }[chartStyle],
+    historyLatest: observations.length ? `${amount(observations[observations.length - 1]!.used)} ${text.credits}` : '—',
+    historyColumns: columns,
     summary, tone, message, demo, scenario: __DEV__ ? localizeDemoScenario(scenario, language) : scenario, forecastNote,
     used: snapshot && snapshot.kind !== 'unavailable' ? `${amount(snapshot.used)} ${text.credits}` : '—',
     total: snapshot?.kind === 'bounded' ? `${amount(snapshot.total)} ${text.credits}` : '—',

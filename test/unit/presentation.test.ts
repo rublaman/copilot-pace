@@ -82,8 +82,10 @@ describe('Forecast, history and appearance presentation', () => {
     assert.deepEqual(model.history.map(point => point.connect), [false, true, false, false, false]);
     const elements = panelElements(model);
     assert.equal(elements.get('historyPlot')?.hidden, false);
-    assert.equal(elements.get('historyPoints')?.children.length, 6);
-    assert.equal(elements.get('historyPoints')?.children[0]?.children[0]?.textContent, model.history[0]?.label);
+    const shapes = elements.get('historyPoints')!.children;
+    assert.equal(shapes.filter(shape => shape.attributes.get('class') === 'chart-line').length, 1);
+    assert.equal(shapes.filter(shape => shape.attributes.get('class') === 'chart-area').length, 1);
+    assert.equal(shapes.find(shape => shape.attributes.get('class') === 'chart-dot')?.children[0]?.textContent, model.history[0]?.label);
     assert.ok(elements.get('historyBudget')?.attributes.get('d')?.startsWith('M32 168L'));
     const empty = createViewModel({ phase: 'disconnected' }, demoClock, 'all', false, '', 0);
     const updated = panelElements(model, [empty]);
@@ -106,6 +108,35 @@ describe('Forecast, history and appearance presentation', () => {
     elements.get('statusStyle')?.change('bar');
     assert.equal(JSON.stringify(messages.at(-1)), JSON.stringify({ action: 'statusStyle', value: 'bar' }));
     assert.equal(model.statusDescription, '60% · Ritmo excesivo');
+  });
+  it('switches between area, line and last-per-day cumulative columns without changing the observations', () => {
+    const start = Date.parse('2026-10-01T00:00Z');
+    const end = Date.parse('2026-11-01T00:00Z');
+    const at = Date.parse('2026-10-12T10:00Z');
+    const history = [
+      { at, used: 100, total: 10000, start, end },
+      { at: at + 3600000, used: 150, total: 10000, start, end },
+      { at: at + 86400000, used: 300, total: 10000, start, end },
+    ];
+    const area = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'en', { history });
+    const line = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'en', { history, chartStyle: 'line' });
+    const columns = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'es-ES', { history, chartStyle: 'columns' });
+    const lineShapes = panelElements(area, [line]).get('historyPoints')!.children;
+    assert.ok(lineShapes.some(shape => shape.attributes.get('class') === 'chart-line'));
+    assert.ok(!lineShapes.some(shape => shape.attributes.get('class') === 'chart-area'));
+    assert.deepEqual(line.history, area.history);
+    assert.equal(columns.history.length, 3);
+    assert.equal(columns.historyColumns.length, 2);
+    assert.equal(columns.historyColumns[0]?.y, columns.history[1]?.y);
+    const messages: unknown[] = [];
+    const elements = panelElements(line, [columns], messages);
+    assert.equal(elements.get('historyPoints')?.children.length, 2);
+    assert.ok(elements.get('historyPoints')?.children.every(shape => shape.attributes.get('class') === 'chart-column'));
+    assert.equal(elements.get('historyColumnsNote')?.hidden, false);
+    assert.equal(elements.get('chartColumns')?.textContent, 'Columnas');
+    assert.equal(elements.get('chartStyle')?.value, 'columns');
+    elements.get('chartStyle')?.change('area');
+    assert.equal(JSON.stringify(messages.at(-1)), JSON.stringify({ action: 'chartStyle', value: 'area' }));
   });
 });
 

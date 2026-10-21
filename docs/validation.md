@@ -17,6 +17,17 @@ Local checks on `feature/usage-history-status-styles`, based on `develop` at `ec
 
 Remote CI belongs to the feature PR's exact head revision. No new personal/corporate account or network acceptance was performed for these features; the previous distributed 1.2.1 release and its artifacts remain unchanged.
 
+### Chart styles follow-up
+
+Local Windows checks on the working tree based on `01c91fa2494ab36e12f77f5ad99e8e7fa86b961a`, using standalone Node 26.11.1 / npm 11.20.0:
+
+- `npm run check`: lint/types, 246 unit/service/activation tests and 8 release-script regressions passed.
+- `npm run test:integration`: 20 tests passed on each of VS Code 1.120.0 and 1.141.0. The saved chart choice updates without refreshing quota; unsupported panel values are rejected. Both editor hosts started successfully, resolving the earlier update-mutex block.
+- `npm run test:package`: all 8 installed-production tests passed; package identity, contents and demo exclusion were checked.
+- The generated panel was inspected with illustrative observations in dark and light themes. Gradient area, line and columns preserve missing intervals; columns use the last cumulative observation per UTC day. The Spanish Customization selector was exercised in the browser preview. These checks do not validate real-account quotas or constitute account acceptance.
+- Final local working-tree candidate: `dist/copilot-pace-1.2.1.vsix`, SHA-256 `526ab61a93cf8b3c700b3fed3e9ddb13061ee3f0ab1a08d4b295679e86d5cddb`. This retains the existing manifest version and is not a published release artifact.
+- `npm audit`: zero vulnerabilities. Local Markdown link targets and `git diff --check` passed. Remote CI validates the pushed PR head separately.
+
 ## GitHub.com and GHE acceptance: October 19, 2026
 
 - Maintainer report: the distributed 1.2.0 pilot was validated in both environments and works correctly. This is real-environment acceptance reported by the maintainer, separate from the earlier synthetic connection fixtures.

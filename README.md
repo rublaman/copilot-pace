@@ -85,6 +85,8 @@ Use **Spanish** in the **Customization** section below the chart to switch to Sp
 
 Choose **Status bar appearance** in the same section to switch between **Percentage and pace**, **Compact**, **Segmented bar** and **Dots**. These change the indicator you hover over, while its hover retains the usage details. Colors continue to follow projected pace. Errors and pending estimates remain visible in every style.
 
+**Usage chart** selects **Gradient area**, **Line** or **Columns**. All three show observed cumulative credits, with a budget-pace reference, a legend and observation details. Columns use the last observed total in each UTC day; they do not represent daily spending. The selection is saved independently of the status bar style.
+
 ## How the estimate works
 
 All amounts represent **credits**. The budget and used percentage come from GitHub's Copilot quota snapshot; Copilot Pace does not guess your budget from a plan name.
@@ -120,6 +122,7 @@ Search for **Copilot Pace** in VS Code Settings, or edit these application-level
 | `copilotPace.language` | `"en"` | `"en"` for English; `"es-ES"` for Spanish (Spain) |
 | `copilotPace.dayMode` | `"all"` | `"all"` for every day; `"weekdays"` for Monday–Friday |
 | `copilotPace.statusStyle` | `"text"` | `"text"`, `"compact"`, `"bar"` or `"dots"` |
+| `copilotPace.chartStyle` | `"area"` | `"area"`, `"line"` or `"columns"` |
 | `copilotPace.pollIntervalMinutes` | `15` | Automatic refresh interval, from 5 to 120 minutes |
 
 ```json

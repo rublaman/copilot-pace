@@ -10,6 +10,7 @@ import { getStrings, resolveLanguage, type Language } from './i18n';
 import { defaultConnection, resolveConnection, type AuthProvider } from './connection';
 import { HistoryStore, historyIdentity, observation, retainObservations, type Observation } from './history';
 import { resolveStatusStyle, type StatusStyle } from './status';
+import { resolveChartStyle, type ChartStyle } from './chart';
 
 export interface TestApi {
   getState(): ServiceState;
@@ -34,6 +35,7 @@ class CopilotPace implements vscode.Disposable {
   private dayMode: DayMode = 'all';
   private language: Language = 'en';
   private statusStyle: StatusStyle = 'text';
+  private chartStyle: ChartStyle = 'area';
   private readonly historyStore?: HistoryStore;
   private history: Observation[] = [];
   private historyKey = '';
@@ -83,6 +85,7 @@ class CopilotPace implements vscode.Disposable {
     this.dayMode = config.get<string>('dayMode') === 'weekdays' ? 'weekdays' : 'all';
     this.language = resolveLanguage(config.get('language'));
     this.statusStyle = resolveStatusStyle(config.get('statusStyle'));
+    this.chartStyle = resolveChartStyle(config.get('chartStyle'));
     const enterprise = vscode.workspace.getConfiguration('github-enterprise');
     const trusted = vscode.workspace.isTrusted;
     const contributions = vscode.extensions?.getExtension('vscode.github-authentication')?.packageJSON?.contributes?.configuration;
@@ -231,7 +234,9 @@ class CopilotPace implements vscode.Disposable {
   }
   get model(): ViewModel {
     return createViewModel(this.service.current, this.clock, this.dayMode, this.demo, this.scenario,
-      this.service.nextAllowedAt, this.language, { statusStyle: this.statusStyle, history: this.history, historyFailed: this.historyFailed });
+      this.service.nextAllowedAt, this.language, {
+        statusStyle: this.statusStyle, chartStyle: this.chartStyle, history: this.history, historyFailed: this.historyFailed,
+      });
   }
   private render() {
     if (this.disposed) return;
@@ -288,6 +293,8 @@ class CopilotPace implements vscode.Disposable {
       await this.updateConfig('language', data.value);
     } else if (data.action === 'statusStyle' && typeof data.value === 'string' && resolveStatusStyle(data.value) === data.value) {
       await this.updateConfig('statusStyle', data.value);
+    } else if (data.action === 'chartStyle' && typeof data.value === 'string' && resolveChartStyle(data.value) === data.value) {
+      await this.updateConfig('chartStyle', data.value);
     }
   }
   get testApi(): TestApi {

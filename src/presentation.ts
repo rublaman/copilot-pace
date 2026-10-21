@@ -324,6 +324,51 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     overflow: visible;
   }
 
+  .history-card {
+    --chart-accent: var(--vscode-charts-blue,#3794ff);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 16px 14px;
+  }
+
+  .chart-summary {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .chart-summary p {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .chart-summary strong {
+    font-size: 24px;
+    font-weight: 550;
+    letter-spacing: -.5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .chart-style-tag {
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    font-size: 10px;
+    padding: 3px 9px;
+    white-space: nowrap;
+  }
+
+  .chart-grid {
+    fill: none;
+    stroke: var(--line);
+    stroke-dasharray: 2 5;
+    stroke-opacity: .55;
+  }
+
   .chart-axis {
     fill: none;
     stroke: var(--line);
@@ -333,11 +378,87 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     fill: none;
     stroke: var(--muted);
     stroke-dasharray: 5 5;
+    stroke-width: 1.2;
   }
 
-  #historyPoints {
-    fill: var(--accent);
-    stroke: var(--accent);
+  .chart-line {
+    fill: none;
+    stroke: var(--chart-accent);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .chart-area {
+    fill: url(#historyFill);
+    stroke: none;
+  }
+
+  .chart-dot {
+    fill: var(--chart-accent);
+    stroke: var(--surface);
+    stroke-width: 2;
+  }
+
+  .chart-last {
+    fill: var(--surface);
+    stroke: var(--chart-accent);
+    stroke-width: 2.5;
+  }
+
+  .chart-column {
+    fill: url(#historyColumnFill);
+  }
+
+  .chart-column:hover,.chart-column:focus-visible {
+    fill: var(--chart-accent);
+    outline: none;
+  }
+
+  .chart-gradient-top {
+    stop-color: var(--chart-accent);
+    stop-opacity: .3;
+  }
+
+  .chart-gradient-bottom {
+    stop-color: var(--chart-accent);
+    stop-opacity: .015;
+  }
+
+  .chart-column-top {
+    stop-color: var(--chart-accent);
+    stop-opacity: .95;
+  }
+
+  .chart-column-bottom {
+    stop-color: var(--chart-accent);
+    stop-opacity: .35;
+  }
+
+  .chart-legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+
+  .chart-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .chart-legend span::before {
+    content: '';
+    width: 16px;
+    border-top: 2px solid var(--chart-accent);
+  }
+
+  .chart-legend .budget-key::before {
+    border-top: 2px dashed var(--muted);
   }
 
   .chart-labels {
@@ -602,13 +723,36 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
       <h2 id="historyHeading"></h2>
       <span id="historyMaximum"></span>
     </div>
-    <div id="historyPlot">
-    <svg id="historyChart" viewBox="0 0 584 192" role="img">
-      <path class="chart-axis" d="M32 24V168H552"></path>
-      <path id="historyBudget"></path>
-      <g id="historyPoints"></g>
-    </svg>
-    <div class="chart-labels"><span id="historyStart"></span><span id="historyEnd"></span></div>
+    <div id="historyPlot" class="history-card">
+      <div class="chart-summary">
+        <div>
+          <p id="historyMetricLabel"></p>
+          <strong id="historyLatest"></strong>
+        </div>
+        <span id="chartStyleName" class="chart-style-tag"></span>
+      </div>
+      <svg id="historyChart" viewBox="0 0 584 192" role="img">
+        <defs>
+          <linearGradient id="historyFill" x1="0" y1="0" x2="0" y2="1">
+            <stop class="chart-gradient-top" offset="0%"></stop>
+            <stop class="chart-gradient-bottom" offset="100%"></stop>
+          </linearGradient>
+          <linearGradient id="historyColumnFill" x1="0" y1="0" x2="0" y2="1">
+            <stop class="chart-column-top" offset="0%"></stop>
+            <stop class="chart-column-bottom" offset="100%"></stop>
+          </linearGradient>
+        </defs>
+        <path class="chart-grid" d="M32 24H552M32 72H552M32 120H552"></path>
+        <path class="chart-axis" d="M32 168H552"></path>
+        <g id="historyPoints"></g>
+        <path id="historyBudget"></path>
+      </svg>
+      <div class="chart-labels"><span id="historyStart"></span><span id="historyEnd"></span></div>
+      <div class="chart-legend">
+        <span id="historyObservedLabel"></span>
+        <span id="historyBudgetLabel" class="budget-key"></span>
+      </div>
+      <p id="historyColumnsNote" class="explanation" hidden></p>
     </div>
     <p id="historyMessage" class="explanation" role="status"></p>
   </section>
@@ -626,6 +770,14 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
         <option id="styleCompact" value="compact"></option>
         <option id="styleBar" value="bar"></option>
         <option id="styleDots" value="dots"></option>
+      </select>
+    </div>
+    <div class="customization-row">
+      <label id="chartStyleLabel" for="chartStyle"></label>
+      <select id="chartStyle">
+        <option id="chartArea" value="area"></option>
+        <option id="chartLine" value="line"></option>
+        <option id="chartColumns" value="columns"></option>
       </select>
     </div>
   </section>
@@ -647,6 +799,49 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
 <script nonce="${nonce}">
 const vscode = acquireVsCodeApi();
 let currentLanguage;
+function drawHistory(model) {
+  const layer = document.getElementById('historyPoints');
+  layer.replaceChildren();
+  const create = (tag, attributes, label) => {
+    const element = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, String(value));
+    if (label) {
+      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      title.textContent = label;
+      element.appendChild(title);
+    }
+    layer.appendChild(element);
+  };
+  if (model.chartStyle === 'columns') {
+    for (const point of model.historyColumns) {
+      create('rect', {
+        x: point.x - 5, y: point.y, width: 10, height: Math.max(.5, 168 - point.y),
+        rx: 3, class: 'chart-column', tabindex: 0, 'aria-label': point.label,
+      }, point.label);
+    }
+    return;
+  }
+  const segments = [];
+  for (const point of model.history) {
+    if (!point.connect || segments.length === 0) segments.push([]);
+    segments[segments.length - 1].push(point);
+  }
+  for (const segment of segments) {
+    const first = segment[0];
+    const last = segment[segment.length - 1];
+    const path = segment.map((point, index) => (index === 0 ? 'M' : 'L') + point.x + ' ' + point.y).join('');
+    if (segment.length > 1) {
+      if (model.chartStyle === 'area') {
+        create('path', { d: path + 'L' + last.x + ' 168L' + first.x + ' 168Z', class: 'chart-area' });
+      }
+      create('path', { d: path, class: 'chart-line' });
+    }
+    create('circle', { cx: first.x, cy: first.y, r: 3, class: 'chart-dot' }, first.label);
+    if (last !== first) create('circle', { cx: last.x, cy: last.y, r: 3, class: 'chart-dot' }, last.label);
+  }
+  const latest = model.history[model.history.length - 1];
+  if (latest) create('circle', { cx: latest.x, cy: latest.y, r: 4.5, class: 'chart-last', tabindex: 0, 'aria-label': latest.label }, latest.label);
+}
 function show(model) {
   currentLanguage = model.language;
   document.getElementById('page').setAttribute('lang', model.language);
@@ -661,6 +856,8 @@ function show(model) {
     'depletionHeading', 'excessHeading', 'forecastHint', 'historyHeading',
     'statusStyleLabel', 'styleText', 'styleCompact', 'styleBar', 'styleDots',
     'customizationHeading', 'languageLabel',
+    'chartStyleLabel', 'chartArea', 'chartLine', 'chartColumns', 'historyMetricLabel',
+    'historyObservedLabel', 'historyBudgetLabel', 'historyColumnsNote',
   ];
   for (const id of labelIds) {
     document.getElementById(id).textContent = model.text[id];
@@ -674,35 +871,20 @@ function show(model) {
     'dailyAverage', 'allowance', 'projection', 'updated', 'retry',
     'cycleProgress', 'daysLeft', 'period', 'baseRate', 'accountLabel',
     'depletion', 'excess', 'historyMaximum', 'historyStart', 'historyEnd', 'historyMessage',
+    'historyLatest', 'chartStyleName',
   ];
   for (const id of valueIds) {
     document.getElementById(id).textContent = model[id];
   }
   document.getElementById('statusStyle').value = model.statusStyle;
+  document.getElementById('chartStyle').value = model.chartStyle;
   const chart = document.getElementById('historyChart');
   document.getElementById('historyPlot').hidden = model.history.length === 0;
   chart.setAttribute('aria-label', model.text.historyAria);
   document.getElementById('historyBudget').setAttribute('d', model.historyBudget.map((point, index) => (index === 0 ? 'M' : 'L') + point.x + ' ' + point.y).join(''));
-  const points = document.getElementById('historyPoints');
-  points.replaceChildren();
-  for (let index = 0; index < model.history.length; index++) {
-    const point = model.history[index];
-    const previous = model.history[index - 1];
-    if (point.connect && previous) {
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      line.setAttribute('d', 'M' + previous.x + ' ' + previous.y + 'L' + point.x + ' ' + point.y);
-      line.setAttribute('fill', 'none');
-      points.appendChild(line);
-    }
-    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    dot.setAttribute('cx', String(point.x));
-    dot.setAttribute('cy', String(point.y));
-    dot.setAttribute('r', '2.5');
-    const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-    title.textContent = point.label;
-    dot.appendChild(title);
-    points.appendChild(dot);
-  }
+  document.getElementById('historyBudgetLabel').hidden = model.historyBudget.length === 0;
+  document.getElementById('historyColumnsNote').hidden = model.chartStyle !== 'columns';
+  drawHistory(model);
   ${__DEV__ ? `document.getElementById('demo').hidden = !model.demo;
   const note = document.getElementById('demoNote');
   note.hidden = !model.demo;
@@ -739,6 +921,9 @@ document.getElementById('language').addEventListener('click', () => {
 });
 document.getElementById('statusStyle').addEventListener('change', event => {
   vscode.postMessage({ action: 'statusStyle', value: event.target.value });
+});
+document.getElementById('chartStyle').addEventListener('change', event => {
+  vscode.postMessage({ action: 'chartStyle', value: event.target.value });
 });
 for (const mode of ['all', 'weekdays']) {
   document.getElementById(mode).addEventListener('click', () => vscode.postMessage({ action: 'dayMode', value: mode }));

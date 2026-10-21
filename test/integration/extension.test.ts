@@ -5,7 +5,7 @@ import { scenarioLabels, type MockScenario } from '../../src/mocks';
 
 let api: TestApi;
 const original = new Map<string, unknown>();
-const keys = ['dataSource', 'mockScenario', 'dayMode', 'pollIntervalMinutes', 'language', 'authProvider', 'statusStyle'];
+const keys = ['dataSource', 'mockScenario', 'dayMode', 'pollIntervalMinutes', 'language', 'authProvider', 'statusStyle', 'chartStyle'];
 async function waitFor(check: () => boolean) {
   const end = Date.now() + 5000;
   while (!check()) {
@@ -36,6 +36,7 @@ describe('Copilot Pace in the Extension Development Host', () => {
     for (const key of keys) original.set(key, config.inspect(key)?.globalValue);
     await config.update('language', 'en', vscode.ConfigurationTarget.Global);
     await config.update('statusStyle', 'text', vscode.ConfigurationTarget.Global);
+    await config.update('chartStyle', 'area', vscode.ConfigurationTarget.Global);
     await config.update('mockScenario', '10000-comfortable', vscode.ConfigurationTarget.Global);
     await config.update('dayMode', 'all', vscode.ConfigurationTarget.Global);
     await config.update('dataSource', 'mock', vscode.ConfigurationTarget.Global);
@@ -68,6 +69,23 @@ describe('Copilot Pace in the Extension Development Host', () => {
       assert.ok(api.getModel().historyMessage.includes('Demo'));
     } finally {
       await api.receiveMessage({ action: 'statusStyle', value: 'text' });
+    }
+  });
+  it('saves chart selection without refreshing quota and rejects unsupported styles', async () => {
+    const snapshot = api.getState().snapshot;
+    try {
+      for (const style of ['line', 'columns', 'area']) {
+        await api.receiveMessage({ action: 'chartStyle', value: style });
+        assert.equal(api.getModel().chartStyle, style);
+        assert.equal(vscode.workspace.getConfiguration('copilotPace').get('chartStyle'), style);
+        assert.equal(api.getState().snapshot, snapshot);
+      }
+      await api.receiveMessage({ action: 'chartStyle', value: '<script>' });
+      assert.equal(api.getModel().chartStyle, 'area');
+      await vscode.workspace.getConfiguration('copilotPace').update('chartStyle', 'line', vscode.ConfigurationTarget.Global);
+      await waitFor(() => api.getModel().chartStyle === 'line');
+    } finally {
+      await api.receiveMessage({ action: 'chartStyle', value: 'area' });
     }
   });
   for (const [name, used, percentage] of [['10000-one-credit', 1, 0.01], ['10000-two-credits', 2, 0.02]] as const) {
