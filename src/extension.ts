@@ -8,6 +8,8 @@ import { GitHubSessions } from './sessions';
 import { GitHubTransport } from './transport';
 import { getStrings, resolveLanguage, type Language } from './i18n';
 import { defaultConnection, resolveConnection, type AuthProvider } from './connection';
+import { HistoryStore, historyIdentity, observation, retainObservations, type Observation } from './history';
+import { resolveStatusStyle, type StatusStyle } from './status';
 
 export interface TestApi {
   getState(): ServiceState;
@@ -31,6 +33,12 @@ class CopilotPace implements vscode.Disposable {
   private readonly developmentEnabled: boolean;
   private dayMode: DayMode = 'all';
   private language: Language = 'en';
+  private statusStyle: StatusStyle = 'text';
+  private readonly historyStore?: HistoryStore;
+  private history: Observation[] = [];
+  private historyKey = '';
+  private historyFailed = false;
+  private lastObservation?: object;
   private sourceKey = '';
   private connection = defaultConnection;
   private enterpriseConfigurationKey?: string;
@@ -43,6 +51,7 @@ class CopilotPace implements vscode.Disposable {
   private disposed = false;
   constructor(context: vscode.ExtensionContext) {
     this.imageDirectory = vscode.Uri.joinPath(context.extensionUri, 'images');
+    if (context.globalStorageUri) this.historyStore = new HistoryStore(context.globalStorageUri.fsPath);
     this.developmentEnabled = __DEV__ && (context.extensionMode === vscode.ExtensionMode.Development || context.extensionMode === vscode.ExtensionMode.Test);
     this.status.name = 'Copilot Pace';
     this.status.command = 'copilotPace.showDetails';
@@ -73,6 +82,7 @@ class CopilotPace implements vscode.Disposable {
     const config = vscode.workspace.getConfiguration('copilotPace');
     this.dayMode = config.get<string>('dayMode') === 'weekdays' ? 'weekdays' : 'all';
     this.language = resolveLanguage(config.get('language'));
+    this.statusStyle = resolveStatusStyle(config.get('statusStyle'));
     const enterprise = vscode.workspace.getConfiguration('github-enterprise');
     const trusted = vscode.workspace.isTrusted;
     const contributions = vscode.extensions?.getExtension('vscode.github-authentication')?.packageJSON?.contributes?.configuration;
@@ -111,7 +121,10 @@ class CopilotPace implements vscode.Disposable {
         sessions: source?.sessions ?? new GitHubSessions(vscode.authentication, () => this.language, this.connection),
         transport: source?.transport ?? new GitHubTransport(vscode.version, undefined, undefined, this.connection),
         dataClock: this.clock,
-      }, () => this.render());
+      }, state => {
+        this.observe(state);
+        this.render();
+      });
       void this.refresh();
     } else {
       this.render();
@@ -175,7 +188,51 @@ class CopilotPace implements vscode.Disposable {
     this.timer = setTimeout(() => { void this.refresh(); }, Math.min(delay, 2_147_483_647));
     this.timer.unref();
   }
-  get model(): ViewModel { return createViewModel(this.service.current, this.clock, this.dayMode, this.demo, this.scenario, this.service.nextAllowedAt, this.language); }
+  private observe(state: ServiceState) {
+    const key = !this.demo && state.account ? historyIdentity(this.connection.provider,
+      this.connection.provider === 'github' ? 'https://github.com' : this.connection.origins[0] ?? '', state.account.id) : '';
+    if (key !== this.historyKey) {
+      this.historyKey = key;
+      this.history = [];
+      this.historyFailed = false;
+      this.lastObservation = undefined;
+      if (key && this.historyStore) {
+        void this.historyStore.read(key, this.clock.now().getTime()).then(items => {
+          if (this.disposed || this.historyKey !== key) return;
+          // A refresh may have completed while storage was being read.
+          this.history = retainObservations([...items, ...this.history], this.clock.now().getTime());
+          this.render();
+        }).catch(() => {
+          if (!this.disposed && this.historyKey === key) {
+            this.historyFailed = true;
+            this.render();
+          }
+        });
+      }
+    }
+    if (!key || state.phase !== 'ready' || !state.snapshot || state.snapshot === this.lastObservation) return;
+    this.lastObservation = state.snapshot;
+    const item = observation(state.snapshot);
+    if (!item) return;
+    this.history = retainObservations([...this.history, item], this.clock.now().getTime());
+    if (this.historyStore) {
+      void this.historyStore.append(key, item).then(items => {
+        if (this.disposed || this.historyKey !== key) return;
+        this.history = retainObservations([...items, ...this.history], this.clock.now().getTime());
+        this.historyFailed = false;
+        this.render();
+      }).catch(() => {
+        if (!this.disposed && this.historyKey === key) {
+          this.historyFailed = true;
+          this.render();
+        }
+      });
+    }
+  }
+  get model(): ViewModel {
+    return createViewModel(this.service.current, this.clock, this.dayMode, this.demo, this.scenario,
+      this.service.nextAllowedAt, this.language, { statusStyle: this.statusStyle, history: this.history, historyFailed: this.historyFailed });
+  }
   private render() {
     if (this.disposed) return;
     const model = this.model;
@@ -187,7 +244,7 @@ class CopilotPace implements vscode.Disposable {
     // Native Markdown sanitizes this HTML; renderHover only adds a fixed theme-colored status span.
     tooltip.supportHtml = true;
     this.status.tooltip = tooltip;
-    this.status.accessibilityInformation = { label: `Copilot Pace: ${model.statusText}` };
+    this.status.accessibilityInformation = { label: `Copilot Pace: ${model.statusDescription}` };
     if (this.panel) void this.panel.webview.postMessage({ type: 'state', model });
   }
   private showDetails() {
@@ -229,6 +286,8 @@ class CopilotPace implements vscode.Disposable {
       await this.updateConfig('dayMode', data.value);
     } else if (data.action === 'language' && (data.value === 'en' || data.value === 'es-ES')) {
       await this.updateConfig('language', data.value);
+    } else if (data.action === 'statusStyle' && typeof data.value === 'string' && resolveStatusStyle(data.value) === data.value) {
+      await this.updateConfig('statusStyle', data.value);
     }
   }
   get testApi(): TestApi {

@@ -109,6 +109,24 @@
           "default": 15,
           "scope": "application",
           "description": "Usage refresh interval, in minutes."
+        },
+        "copilotPace.statusStyle": {
+          "type": "string",
+          "enum": [
+            "text",
+            "compact",
+            "bar",
+            "dots"
+          ],
+          "enumDescriptions": [
+            "Used percentage and pace label",
+            "Copilot icon and used percentage",
+            "Segmented usage bar and percentage",
+            "Usage dots and percentage"
+          ],
+          "default": "text",
+          "scope": "application",
+          "description": "Appearance of the status bar indicator. Colors continue to follow projected pace; failures remain visible in every style."
         }
       }
     }

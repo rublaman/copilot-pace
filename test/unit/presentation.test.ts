@@ -7,25 +7,107 @@ import { createViewModel, renderHtml, renderHover, hoverCommands, type ViewModel
 import { QuotaService } from '../../src/service';
 import { SafeError } from '../../src/transport';
 
+interface PanelElement {
+  textContent: string; value: string; hidden?: boolean; disabled?: boolean;
+  attributes: Map<string, string>; children: PanelElement[];
+  setAttribute(key: string, value: string): void;
+  addEventListener(event: string, listener: (event: { target: { value: string } }) => void): void;
+  appendChild(child: PanelElement): void; replaceChildren(): void; click(): void; change(value: string): void;
+}
+
+function panelElement(): PanelElement {
+  const attributes = new Map<string, string>();
+  const listeners = new Map<string, (event: { target: { value: string } }) => void>();
+  return {
+    textContent: '', value: '', attributes, children: [],
+    setAttribute: (key, value) => { attributes.set(key, value); },
+    addEventListener: (event, listener) => { listeners.set(event, listener); },
+    appendChild(child) { this.children.push(child); },
+    replaceChildren() { this.children = []; },
+    click: () => listeners.get('click')?.({ target: { value: '' } }),
+    change: value => listeners.get('change')?.({ target: { value } }),
+  };
+}
+
 function panelElements(model: ViewModel, updates: ViewModel[] = [], messages: unknown[] = []) {
-  const elements = new Map<string, { textContent: string; hidden?: boolean; disabled?: boolean; attributes: Map<string, string>; setAttribute(key: string, value: string): void; addEventListener(event: string, listener: () => void): void; click(): void }>();
+  const elements = new Map<string, PanelElement>();
   const html = renderHtml(model, 'safe-nonce');
   for (const [, id] of html.matchAll(/id="([\w]+)"/g)) {
-    const attributes = new Map<string, string>();
-    const listeners = new Map<string, () => void>();
-    elements.set(id!, { textContent: '', attributes, setAttribute: (key, value) => { attributes.set(key, value); }, addEventListener: (event, listener) => { listeners.set(event, listener); }, click: () => listeners.get('click')?.() });
+    elements.set(id!, panelElement());
   }
   const script = html.match(/<script nonce="safe-nonce">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script);
   let update!: (event: { data: { type: string; model: ViewModel } }) => void;
   runInNewContext(script, {
     acquireVsCodeApi: () => ({ postMessage: (message: unknown) => messages.push(message) }),
-    document: { getElementById: (id: string) => elements.get(id) },
+    document: { getElementById: (id: string) => elements.get(id), createElementNS: () => panelElement() },
     window: { addEventListener: (_event: string, listener: typeof update) => { update = listener; } },
   });
   for (const next of updates) update({ data: { type: 'state', model: next } });
   return elements;
 }
+
+describe('Forecast, history and appearance presentation', () => {
+  const snapshot = normalizeQuota(boundedFixture(10000, 6000, demoClock.now()), demoClock.now());
+  it('renders the forecast and hides it when the retained snapshot is stale', () => {
+    const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0);
+    assert.ok(model.depletion.includes('Oct'));
+    assert.equal(model.excess, '2,400 credits');
+    assert.ok(renderHover(model).includes('Estimated exhaustion:'));
+    const stale = createViewModel({ phase: 'error', snapshot }, demoClock, 'all', false, '', 0);
+    assert.equal(stale.depletion, '—');
+    assert.equal(stale.excess, '—');
+  });
+  it('keeps projection, exhaustion and excess anchored to the same observation', () => {
+    const later = { now: () => new Date('2026-10-17T00:00Z') };
+    const first = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0);
+    const reopened = createViewModel({ phase: 'ready', snapshot }, later, 'all', false, '', 0);
+    assert.equal(reopened.projection, first.projection);
+    assert.equal(reopened.depletion, first.depletion);
+    assert.equal(reopened.excess, first.excess);
+  });
+  it('draws observations while leaving offline gaps, budget changes and corrections disconnected', () => {
+    const start = Date.parse('2026-10-01T00:00Z');
+    const end = Date.parse('2026-11-01T00:00Z');
+    const base = Date.parse('2026-10-12T00:00Z');
+    const history = [
+      { at: base, used: 100, total: 10000, start, end },
+      { at: base + 3600000, used: 120, total: 10000, start, end },
+      { at: base + 7200000, used: 110, total: 10000, start, end },
+      { at: base + 10800000, used: 130, total: 12000, start, end },
+      { at: base + 86400000, used: 140, total: 12000, start, end },
+      { at: base, used: 100, start: 0, end: 1 },
+    ];
+    const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'en', { statusStyle: 'bar', history });
+    assert.deepEqual(model.history.map(point => point.connect), [false, true, false, false, false]);
+    const elements = panelElements(model);
+    assert.equal(elements.get('historyPlot')?.hidden, false);
+    assert.equal(elements.get('historyPoints')?.children.length, 6);
+    assert.equal(elements.get('historyPoints')?.children[0]?.children[0]?.textContent, model.history[0]?.label);
+    assert.ok(elements.get('historyBudget')?.attributes.get('d')?.startsWith('M32 168L'));
+    const empty = createViewModel({ phase: 'disconnected' }, demoClock, 'all', false, '', 0);
+    const updated = panelElements(model, [empty]);
+    assert.equal(updated.get('historyPlot')?.hidden, true);
+    assert.equal(updated.get('historyPoints')?.children.length, 0);
+  });
+  it('uses the weekday calendar for the ideal history line', () => {
+    const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'weekdays', false, '', 0);
+    assert.equal(model.historyBudget[2]?.y, model.historyBudget[3]?.y);
+    assert.equal(model.historyBudget[3]?.y, model.historyBudget[4]?.y);
+    assert.notEqual(model.historyBudget[4]?.y, model.historyBudget[5]?.y);
+  });
+  it('localizes appearance controls, sends the selected style and reports storage errors', () => {
+    const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'es-ES', { statusStyle: 'dots', historyFailed: true });
+    const messages: unknown[] = [];
+    const elements = panelElements(model, [], messages);
+    assert.equal(elements.get('statusStyle')?.value, 'dots');
+    assert.equal(elements.get('styleBar')?.textContent, 'Barra segmentada');
+    assert.equal(elements.get('historyMessage')?.textContent, model.text.historyError);
+    elements.get('statusStyle')?.change('bar');
+    assert.equal(JSON.stringify(messages.at(-1)), JSON.stringify({ action: 'statusStyle', value: 'bar' }));
+    assert.equal(model.statusDescription, '60% · Ritmo excesivo');
+  });
+});
 
 describe('Presentation and demo scenarios', () => {
   const snapshot = normalizeQuota(boundedFixture(10000, 4000, demoClock.now()), demoClock.now());

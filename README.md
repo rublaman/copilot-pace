@@ -13,9 +13,10 @@ Copilot Pace is a VS Code extension that displays GitHub Copilot credit usage an
 
 ## Usage
 
-- **Status bar:** percentage of budget used and projected pace.
+- **Status bar:** percentage and pace, compact icon, segmented bar or dots, with colors based on projected pace.
 - **Hover:** selected account, remaining credits, daily allowance, projection and last update.
-- **Detail panel:** usage and cycle progress, daily average and allowance, renewal date and account controls.
+- **Detail panel:** usage and cycle progress, daily average and allowance, estimated exhaustion, projected excess, renewal date and account controls.
+- **Local history:** a chart of observed cumulative credits against the cycle's budget pace, separated by account and server.
 - **Calendar:** Every day or Mon–Fri, without a public holiday calendar.
 - **Language:** English by default; Spanish (Spain) is available in the detail panel.
 - **Refresh:** every 15 minutes by default, or manually from the panel or Command Palette.
@@ -82,6 +83,8 @@ The panel also offers **Refresh usage** and the appropriate account action. **Ev
 
 Use **Spanish** in the detail panel's header to switch to Spanish (Spain), and **Inglés** to switch back. The saved preference is independent of VS Code's display language. Text, numbers and dates update immediately; calculations continue to use UTC.
 
+Choose **Status bar appearance** at the bottom of the panel to switch between **Percentage and pace**, **Compact**, **Segmented bar** and **Dots**. These change the indicator you hover over, while its hover retains the usage details. Colors continue to follow projected pace. Errors and pending estimates remain visible in every style.
+
 ## How the estimate works
 
 All amounts represent **credits**. The budget and used percentage come from GitHub's Copilot quota snapshot; Copilot Pace does not guess your budget from a plan name.
@@ -92,10 +95,20 @@ All amounts represent **credits**. The budget and used percentage come from GitH
 | **Available per day** | Remaining credits ÷ eligible days left |
 | **Cycle baseline** | Budget ÷ eligible days in the cycle |
 | **Projected at renewal** | Used credits + daily average × eligible days left |
+| **Estimated exhaustion** | Last observation + remaining credits ÷ observed daily average, skipping weekends in Mon–Fri mode |
+| **Projected over budget** | Projected credits minus budget, with a minimum of zero |
 
 Calculations use **UTC**, include partial days and require a known budget and a recognized monthly cycle. **Mon–Fri** excludes Saturdays and Sundays, without a public holiday calendar. Before one eligible day has elapsed, the extension shows **Calculating pace**.
 
 **Daily allowance** in the hover is the panel's **Available per day**: remaining credits divided by eligible days left. The source provides monthly totals, so Pace cannot show today's consumption.
+
+The exhaustion estimate uses the cycle average at the last successful observation. It shows **Not before renewal at this pace** when the budget is expected to last, and **Budget already exhausted** when no credits remain. Exhaustion and excess estimates are hidden after a failed refresh. Projected excess is a credit shortfall, not a bill or permission to spend more.
+
+### Observed usage history
+
+Pace saves successful quota observations in its local extension storage and displays the current account's current cycle. The chart shows cumulative credits, with a dashed budget-pace line that follows the selected calendar. Points include their observation time and credit amount. Gaps longer than two hours, downward corrections and budget changes are not connected.
+
+History starts when Pace observes usage; it cannot reconstruct earlier days or attribute consumption to models or projects. An observation can reflect use from other devices because it comes from the account total. Daily journals are separated by authentication provider, server and account, and expired journals are removed after 90 days when history is accessed. Demo data is never saved. Storage errors are shown in the panel and do not prevent quota refreshes.
 
 ## Settings
 
@@ -106,6 +119,7 @@ Search for **Copilot Pace** in VS Code Settings, or edit these application-level
 | `copilotPace.authProvider` | `"auto"` | `"auto"` follows Copilot; `"github"` uses GitHub.com; `"github-enterprise"` uses the configured corporate instance |
 | `copilotPace.language` | `"en"` | `"en"` for English; `"es-ES"` for Spanish (Spain) |
 | `copilotPace.dayMode` | `"all"` | `"all"` for every day; `"weekdays"` for Monday–Friday |
+| `copilotPace.statusStyle` | `"text"` | `"text"`, `"compact"`, `"bar"` or `"dots"` |
 | `copilotPace.pollIntervalMinutes` | `15` | Automatic refresh interval, from 5 to 120 minutes |
 
 ```json
@@ -121,6 +135,7 @@ Search for **Copilot Pace** in VS Code Settings, or edit these application-level
 - Authentication stays with VS Code's built-in GitHub or GitHub Enterprise provider, using the `read:user` scope.
 - Usage requests go directly to GitHub over HTTPS with TLS verification.
 - The extension does not read workspace files or conversations, send telemetry, or log tokens or complete response bodies.
+- Local history stores observation times, credit amounts, known budgets and cycle boundaries under a hashed account/server key. It contains no account labels, credentials, prompts or responses and is not sent by Pace to another service.
 
 ## Compatibility
 

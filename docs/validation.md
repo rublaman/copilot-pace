@@ -2,6 +2,20 @@
 
 Validation records identify the tested source, artifact, environment and scope. Local checks, CI and maintainer-reported account acceptance are recorded separately.
 
+## Forecast, history and status styles: October 21, 2026
+
+Local checks on `feature/usage-history-status-styles`, based on `develop` at `ecf9b2ef06dd4d7c55d807b837c0a23bbc5bf1f6`:
+
+- Windows 11, standalone Node 26.11.1 and npm 11.20.0.
+- `npm run check`: lint/types, 245 unit/service/activation tests and 8 release-script regressions passed. New coverage includes UTC weekday exhaustion, observation-anchored forecasts, history restoration/concurrent writers/account isolation, missing intervals/corrections, and validated status-style messages.
+- `npm run test:integration`: 19 tests passed on each of VS Code 1.120.0 and 1.141.0, including actual status item updates and persisted appearance settings.
+- `npm run test:package`: 8 installed-production tests passed in an isolated VS Code 1.141.0 profile; package contents and demo exclusion were inspected.
+- Local candidate: `dist/copilot-pace-1.2.1.vsix`, SHA-256 `4f1c2f71ea5980f0361eaf6ef999cf88021dc480d2579af5fd2bae39fc427b5f`. This working-tree build retains the existing manifest version and is not a published release artifact.
+- `npm audit`: zero vulnerabilities. Documentation links and `git diff --check` passed.
+- Browser preview: the generated panel was inspected with illustrative observations in English/dark and Spanish/light at a 360-pixel content width. Language, weekday and appearance controls were exercised. This preview does not validate actual GitHub quotas or constitute real-account acceptance.
+
+Remote CI belongs to the feature PR's exact head revision. No new personal/corporate account or network acceptance was performed for these features; the previous distributed 1.2.1 release and its artifacts remain unchanged.
+
 ## GitHub.com and GHE acceptance: October 19, 2026
 
 - Maintainer report: the distributed 1.2.0 pilot was validated in both environments and works correctly. This is real-environment acceptance reported by the maintainer, separate from the earlier synthetic connection fixtures.

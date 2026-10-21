@@ -2,10 +2,14 @@ import * as assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { runInNewContext } from 'node:vm';
 import type * as vscode from 'vscode';
 import type { activate, TestApi } from '../../src/extension';
 import { boundedFixture } from '../../src/mocks';
+import { HistoryStore, historyIdentity } from '../../src/history';
 
 const loadNodeModule = createRequire(__filename);
 const settle = () => new Promise<void>(resolve => setImmediate(resolve));
@@ -19,6 +23,7 @@ function harness(initial: Record<string, unknown> = {}, options: {
   authenticate?: (provider: string, options: vscode.AuthenticationGetSessionOptions) => Promise<vscode.AuthenticationSession | undefined>;
   pendingNetwork?: boolean;
   pluralSupported?: boolean;
+  storageDirectory?: string;
 } = {}) {
   const settings = { ...initial };
   const configurationListeners: Array<(event: vscode.ConfigurationChangeEvent) => void> = [];
@@ -117,7 +122,10 @@ function harness(initial: Record<string, unknown> = {}, options: {
       return request;
     },
   };
-  const context = { extensionMode: 3, extensionUri: new URL('file:///extension/'), subscriptions: [] as vscode.Disposable[] };
+  const context = {
+    extensionMode: 3, extensionUri: new URL('file:///extension/'), subscriptions: [] as vscode.Disposable[],
+    globalStorageUri: options.storageDirectory ? { fsPath: options.storageDirectory } : undefined,
+  };
   const module = { exports: {} as { activate: typeof activate } };
   runInNewContext(readFileSync('out/development/dist/extension.js', 'utf8'), {
     module, exports: module.exports,
@@ -140,6 +148,37 @@ function harness(initial: Record<string, unknown> = {}, options: {
 }
 
 describe('Connection integration with native VS Code services', () => {
+  it('persists accepted account observations and restores them across extension activations', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'copilot-pace-activation-history-'));
+    const key = historyIdentity('github', 'https://github.com', 'same-account-id');
+    const store = new HistoryStore(directory);
+    const first = harness({}, { storageDirectory: directory });
+    let second: ReturnType<typeof harness> | undefined;
+    try {
+      const deadline = Date.now() + 5000;
+      while ((await store.read(key, Date.now())).length === 0) {
+        assert.ok(Date.now() < deadline, 'Accepted observation was not persisted');
+        await settle();
+      }
+      const saved = await store.read(key, Date.now());
+      assert.equal(saved.length, 1);
+      first.dispose();
+      second = harness({}, { storageDirectory: directory, pendingNetwork: true });
+      await settle();
+      second.completeRequest(0);
+      while ((await store.read(key, Date.now())).length < 2) {
+        assert.ok(Date.now() < deadline, 'Second activation did not retain the first observation');
+        await settle();
+      }
+      const restored = await store.read(key, Date.now());
+      assert.ok(restored.some(item => item.at === saved[0]!.at));
+      assert.ok(second.api.getModel().history.length >= 1);
+    } finally {
+      first.dispose();
+      second?.dispose();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
   for (const plan of ['personal', 'Business']) {
     it(`preserves normal ${plan} login and quota requests without an extra picker`, async () => {
       const host = harness({}, { authenticate: async () => session(plan) });
@@ -378,6 +417,7 @@ describe('Connection integration with native VS Code services', () => {
         assert.equal(host.api.getState().account, undefined);
         assert.equal(host.api.getState().updatedAt, undefined);
         assert.equal(host.api.getModel().accountLabel, '');
+        assert.equal(host.api.getModel().history.length, 0);
         assert.equal(host.api.getModel().used, '—');
         assert.equal(host.requests[1]?.signal.aborted, true);
         await refresh;
@@ -427,16 +467,19 @@ describe('Connection integration with native VS Code services', () => {
       host.completeRequest(0);
       await settle();
       assert.equal(host.api.getModel().accountLabel, 'personal');
+      assert.equal(host.api.getModel().history.length, 1);
       selected = 'Business';
       host.sessionChanged('github');
       assert.equal(host.api.getState().snapshot, undefined);
       assert.equal(host.api.getState().account, undefined);
+      assert.equal(host.api.getModel().history.length, 0);
       await settle();
       assert.equal(host.api.getModel().accountLabel, 'Business');
       assert.equal(host.api.getState().snapshot, undefined);
       host.completeRequest(1);
       await settle();
       assert.equal(host.api.getState().phase, 'ready');
+      assert.equal(host.api.getModel().history.length, 1);
       assert.ok(host.authCalls.every(call => call.provider === 'github' && call.options.silent));
     } finally { host.dispose(); }
   });

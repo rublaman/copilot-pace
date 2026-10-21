@@ -237,6 +237,10 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     background: var(--surface);
   }
 
+  .forecast-metrics {
+    margin-top: 12px;
+  }
+
   .forecast span {
     font-size: 12px;
     color: var(--muted);
@@ -278,6 +282,60 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
   button:focus-visible {
     outline: 2px solid var(--vscode-focusBorder);
     outline-offset: 2px;
+  }
+
+  select {
+    font: inherit;
+    color: var(--vscode-dropdown-foreground);
+    background: var(--vscode-dropdown-background);
+    border: 1px solid var(--vscode-dropdown-border,var(--line));
+    border-radius: 4px;
+    padding: 6px 10px;
+    max-width: 100%;
+  }
+
+  select:focus-visible {
+    outline: 2px solid var(--vscode-focusBorder);
+  }
+
+  .appearance {
+    margin-top: 18px;
+    font-size: 12px;
+  }
+
+  .appearance label {
+    color: var(--muted);
+  }
+
+  #historyChart {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+
+  .chart-axis {
+    fill: none;
+    stroke: var(--line);
+  }
+
+  #historyBudget {
+    fill: none;
+    stroke: var(--muted);
+    stroke-dasharray: 5 5;
+  }
+
+  #historyPoints {
+    fill: var(--accent);
+    stroke: var(--accent);
+  }
+
+  .chart-labels {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--muted);
   }
 
   button:disabled {
@@ -522,7 +580,34 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
       <span id="projectionLabel"></span>
       <strong id="projection"></strong>
     </div>
+    <div class="metrics forecast-metrics">
+      <div class="metric">
+        <span id="depletionHeading"></span>
+        <strong id="depletion"></strong>
+      </div>
+      <div class="metric">
+        <span id="excessHeading"></span>
+        <strong id="excess"></strong>
+      </div>
+    </div>
+    <p id="forecastHint" class="explanation"></p>
     <p class="explanation"><span id="baselinePrefix"></span> <span id="baseRate"></span>. <span id="calendarNote"></span></p>
+  </section>
+
+  <section aria-labelledby="historyHeading">
+    <div class="section-head">
+      <h2 id="historyHeading"></h2>
+      <span id="historyMaximum"></span>
+    </div>
+    <div id="historyPlot">
+    <svg id="historyChart" viewBox="0 0 584 192" role="img">
+      <path class="chart-axis" d="M32 24V168H552"></path>
+      <path id="historyBudget"></path>
+      <g id="historyPoints"></g>
+    </svg>
+    <div class="chart-labels"><span id="historyStart"></span><span id="historyEnd"></span></div>
+    </div>
+    <p id="historyMessage" class="explanation" role="status"></p>
   </section>
 
   <footer>
@@ -534,6 +619,15 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     <div class="controls">
       <button id="refresh"></button>
       <button id="connect"></button>
+    </div>
+    <div class="controls appearance">
+      <label id="statusStyleLabel" for="statusStyle"></label>
+      <select id="statusStyle">
+        <option id="styleText" value="text"></option>
+        <option id="styleCompact" value="compact"></option>
+        <option id="styleBar" value="bar"></option>
+        <option id="styleDots" value="dots"></option>
+      </select>
     </div>
     <p id="retry"></p>
     ${__DEV__ ? '<p id="demoNote"></p>' : ''}
@@ -553,6 +647,8 @@ function show(model) {
     'averageHeading', 'averageHint', 'allowanceHeading', 'allowanceHint',
     'projectionLabel', 'baselinePrefix', 'calendarNote', 'accountHeading',
     'renewalHeading', 'updatedHeading', 'refresh',
+    'depletionHeading', 'excessHeading', 'forecastHint', 'historyHeading',
+    'statusStyleLabel', 'styleText', 'styleCompact', 'styleBar', 'styleDots',
   ];
   for (const id of labelIds) {
     document.getElementById(id).textContent = model.text[id];
@@ -565,9 +661,35 @@ function show(model) {
     'summary', 'message', 'used', 'total', 'percentage', 'remaining', 'renewal',
     'dailyAverage', 'allowance', 'projection', 'updated', 'retry',
     'cycleProgress', 'daysLeft', 'period', 'baseRate', 'accountLabel',
+    'depletion', 'excess', 'historyMaximum', 'historyStart', 'historyEnd', 'historyMessage',
   ];
   for (const id of valueIds) {
     document.getElementById(id).textContent = model[id];
+  }
+  document.getElementById('statusStyle').value = model.statusStyle;
+  const chart = document.getElementById('historyChart');
+  document.getElementById('historyPlot').hidden = model.history.length === 0;
+  chart.setAttribute('aria-label', model.text.historyAria);
+  document.getElementById('historyBudget').setAttribute('d', model.historyBudget.map((point, index) => (index === 0 ? 'M' : 'L') + point.x + ' ' + point.y).join(''));
+  const points = document.getElementById('historyPoints');
+  points.replaceChildren();
+  for (let index = 0; index < model.history.length; index++) {
+    const point = model.history[index];
+    const previous = model.history[index - 1];
+    if (point.connect && previous) {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      line.setAttribute('d', 'M' + previous.x + ' ' + previous.y + 'L' + point.x + ' ' + point.y);
+      line.setAttribute('fill', 'none');
+      points.appendChild(line);
+    }
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', String(point.x));
+    dot.setAttribute('cy', String(point.y));
+    dot.setAttribute('r', '2.5');
+    const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+    title.textContent = point.label;
+    dot.appendChild(title);
+    points.appendChild(dot);
   }
   ${__DEV__ ? `document.getElementById('demo').hidden = !model.demo;
   const note = document.getElementById('demoNote');
@@ -602,6 +724,9 @@ document.getElementById('refresh').addEventListener('click', () => vscode.postMe
 document.getElementById('connect').addEventListener('click', () => vscode.postMessage({ action: 'connect' }));
 document.getElementById('language').addEventListener('click', () => {
   vscode.postMessage({ action: 'language', value: currentLanguage === 'en' ? 'es-ES' : 'en' });
+});
+document.getElementById('statusStyle').addEventListener('change', event => {
+  vscode.postMessage({ action: 'statusStyle', value: event.target.value });
 });
 for (const mode of ['all', 'weekdays']) {
   document.getElementById(mode).addEventListener('click', () => vscode.postMessage({ action: 'dayMode', value: mode }));

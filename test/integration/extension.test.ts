@@ -5,7 +5,7 @@ import { scenarioLabels, type MockScenario } from '../../src/mocks';
 
 let api: TestApi;
 const original = new Map<string, unknown>();
-const keys = ['dataSource', 'mockScenario', 'dayMode', 'pollIntervalMinutes', 'language', 'authProvider'];
+const keys = ['dataSource', 'mockScenario', 'dayMode', 'pollIntervalMinutes', 'language', 'authProvider', 'statusStyle'];
 async function waitFor(check: () => boolean) {
   const end = Date.now() + 5000;
   while (!check()) {
@@ -35,6 +35,7 @@ describe('Copilot Pace in the Extension Development Host', () => {
     const config = vscode.workspace.getConfiguration('copilotPace');
     for (const key of keys) original.set(key, config.inspect(key)?.globalValue);
     await config.update('language', 'en', vscode.ConfigurationTarget.Global);
+    await config.update('statusStyle', 'text', vscode.ConfigurationTarget.Global);
     await config.update('mockScenario', '10000-comfortable', vscode.ConfigurationTarget.Global);
     await config.update('dayMode', 'all', vscode.ConfigurationTarget.Global);
     await config.update('dataSource', 'mock', vscode.ConfigurationTarget.Global);
@@ -51,6 +52,23 @@ describe('Copilot Pace in the Extension Development Host', () => {
     assert.equal(api.getStatus().alignment, vscode.StatusBarAlignment.Right);
     assert.equal(api.getStatus().priority, 100.05);
     assertCurrentPace(40);
+  });
+  it('changes the actual status bar appearance from panel actions and validates values', async () => {
+    try {
+      for (const [style, prefix] of [['compact', '$(github-copilot)'], ['bar', '▰'], ['dots', '●']] as const) {
+        await api.receiveMessage({ action: 'statusStyle', value: style });
+        assert.equal(api.getModel().statusStyle, style);
+        assert.equal(vscode.workspace.getConfiguration('copilotPace').get('statusStyle'), style);
+        assert.ok(api.getStatus().text.startsWith(prefix));
+        assert.ok(api.getStatus().text.includes('40%'));
+      }
+      await api.receiveMessage({ action: 'statusStyle', value: 'invalid' });
+      assert.equal(api.getModel().statusStyle, 'dots');
+      assert.equal(api.getModel().history.length, 0);
+      assert.ok(api.getModel().historyMessage.includes('Demo'));
+    } finally {
+      await api.receiveMessage({ action: 'statusStyle', value: 'text' });
+    }
   });
   for (const [name, used, percentage] of [['10000-one-credit', 1, 0.01], ['10000-two-credits', 2, 0.02]] as const) {
     it(`shows <0.1% for ${used} credit(s) out of 10000 before hovering`, async () => {

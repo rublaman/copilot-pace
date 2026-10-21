@@ -1,5 +1,7 @@
 import { Buffer } from 'node:buffer';
-import { calculatePace, equivalentDays, type Clock, type DayMode } from './domain';
+import { calculateForecast, calculatePace, equivalentDays, type Clock, type DayMode } from './domain';
+import { statusText, type StatusStyle } from './status';
+import type { Observation } from './history';
 import { getStrings, type Language, type Strings } from './i18n';
 import { localizeDemoScenario } from './development';
 import type { ServiceState } from './service';
@@ -35,8 +37,15 @@ export interface ViewModel {
   cycleProgress: string; daysLeft: string; period: string; forecastNote: string;
   usageValue: number | null; cycleValue: number | null;
   accountLabel: string; connectLabel: string;
+  statusStyle: StatusStyle; statusDescription: string;
+  depletion: string; excess: string;
+  history: Array<{ x: number; y: number; connect: boolean; label: string }>;
+  historyMaximum: string; historyStart: string; historyEnd: string; historyBudget: Array<{ x: number; y: number }>;
+  historyMessage: string;
 }
-export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayMode, demo: boolean, scenario: string, retryAt: number, language: Language = 'en'): ViewModel {
+export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayMode, demo: boolean, scenario: string, retryAt: number, language: Language = 'en',
+  options: { statusStyle?: StatusStyle; history?: readonly Observation[]; historyFailed?: boolean } = {}): ViewModel {
+  const { statusStyle: style = 'text', history = [], historyFailed = false } = options;
   const text = getStrings(language);
   const formatter = formatters[language];
   const amount = (value: number) => formatter.number.format(value);
@@ -44,7 +53,8 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
   const date = (value: number) => formatter.date.format(value) + ' UTC';
   const snapshot = state.snapshot;
   const now = clock.now();
-  const pace = snapshot ? calculatePace(snapshot, now, dayMode) : undefined;
+  const observedAt = snapshot?.cycle && now.getTime() < snapshot.cycle.end ? new Date(Math.min(now.getTime(), snapshot.asOf)) : now;
+  const pace = snapshot ? calculatePace(snapshot, observedAt, dayMode) : undefined;
   const pacePresentation = pace?.kind === 'available' ? {
     Comfortable: { summary: text.comfortable, tone: 'good' as const, note: text.comfortableNote },
     'On track': { summary: text.onTrack, tone: 'watch' as const, note: text.onTrackNote },
@@ -81,9 +91,48 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
   const message = state.failure ? failureMessage(state.failure, language, text)
     : quotaReason ?? (state.phase === 'disconnected' ? text.connectNote : forecastNote);
   const reconnect = state.failure?.code === 'unauthorized' || (state.failure?.code === 'auth' && state.account !== undefined);
+  const forecast = snapshot && state.phase === 'ready' ? calculateForecast(snapshot, now, dayMode) : undefined;
+  let depletion = '—';
+  let excess = '—';
+  if (forecast?.kind === 'available') {
+    if (forecast.exhausted) depletion = text.budgetExhausted;
+    else if (forecast.exhaustionAt !== undefined) depletion = date(forecast.exhaustionAt);
+    else depletion = text.notBeforeRenewal;
+    excess = `${amount(forecast.excess)} ${text.credits}`;
+  }
+  if (state.phase === 'ready' && validCycle && snapshot?.kind === 'bounded' && snapshot.used >= snapshot.total) depletion = text.budgetExhausted;
+  const observations = validCycle ? history.filter(item => item.start === cycle.start && item.end === cycle.end && item.at <= now.getTime()) : [];
+  let historyMessage = text.historyNote;
+  if (demo) historyMessage = text.historyDemo;
+  else if (historyFailed) historyMessage = text.historyError;
+  else if (observations.length === 0) historyMessage = text.historyEmpty;
+  const maximum = Math.max(1, snapshot?.kind === 'bounded' ? snapshot.total : 0, ...observations.map(item => item.used));
+  const points = observations.map((item, index) => {
+    const previous = observations[index - 1];
+    return {
+      x: 32 + (item.at - item.start) / (item.end - item.start) * 520,
+      y: 168 - item.used / maximum * 144,
+      connect: !!previous && item.at - previous.at <= 2 * 60 * 60_000 && item.used >= previous.used && item.total === previous.total,
+      label: `${date(item.at)} · ${amount(item.used)} ${text.credits}`,
+    };
+  });
+  const budget: Array<{ x: number; y: number }> = [];
+  if (snapshot?.kind === 'bounded' && validCycle && totalDays > 0) {
+    for (let cursor = cycle.start; cursor <= cycle.end; cursor += 86_400_000) {
+      budget.push({
+        x: 32 + (cursor - cycle.start) / (cycle.end - cycle.start) * 520,
+        y: 168 - snapshot.total / maximum * equivalentDays(cycle.start, cursor, dayMode) / totalDays * 144,
+      });
+    }
+  }
   return {
     language, text,
-    statusText: `${snapshot?.kind === 'bounded' ? `${percentage} · ` : ''}${summary}${demo ? ' · Demo' : ''}`,
+    statusText: statusText(style, percentage, snapshot?.kind === 'bounded' ? snapshot.usedPercent : null, summary, tone === 'neutral', demo),
+    statusDescription: `${percentage} · ${summary}`, statusStyle: style, depletion, excess,
+    history: points, historyMaximum: `${amount(maximum)} ${text.credits}`,
+    historyStart: validCycle ? date(cycle.start) : '', historyEnd: validCycle ? date(cycle.end) : '',
+    historyBudget: budget,
+    historyMessage,
     summary, tone, message, demo, scenario: __DEV__ ? localizeDemoScenario(scenario, language) : scenario, forecastNote,
     used: snapshot && snapshot.kind !== 'unavailable' ? `${amount(snapshot.used)} ${text.credits}` : '—',
     total: snapshot?.kind === 'bounded' ? `${amount(snapshot.total)} ${text.credits}` : '—',
@@ -134,6 +183,7 @@ export function renderHover(model: ViewModel): string {
     '', row(`${label.remainingHover}: **${text(model.remaining)}**`),
     ...(model.allowance !== '—' ? [row(`${label.allowanceHover}: **${text(model.allowance)}** · ${model.dayMode === 'weekdays' ? label.allowanceCalendarWeekdays : label.allowanceCalendarAll}`)] : []),
     row(`${label.projectionLabel}: **${text(model.projection)}**`),
+    ...(model.depletion !== '—' ? [row(`${label.depletionHeading}: **${text(model.depletion)}**`), row(`${label.excessHeading}: **${text(model.excess)}**`)] : []),
     row(`${label.updatedHover} ${text(model.updated)}`),
   ];
   if (__DEV__ && model.demo) lines.push('', row(`$(beaker) ${label.simulatedData} · ${text(model.referenceDate)}`));
