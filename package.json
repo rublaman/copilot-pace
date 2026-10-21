@@ -145,18 +145,16 @@
         "copilotPace.chartStyle": {
           "type": "string",
           "enum": [
-            "area",
             "line",
             "columns"
           ],
           "enumDescriptions": [
-            "Gradient area with observed points and gaps",
-            "Cumulative usage line with observed points and gaps",
-            "Last observed cumulative balance per UTC day"
+            "Usage line with observed points and gaps",
+            "Credits per UTC day, daily or cumulative according to the selected metric"
           ],
-          "default": "area",
+          "default": "line",
           "scope": "application",
-          "description": "Chart style for locally observed cumulative credit usage."
+          "description": "Chart style for daily or cumulative credit usage."
         }
       }
     }

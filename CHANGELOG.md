@@ -4,6 +4,11 @@ Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0 and 1.3.0 are 
 
 ## [Unreleased]
 
+- Label chart budget targets and daily weekend transitions with short UTC dates.
+- Keep Line and Columns chart styles; existing Gradient area preferences display as Line.
+- Explain projected usage at renewal and show total used credits in the status hover.
+- Show the observed-usage journal path in Customization and open the active account's latest file.
+
 ## [1.3.0] - 2026-10-21
 
 - Add estimated credit exhaustion and projected excess over the cycle budget.

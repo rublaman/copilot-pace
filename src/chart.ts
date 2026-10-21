@@ -1,4 +1,4 @@
-export type ChartStyle = 'area' | 'line' | 'columns';
+export type ChartStyle = 'line' | 'columns';
 export type ChartMetric = 'cumulative' | 'daily';
 export type ChartTone = 'good' | 'over' | 'neutral';
 
@@ -12,5 +12,5 @@ export function resolveChartMetric(value: unknown): ChartMetric {
 }
 
 export function resolveChartStyle(value: unknown): ChartStyle {
-  return value === 'line' || value === 'columns' ? value : 'area';
+  return value === 'columns' ? value : 'line';
 }

@@ -106,6 +106,8 @@ Tested file: `dist/copilot-pace-0.1.3.vsix`. SHA-256: `cffc2436d81330e836a7665c3
 
 ## Automated coverage
 
+The [chart targets and history access review](reviews/chart-targets/README.md) records the October 21 follow-up, local test artifact and mid-month screenshots for Line/Columns, both calendars, Daily/Cumulative and reported/local fixtures.
+
 The [account switching and sign-out review](security-review.md) records the October 20 source review, regression scenarios and remaining manual account/network checks.
 
 - `npm run check`: lint, strict types, normalization, UTC cycles, pace thresholds, demos, service state, simulated transport, presentation escaping and release-script regressions.

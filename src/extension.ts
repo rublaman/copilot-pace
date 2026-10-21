@@ -36,12 +36,13 @@ class CopilotPace implements vscode.Disposable {
   private dayMode: DayMode = 'all';
   private language: Language = 'en';
   private statusStyle: StatusStyle = 'text';
-  private chartStyle: ChartStyle = 'area';
+  private chartStyle: ChartStyle = 'line';
   private chartMetric: ChartMetric = 'cumulative';
   private readonly historyStore?: HistoryStore;
   private history: Observation[] = [];
   private historyKey = '';
   private historyFailed = false;
+  private historyFile?: string;
   private lastObservation?: object;
   private sourceKey = '';
   private connection = defaultConnection;
@@ -203,6 +204,7 @@ class CopilotPace implements vscode.Disposable {
       this.historyKey = key;
       this.history = [];
       this.historyFailed = false;
+      this.historyFile = undefined;
       this.lastObservation = undefined;
       if (key && this.historyStore) {
         void this.historyStore.read(key, this.clock.now().getTime()).then(items => {
@@ -210,6 +212,7 @@ class CopilotPace implements vscode.Disposable {
           // A refresh may have completed while storage was being read.
           this.history = retainObservations([...items, ...this.history], this.clock.now().getTime());
           this.render();
+          void this.updateHistoryFile(key);
         }).catch(() => {
           if (!this.disposed && this.historyKey === key) {
             this.historyFailed = true;
@@ -229,6 +232,7 @@ class CopilotPace implements vscode.Disposable {
         this.history = retainObservations([...items, ...this.history], this.clock.now().getTime());
         this.historyFailed = false;
         this.render();
+        void this.updateHistoryFile(key);
       }).catch(() => {
         if (!this.disposed && this.historyKey === key) {
           this.historyFailed = true;
@@ -237,11 +241,45 @@ class CopilotPace implements vscode.Disposable {
       });
     }
   }
+  private async updateHistoryFile(key: string) {
+    try {
+      const file = await this.historyStore?.latestFile(key);
+      if (!this.disposed && this.historyKey === key) {
+        this.historyFile = file;
+        this.render();
+      }
+    } catch {
+      if (!this.disposed && this.historyKey === key) {
+        this.historyFile = undefined;
+        this.render();
+      }
+    }
+  }
+  private async openHistory() {
+    if (this.demo || !this.historyKey || !this.historyStore) return;
+    const key = this.historyKey;
+    try {
+      // The panel chooses an action, never a file path or another account's identity.
+      const file = await this.historyStore.latestFile(key);
+      if (this.disposed || this.historyKey !== key) return;
+      if (!file) {
+        this.historyFile = undefined;
+        this.render();
+        void vscode.window.showInformationMessage(getStrings(this.language).historyFileUnavailable);
+        return;
+      }
+      const document = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
+      if (!this.disposed && this.historyKey === key) await vscode.window.showTextDocument(document, { preview: true });
+    } catch {
+      if (!this.disposed && this.historyKey === key) void vscode.window.showErrorMessage(getStrings(this.language).historyFileOpenError);
+    }
+  }
   get model(): ViewModel {
     return createViewModel(this.service.current, this.clock, this.dayMode, this.demo, this.scenario,
       this.service.nextAllowedAt, this.language, {
         statusStyle: this.statusStyle, chartStyle: this.chartStyle, chartMetric: this.chartMetric,
         history: this.history, historyFailed: this.historyFailed,
+        historyDirectory: this.demo ? undefined : this.historyStore?.directory, historyFile: this.historyFile,
       });
   }
   private render() {
@@ -293,6 +331,8 @@ class CopilotPace implements vscode.Disposable {
       await this.refresh();
     } else if (data.action === 'connect') {
       await this.connect();
+    } else if (data.action === 'openHistory') {
+      await this.openHistory();
     } else if (data.action === 'dayMode' && (data.value === 'all' || data.value === 'weekdays')) {
       await this.updateConfig('dayMode', data.value);
     } else if (data.action === 'language' && (data.value === 'en' || data.value === 'es-ES')) {

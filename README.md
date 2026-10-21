@@ -85,9 +85,13 @@ Use **Spanish** in the **Customization** section below the chart to switch to Sp
 
 Choose **Status bar appearance** in the same section to switch between **Percentage and pace**, **Compact**, **Segmented bar** and **Dots**. These change the indicator you hover over, while its hover retains the usage details. Colors continue to follow projected pace. Errors and pending estimates remain visible in every style.
 
-**Usage chart** selects **Gradient area**, **Line** or **Columns**. Use **Cumulative / Daily** above the chart to compare cycle totals or credits consumed per UTC day. In cumulative mode, columns show the last observed account total per day. In daily mode, columns show that day's consumption. The metric and style are saved independently of the status bar appearance.
+**Usage chart** selects **Line** or **Columns**. Existing Gradient area preferences display as Line. Use **Cumulative / Daily** above the chart to compare cycle totals or credits consumed per UTC day. In cumulative mode, columns show the last observed account total per day. In daily mode, columns show that day's consumption. The metric and style are saved independently of the status bar appearance.
 
-Green marks values within the budget pace; red marks values above it. Daily charts compare each day with its calendar-adjusted daily budget. Cumulative charts compare usage with the expected budget at that point in the cycle. Lines and area fills change color where they cross the dashed reference; columns use the color of their total. Without a known budget, the chart stays neutral. Partial values remain partial regardless of their color.
+Green marks values within the budget pace; red marks values above it. Daily charts compare each day with its calendar-adjusted daily budget. Cumulative charts compare usage with the expected budget at that point in the cycle. Lines change color where they cross the dashed reference; columns use the color of their total. Without a known budget, the chart stays neutral. Partial values remain partial regardless of their color.
+
+The dashed reference ends with the cycle budget in Cumulative mode or the average daily limit in Daily mode. Mon–Fri daily charts label the Saturday/Monday transitions with short UTC dates. **Projected at renewal** estimates the total credits used by renewal if your cycle average continues; its explanation appears below the estimate. The status hover also shows total credits used.
+
+Customization shows the local observed-usage path and an **Open file** button. Pace stores separate journals per UTC day and VS Code window; the button opens the most recent file for the active account. Before a journal exists, the storage folder is shown and the button is disabled.
 
 ## How the estimate works
 
@@ -128,7 +132,7 @@ Search for **Copilot Pace** in VS Code Settings, or edit these application-level
 | `copilotPace.language` | `"en"` | `"en"` for English; `"es-ES"` for Spanish (Spain) |
 | `copilotPace.dayMode` | `"all"` | `"all"` for every day; `"weekdays"` for Monday–Friday |
 | `copilotPace.statusStyle` | `"text"` | `"text"`, `"compact"`, `"bar"` or `"dots"` |
-| `copilotPace.chartStyle` | `"area"` | `"area"`, `"line"` or `"columns"` |
+| `copilotPace.chartStyle` | `"line"` | `"line"` or `"columns"` |
 | `copilotPace.chartMetric` | `"cumulative"` | `"cumulative"` or `"daily"`; data-source selection is automatic |
 | `copilotPace.pollIntervalMinutes` | `15` | Automatic refresh interval, from 5 to 120 minutes |
 
