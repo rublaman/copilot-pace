@@ -31,7 +31,7 @@ Choose **Percentage and pace** (default), **Compact**, **Segmented bar** or **Do
   <img src="docs/images/status-modes-hd-dark.gif" width="640" alt="High-resolution comparison of default Percentage and pace, Compact, Segmented bar and Dots above the native tooltip" />
 </p>
 
-*Illustrative data. Each mode is shown for four seconds. [Open the full-resolution GIF](docs/images/status-modes-hd-dark.gif).*
+*Illustrative data. Each mode is shown for three seconds. [Open the full-resolution GIF](docs/images/status-modes-hd-dark.gif).*
 
 ## Detail panel
 

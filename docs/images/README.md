@@ -2,7 +2,7 @@
 
 ## High-resolution status modes: October 22, 2026
 
-`status-modes-hd-dark.gif` (1104 × 998) replaces the enlarged low-resolution example in the README and Marketplace overview. Both documents display it at 640 pixels wide and link to the full-resolution file. It keeps the four mode labels and four-second frame delays, with a sixteen-second infinite loop.
+`status-modes-hd-dark.gif` (1104 × 998) replaces the enlarged low-resolution example in the README and Marketplace overview. Both documents display it at 640 pixels wide and link to the full-resolution file. It keeps the four mode labels, with three-second frame delays and a twelve-second infinite loop. The timing adjustment changes only GIF delay metadata; image data and decoded pixels are unchanged.
 
 The isolated VS Code 1.143.0 harness was captured again with the same fixed fixture. The tooltip was rendered at zoom level 4 (about 207%) and the status indicator at zoom level 8 (about 430%). Both are native rasterizations at their capture size; neither crop is enlarged from a smaller screenshot. The renderer is unchanged from the source recorded below; the documentation baseline is `62f252ee0eec8b3d4629997bc9fcef75037a63b1`.
 
