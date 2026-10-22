@@ -2,6 +2,12 @@
 
 This guide defines version preparation, validation and distribution. Read the workflows and scripts before using it; documentation alone does not publish a release.
 
+## Local history controls pilot 1.3.2
+
+Version `1.3.2` is being prepared from `develop` with `preview: true`. It hides the local history file section when no account is connected and restores it after sign-in. File actions still require an available journal for the active account.
+
+Publish the annotated `v1.3.2` candidate as a GitHub prerelease without Latest after the required local checks, branch/tag CI and downloaded-artifact tests pass. Stable 1.2.1 remains Latest. Real-account daily billing/corporate-policy acceptance remains pending; preserve earlier tags and assets.
+
 ## Chart refinement pilot 1.3.1
 
 Published on October 21, 2026 as [v1.3.1](https://github.com/rublaman/copilot-pace/releases/tag/v1.3.1), a GitHub prerelease without Latest. [PR #47](https://github.com/rublaman/copilot-pace/pull/47) was squash-merged into `develop` at `9fbac4c9bf3d34208bd2d85564bf4c0dc32c5675`; the annotated tag identifies that commit. The manifest and lockfile use `1.3.1` with `preview: true`. Stable 1.2.1 remains Latest; the published 1.3.0 pilot and earlier assets are unchanged.

@@ -246,6 +246,7 @@ describe('Connection integration with native VS Code services', () => {
       }
       const file = await new HistoryStore(directory).latestFile(historyIdentity('github', 'https://github.com', 'same-account-id'));
       assert.ok(file);
+      assert.equal(host.api.getModel().showHistoryFile, true);
       assert.ok(!JSON.stringify(host.api.getModel()).includes(directory));
       await host.api.receiveMessage({ action: 'revealHistory', value: 'C:\\untrusted-path.json' });
       assert.deepEqual(host.revealedFiles, [file]);
@@ -261,6 +262,7 @@ describe('Connection integration with native VS Code services', () => {
       authenticated = false;
       host.sessionChanged('github');
       assert.equal(host.api.getModel().canOpenHistory, false);
+      assert.equal(host.api.getModel().showHistoryFile, false);
       completeOpen();
       await pendingOpen;
       assert.deepEqual(host.shownFiles, [file]);
