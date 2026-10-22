@@ -4,6 +4,11 @@ Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0 and 1.3.x are 
 
 ## [Unreleased]
 
+## [1.3.4] - 2026-10-22
+
+- Improve the README and Marketplace status-mode GIF with native high-resolution captures, explicit mode labels and a full-resolution link.
+- Show each mode for three seconds while preserving the clarity of percentages and credit totals.
+
 ## [1.3.3] - 2026-10-22
 
 - Add cursor-free animated examples of cumulative/daily charts and all four status bar styles to the README and Marketplace overview.

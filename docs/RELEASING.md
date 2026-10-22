@@ -2,6 +2,14 @@
 
 This guide defines version preparation, validation and distribution. Read the workflows and scripts before using it; documentation alone does not publish a release.
 
+## Status mode documentation pilot 1.3.4
+
+Candidate prepared from `develop` with `preview: true` for a GitHub prerelease without Latest. It includes the high-resolution status-mode GIF, explicit mode labels and three-second frame delays in the README and Marketplace overview. Runtime source and dependencies are unchanged from 1.3.3; the bundle's version header follows the manifest.
+
+Publication requires CI on the merged SHA, the annotated tag workflow and validation of its downloaded VSIX. Record the tested SHA and checksum here after publication. Real-account daily billing/corporate-policy acceptance remains pending; stable 1.2.1 remains Latest. Retain the earlier published assets and the unpublished 1.3.2 candidate unchanged.
+
+The Windows 11 local preflight passed all three project checks and dependency audit; [validation.md](validation.md#134-candidate-preflight-october-22-2026) records its scope. The tagged artifact remains the publication candidate.
+
 ## Documentation and local history pilot 1.3.3
 
 Published on October 22, 2026 as [v1.3.3](https://github.com/rublaman/copilot-pace/releases/tag/v1.3.3), a GitHub prerelease without Latest. [PR #50](https://github.com/rublaman/copilot-pace/pull/50) was squash-merged into `develop` at `3c31bb7852f2a4bd1fa76e2daa225ce989656936`; the annotated tag identifies that commit. The manifest and lockfile use `1.3.3` with `preview: true`. Stable 1.2.1 remains Latest.
