@@ -2,6 +2,26 @@
 
 Validation records identify the tested source, artifact, environment and scope. Local checks, CI and maintainer-reported account acceptance are recorded separately.
 
+## Published 1.3.3 pilot: October 22, 2026
+
+- Release: [v1.3.3](https://github.com/rublaman/copilot-pace/releases/tag/v1.3.3), a GitHub prerelease without Latest and with `preview: true`. Stable 1.2.1 remains Latest.
+- Source: `3c31bb7852f2a4bd1fa76e2daa225ce989656936` on `develop`, squash-merged through [PR #50](https://github.com/rublaman/copilot-pace/pull/50). The annotated tag identifies this commit. The local history sign-in visibility fix was integrated through [PR #49](https://github.com/rublaman/copilot-pace/pull/49); its 1.3.2 candidate remains an unpublished draft, with tag/assets unchanged.
+- [Develop CI](https://github.com/rublaman/copilot-pace/actions/runs/39748390371) and the [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/39748883768) passed Node 24.21.0 / 26.11.1, lint/types, 298 unit/service/activation tests, 8 release-script tests, 21 integration tests per VS Code 1.120.0 / 1.141.0, 8 installed-production tests, package inspection and dependency audit.
+- Published [copilot-pace-1.3.3.vsix](https://github.com/rublaman/copilot-pace/releases/download/v1.3.3/copilot-pace-1.3.3.vsix): 98,546 bytes; SHA-256 `43a1b07647a66ab7a898497959f53b4f24f41a832ef34b78da33053ca9fbe1cc`. The attached checksum and clean build record match the tag commit and workflow.
+- Downloaded the exact draft attachment, inspected package boundaries and passed all 8 installed-package tests again on Windows 11 / VS Code 1.141.0 without rebuilding. After publication, an anonymous public download matched the checksum.
+- An isolated CLI update from the published 1.3.1 VSIX retained language, calendar, chart/status preferences, polling interval and a synthetic observed journal byte for byte. The extension list contained only `rubenblancomanzano.copilot-pace@1.3.3`.
+- All five packaged README image URLs are pinned to the tagged SHA, resolve publicly and match repository bytes. Both new GIFs contain four three-second frames with a twelve-second infinite loop; all eight final frames were visually reviewed without the pointer, its halo or Codex controls. [Capture provenance](images/README.md) distinguishes the synthetic harness from real-account acceptance.
+- Real-account daily billing/corporate-policy acceptance remains pending. No Marketplace publication was performed; the updated overview is included in the tested VSIX. Earlier published releases and the 1.3.2 draft retain their identities and assets.
+
+## 1.3.3 pilot preflight: October 22, 2026
+
+Clean source `6b8da3c2888ab0494e308588c779bc18f4977707` before squash merge, Windows 11 / standalone Node 26.11.1 / npm 11.20.0:
+
+- `npm ci`, lint/types, 298 unit/service/activation tests and 8 release-script tests passed.
+- 21 integration tests passed on each of VS Code 1.120.0 and 1.141.0; all 8 installed-production tests and package inspection passed.
+- `npm audit`: zero vulnerabilities. Local Markdown links, README/Marketplace consistency, tracked assets and `git diff --check` passed.
+- Local preflight artifact: `dist/copilot-pace-1.3.3.vsix`, SHA-256 `365f3800101f5248e09b8e1d563fca00dade64e923f97ccf9c58d1d2b2d0d242`. This pre-merge artifact was not published; the published tag artifact is recorded above.
+
 ## 1.3.2 pilot preflight: October 22, 2026
 
 Working tree based on `09e86a89612e788b3d75ed782b1b8713cd80eb7a`, version `1.3.2` with `preview: true`, Windows 11 / standalone Node 26.11.1 / npm 11.20.0:

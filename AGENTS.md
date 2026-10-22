@@ -54,6 +54,8 @@ Copilot Pace is a VS Code extension that displays GitHub Copilot credits and an 
 
 ## Release workflow
 
+- Pilot `1.3.3` is published from `develop` at `3c31bb7852f2a4bd1fa76e2daa225ce989656936` with `preview: true` as a GitHub prerelease without Latest. Its tagged artifact passed CI, downloaded-package tests, isolated 1.3.1 update retention and packaged README image checks. The `1.3.2` tag/draft is retained unpublished because documentation captures were added after that tag. Real-account daily billing/corporate-policy acceptance remains pending; stable 1.2.1 remains Latest. See `docs/RELEASING.md` and `docs/validation.md`; preserve earlier tags/assets.
+
 - Pilot `1.3.1` is published from `develop` at `9fbac4c9bf3d34208bd2d85564bf4c0dc32c5675` with `preview: true` as a GitHub prerelease without Latest. Its tagged artifact passed the CI matrices, downloaded-package tests and isolated 1.3.0 update-retention checks; see `docs/RELEASING.md` and `docs/validation.md` for evidence. Real-account daily billing/corporate-policy acceptance remains pending. Stable `1.2.1` remains Latest; earlier published tags/assets must not change.
 
 - Pilot `1.3.0` is published from `develop` at `929291f5a43ed96bbc440483ba863bf12ff108e2` with `preview: true` as a GitHub prerelease without Latest. Its exact tagged VSIX passed the CI matrices and downloaded-package tests; see `docs/RELEASING.md` and `docs/validation.md` for checksum and evidence. Real-account daily billing/corporate-policy acceptance remains pending. Stable `1.2.1` remains Latest; published tags/assets must not change.
