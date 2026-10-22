@@ -2,6 +2,14 @@
 
 Validation records identify the tested source, artifact, environment and scope. Local checks, CI and maintainer-reported account acceptance are recorded separately.
 
+## Shorter status animation with green pace: October 22, 2026
+
+- Documentation baseline: `7d60a460c3a4910fc17db9f32ad5d773ba953a61`. Runtime, manifests and packaging are unchanged.
+- Recaptured native green Comfortable indicators and tooltip on Windows 11 / VS Code 1.143.0 with the existing fixed October fixture: 2,100 of 6,000 credits used (35%), projected 4,200 (70%) at renewal, zero projected excess. The actual renderer calculates the green tone. Compact and Dots retain the reviewed red 51.9% example.
+- `status-modes-hd-dark.gif` retains 1104 × 998 pixels and four labeled frames. FFprobe confirms a two-second duration for every frame and eight seconds total; the GIF loops indefinitely. Encoding uses a shared 256-color palette without dithering and no raster enlargement.
+- Visually reviewed all four decoded frames at the 640-pixel README display width, including percentages, credit totals and projection. Captures exclude the mouse, halo, notifications, focus outlines and Codex controls.
+- Documentation-only checks cover local Markdown links, README/Marketplace consistency, Git tracking and `git diff --check`. Local host tests were not repeated; published release assets are unchanged.
+
 ## Published 1.3.4 pilot: October 22, 2026
 
 - Release: [v1.3.4](https://github.com/rublaman/copilot-pace/releases/tag/v1.3.4), GitHub prerelease without Latest and with `preview: true`. Annotated tag and `develop` release SHA: `c0b44430308aedde5e2d96e622091f53bb6efeec`. Stable 1.2.1 remains Latest; earlier assets and the unpublished 1.3.2 candidate are unchanged.
