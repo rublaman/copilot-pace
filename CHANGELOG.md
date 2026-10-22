@@ -1,6 +1,6 @@
 # Changelog
 
-Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0 and 1.3.x are pilot versions. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
+Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0 and 1.3.0–1.3.5 are pilot versions. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
 
 ## [Unreleased]
 
