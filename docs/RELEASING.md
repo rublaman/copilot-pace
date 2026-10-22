@@ -2,11 +2,15 @@
 
 This guide defines version preparation, validation and distribution. Read the workflows and scripts before using it; documentation alone does not publish a release.
 
-## Local history controls pilot 1.3.2
+## Documentation and local history pilot 1.3.3
 
-Version `1.3.2` is being prepared from `develop` with `preview: true`. It hides the local history file section when no account is connected and restores it after sign-in. File actions still require an available journal for the active account.
+Version `1.3.3` is being prepared from `develop` with `preview: true`. It includes the local history sign-in visibility fix and adds animated chart/status examples to the README and Marketplace overview. File actions still require an available journal for the active account.
 
-Publish the annotated `v1.3.2` candidate as a GitHub prerelease without Latest after the required local checks, branch/tag CI and downloaded-artifact tests pass. Stable 1.2.1 remains Latest. Real-account daily billing/corporate-policy acceptance remains pending; preserve earlier tags and assets.
+Publish the annotated `v1.3.3` candidate as a GitHub prerelease without Latest after the required local checks, branch/tag CI and downloaded-artifact tests pass. Stable 1.2.1 remains Latest. Real-account daily billing/corporate-policy acceptance remains pending; preserve earlier tags and assets.
+
+### Retained 1.3.2 candidate
+
+The annotated `v1.3.2` tag identifies `51861f5a1ec18715de388c7d0f22c35ad5b62eec`, squash-merged through [PR #49](https://github.com/rublaman/copilot-pace/pull/49). [Develop CI](https://github.com/rublaman/copilot-pace/actions/runs/39745895874) and the [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/39746462291) passed. The release remains an unpublished draft because the maintainer requested updated documentation captures after the tag was created. Retain the tag and draft assets unchanged; 1.3.3 includes the additional packaged README content.
 
 ## Chart refinement pilot 1.3.1
 

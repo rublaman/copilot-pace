@@ -1,5 +1,24 @@
 # Documentation captures
 
+## Current charts and status styles: October 22, 2026
+
+`charts-dark.gif` (650 × 480) and `status-styles-dark.gif` (530 × 400) show the renderer from `51861f5a1ec18715de388c7d0f22c35ad5b62eec` (1.3.2), captured on Windows 11 / VS Code 1.143.0 with Default Dark Modern. Each GIF contains four frames held for three seconds, including the last frame, and loops every twelve seconds.
+
+The captures use an isolated documentation harness with the actual `createViewModel`, `renderHtml`, `renderHover` and status text functions. VS Code renders the native status item, Markdown hover and webview. A fixed fixture uses October 16, 2026 at 12:00 UTC, 3,115 credits consumed from a 6,000-credit cycle budget, missing days 3 and 11, and a partial final day. The account is fictional. These are synthetic rendering examples, not account or billing acceptance.
+
+| Frame | Charts | Status styles |
+| --- | --- | --- |
+| 1 | Cumulative · Line · Every day | Percentage and pace |
+| 2 | Cumulative · Columns · Every day | Compact |
+| 3 | Daily · Line · Every day | Segmented bar |
+| 4 | Daily · Columns · Mon–Fri | Dots |
+
+The status animation keeps the same values, Every day calendar and native hover across all four styles. Its Demo and simulated-data labels remain visible. The chart animation crops the usage section, including the metric, style, budget labels, legends and partial-data notes. The README and Marketplace overview identify the chart data as illustrative.
+
+Computer Use captured the application window. The hover was opened with keyboard focus, with the pointer parked outside both crops. FFmpeg cropped the frames and assembled each GIF with a shared palette. All eight final frames were reviewed for complete text, chart labels, colors and absence of the pointer, its halo and Codex controls. No screenshots were painted or generated.
+
+## Earlier pace examples: October 16, 2026
+
 The animated usage examples were captured on October 16, 2026, on Windows 11 with desktop VS Code 1.142.0. The extension UI is version 1.1.1 at source commit `abb04a73178c6edcf9b461b892ac9320ab13e01f`.
 
 | File | Source | Size |
@@ -10,7 +29,7 @@ The animated usage examples were captured on October 16, 2026, on Windows 11 wit
 | `details-light.gif` | Actual detail panel opened by clicking the status item, Default Light Modern. | 660 × 916 |
 | `commands.png` | Production bundle loaded in an isolated development host, filtered Command Palette. Captured on October 15 with VS Code 1.141.2 and extension 0.2.2 at `d19b28211df5e727dbca62ed21f92047504777bd`; the production commands are unchanged. | Static PNG |
 
-Each GIF contains three screenshots, held for two seconds each, and loops every six seconds. All four GIFs use the same frame order and timing. The README and Marketplace overview display only the dark-theme GIFs on separate lines and center both animations; the light-theme files remain available here as reference assets. All examples use the same 3,900-credit budget, the Every day calendar and English UI:
+Each earlier GIF contains three screenshots, held for two seconds each, and loops every six seconds. All four use the same frame order and timing. The README and Marketplace overview retain `details-dark.gif` to illustrate pace colors; the earlier hover and light-theme files remain reference assets. These examples use the same 3,900-credit budget, the Every day calendar and English UI:
 
 | Frame | Development scenario | Used | Projected at renewal | Pace |
 | --- | --- | --- | --- | --- |
