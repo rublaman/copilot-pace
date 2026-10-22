@@ -4,6 +4,11 @@ Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0 and 1.3.x are 
 
 ## [Unreleased]
 
+## [1.3.6] - 2026-10-22
+
+- Release the validated 1.3.x features as stable: usage history, daily/cumulative charts, status indicator styles and local history file controls.
+- Include the high-resolution animated examples and documentation privacy cleanup from 1.3.5.
+
 ## [1.3.5] - 2026-10-22
 
 - Shorten the status-mode GIF to eight seconds and show both green Comfortable and red Over pace examples.
