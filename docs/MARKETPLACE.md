@@ -24,8 +24,10 @@ Copilot Pace is a VS Code extension that displays GitHub Copilot credit usage an
 Hover over the status item for a quick summary. Click it to open the detail panel beside your editor.
 
 <p align="center">
-  <img src="images/hover-dark.gif" alt="Animated dark tooltip and status bar: 45% used is green, 50% is yellow and 60% is red as projected usage increases" />
+  <img src="images/status-styles-dark.gif" alt="Percentage and pace, Compact, Segmented bar and Dots indicators with the same native usage tooltip" />
 </p>
+
+*Four status bar styles, with the same usage details in the hover. Illustrative data.*
 
 ## Detail panel
 
@@ -35,11 +37,21 @@ The panel compares credits used with elapsed cycle time. Daily average, availabl
   <img src="images/details-dark.gif" alt="Animated dark detail panel: 45%, 50% and 60% of a 3,900-credit budget used, with green, yellow and red pace indicators" />
 </p>
 
-*Illustrative usage figures. Both animations cycle through Comfortable, On track and Over pace.*
+*Illustrative usage figures. The detail animation cycles through Comfortable, On track and Over pace.*
+
+### Usage charts
+
+Switch between **Cumulative** and **Daily** usage, and choose **Line** or **Columns** in Customization. The dashed reference shows the budget pace; green and red compare usage with that reference.
+
+<p align="center">
+  <img src="images/charts-dark.gif" alt="Cumulative line and column charts, daily line chart and daily columns with weekday budget limits and weekend labels" />
+</p>
+
+*Illustrative data, including missing days and a partial current day. The final frame uses Mon–Fri.*
 
 ### What the colors mean
 
-The color follows **projected usage at renewal**, calculated from your average consumption so far. In these captures, 45%, 50% and 60% used project to approximately 89.2%, 99.1% and 118.9% of the budget respectively. The same used percentage can have a different color at another point in the cycle.
+The color follows **projected usage at renewal**, calculated from your average consumption so far. In the detail animation, 45%, 50% and 60% used project to approximately 89.2%, 99.1% and 118.9% of the budget respectively. The same used percentage can have a different color at another point in the cycle.
 
 | Status | Projected usage at renewal | Meaning |
 | --- | --- | --- |
@@ -91,7 +103,7 @@ Green marks values within the budget pace; red marks values above it. Daily char
 
 The dashed reference ends with the cycle budget in Cumulative mode or the average daily limit in Daily mode. Mon–Fri daily charts label the Saturday/Monday transitions with short UTC dates. **Projected at renewal** estimates the total credits used by renewal if your cycle average continues; its explanation appears below the estimate. The status hover also shows total credits used.
 
-Customization provides **Show location** to reveal the most recent observed-usage file in the system file manager, and **Open file** to inspect it in VS Code. Pace stores separate journals per UTC day and VS Code window. Both actions use the active account and remain disabled until a journal exists; file paths are not displayed in the panel.
+Customization provides **Show location** to reveal the most recent observed-usage file in the system file manager, and **Open file** to inspect it in VS Code. This section is hidden without a connected account and reappears after sign-in. Pace stores separate journals per UTC day and VS Code window. Both actions use the active account and remain disabled until a journal exists; file paths are not displayed in the panel.
 
 ## How the estimate works
 
