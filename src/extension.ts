@@ -6,8 +6,12 @@ import { createViewModel, renderHtml, renderHover, hoverCommands, type ViewModel
 import { QuotaService, type ServiceState } from './service';
 import { GitHubSessions } from './sessions';
 import { GitHubTransport } from './transport';
+import { BillingUsage } from './billing';
 import { getStrings, resolveLanguage, type Language } from './i18n';
 import { defaultConnection, resolveConnection, type AuthProvider } from './connection';
+import { HistoryStore, historyIdentity, observation, retainObservations, type Observation } from './history';
+import { resolveStatusStyle, type StatusStyle } from './status';
+import { resolveChartMetric, resolveChartStyle, type ChartMetric, type ChartStyle } from './chart';
 
 export interface TestApi {
   getState(): ServiceState;
@@ -31,10 +35,20 @@ class CopilotPace implements vscode.Disposable {
   private readonly developmentEnabled: boolean;
   private dayMode: DayMode = 'all';
   private language: Language = 'en';
+  private statusStyle: StatusStyle = 'text';
+  private chartStyle: ChartStyle = 'line';
+  private chartMetric: ChartMetric = 'cumulative';
+  private readonly historyStore?: HistoryStore;
+  private history: Observation[] = [];
+  private historyKey = '';
+  private historyFailed = false;
+  private historyFile?: string;
+  private lastObservation?: object;
   private sourceKey = '';
   private connection = defaultConnection;
   private enterpriseConfigurationKey?: string;
   private enterpriseRequiresReload = false;
+  private sessionRevision = 0;
   private connecting?: Promise<void>;
   private panel?: vscode.WebviewPanel;
   private panelReady = false;
@@ -42,6 +56,7 @@ class CopilotPace implements vscode.Disposable {
   private disposed = false;
   constructor(context: vscode.ExtensionContext) {
     this.imageDirectory = vscode.Uri.joinPath(context.extensionUri, 'images');
+    if (context.globalStorageUri) this.historyStore = new HistoryStore(context.globalStorageUri.fsPath);
     this.developmentEnabled = __DEV__ && (context.extensionMode === vscode.ExtensionMode.Development || context.extensionMode === vscode.ExtensionMode.Test);
     this.status.name = 'Copilot Pace';
     this.status.command = 'copilotPace.showDetails';
@@ -54,7 +69,11 @@ class CopilotPace implements vscode.Disposable {
       }),
       vscode.workspace.onDidGrantWorkspaceTrust(() => { if (!this.disposed) this.configure(); }),
       vscode.authentication.onDidChangeSessions(event => {
-        if (!this.disposed && event.provider.id === this.connection.provider && !this.demo) { this.service.reset(); void this.refresh(); }
+        if (!this.disposed && event.provider.id === this.connection.provider && !this.demo) {
+          this.sessionRevision++;
+          this.service.reset();
+          void this.refresh();
+        }
       }),
     );
     if (__DEV__ && this.developmentEnabled) {
@@ -68,13 +87,19 @@ class CopilotPace implements vscode.Disposable {
     const config = vscode.workspace.getConfiguration('copilotPace');
     this.dayMode = config.get<string>('dayMode') === 'weekdays' ? 'weekdays' : 'all';
     this.language = resolveLanguage(config.get('language'));
+    this.statusStyle = resolveStatusStyle(config.get('statusStyle'));
+    this.chartStyle = resolveChartStyle(config.get('chartStyle'));
+    this.chartMetric = resolveChartMetric(config.get('chartMetric'));
     const enterprise = vscode.workspace.getConfiguration('github-enterprise');
     const trusted = vscode.workspace.isTrusted;
     const contributions = vscode.extensions?.getExtension('vscode.github-authentication')?.packageJSON?.contributes?.configuration;
     const supportsPlural = (Array.isArray(contributions) ? contributions : [contributions])
       .some(contribution => contribution?.properties && Object.hasOwn(contribution.properties, 'github-enterprise.uris'));
     const plural = enterprise.inspect<unknown>('uris');
-    const hasPlural = supportsPlural && plural && (plural.globalValue !== undefined || (trusted && (plural.workspaceValue !== undefined || plural.workspaceFolderValue !== undefined)));
+    const hasPlural = supportsPlural && plural && (
+      plural.globalValue !== undefined ||
+      (trusted && (plural.workspaceValue !== undefined || plural.workspaceFolderValue !== undefined))
+    );
     const instanceValue = (key: string) => trusted ? enterprise.get<unknown>(key) : enterprise.inspect<unknown>(key)?.globalValue;
     const copilot = vscode.workspace.getConfiguration('github.copilot');
     const connection = resolveConnection({
@@ -84,34 +109,51 @@ class CopilotPace implements vscode.Disposable {
       enterpriseUris: hasPlural ? instanceValue('uris') : undefined,
     });
     const enterpriseKey = JSON.stringify([connection.invalid, connection.origins]);
-    if (this.enterpriseConfigurationKey !== undefined && enterpriseKey !== this.enterpriseConfigurationKey) this.enterpriseRequiresReload = true;
+    if (this.enterpriseConfigurationKey !== undefined && enterpriseKey !== this.enterpriseConfigurationKey) {
+      this.enterpriseRequiresReload = true;
+    }
     this.enterpriseConfigurationKey = enterpriseKey;
-    // A provider may still expose its old instance while applying settings asynchronously.
-    // Stable sessions have no issuer metadata: do not pair that old token with a new host.
+    // The provider applies instance changes asynchronously. Stable sessions have no
+    // issuer metadata, so reload before pairing a token with a different host.
     this.connection = connection.provider === 'github-enterprise' && this.enterpriseRequiresReload
       ? Object.freeze({ ...connection, requiresReload: true, key: `${connection.key}:reload` }) : connection;
     const source = __DEV__ && this.developmentEnabled ? getDemoSource(vscode, config, this.clock) : undefined;
     const key = source?.key ?? this.connection.key;
     if (key !== this.sourceKey) {
       this.service?.dispose();
-      this.sourceKey = key; this.demo = source !== undefined; this.scenario = source?.label ?? '';
+      this.sourceKey = key;
+      this.demo = source !== undefined;
+      this.scenario = source?.label ?? '';
+      const transport = new GitHubTransport(vscode.version, undefined, undefined, this.connection);
       this.service = new QuotaService({
         sessions: source?.sessions ?? new GitHubSessions(vscode.authentication, () => this.language, this.connection),
-        transport: source?.transport ?? new GitHubTransport(vscode.version, undefined, undefined, this.connection),
+        transport: source?.transport ?? transport,
         dataClock: this.clock,
-      }, () => this.render());
+        dailyUsage: source ? undefined : new BillingUsage(transport, this.clock),
+      }, state => {
+        this.observe(state);
+        this.render();
+      });
       void this.refresh();
-    } else { this.render(); this.schedule(); }
+    } else {
+      this.render();
+      this.schedule();
+    }
   }
   private connect(): Promise<void> {
     if (this.disposed) return Promise.resolve();
     if (this.connecting) return this.connecting;
-    const operation = this.chooseAndConnect().finally(() => { if (this.connecting === operation) this.connecting = undefined; });
+    const operation = this.chooseAndConnect().finally(() => {
+      if (this.connecting === operation) this.connecting = undefined;
+    });
     this.connecting = operation;
     return operation;
   }
   private async chooseAndConnect() {
-    if (this.demo) { await this.refresh(); return; }
+    if (this.demo) {
+      await this.refresh();
+      return;
+    }
     const originalService = this.service;
     if (this.connection.enterpriseAvailable) {
       const text = getStrings(this.language);
@@ -131,13 +173,19 @@ class CopilotPace implements vscode.Disposable {
   }
   private async updateConfig(key: string, value: string) {
     await vscode.workspace.getConfiguration('copilotPace').update(key, value, vscode.ConfigurationTarget.Global);
-    // Also apply synchronously for command callers; a subsequent config event is idempotent.
+    // Apply before the command resolves; the later configuration event is idempotent.
     if (!this.disposed) this.configure();
   }
   async refresh(interactive = false) {
     const service = this.service;
+    const sessionRevision = this.sessionRevision;
     await service.refresh(interactive);
-    if (!this.disposed && this.service === service) this.schedule();
+    if (!this.disposed && this.service === service) {
+      // Session events can arrive before getSession saves access and preferences.
+      // Wait for any earlier lookup, then resolve the saved preference afresh.
+      if (interactive && sessionRevision !== this.sessionRevision) await service.refreshAfterCurrent();
+      if (!this.disposed && this.service === service) this.schedule();
+    }
   }
   private schedule() {
     if (this.timer) clearTimeout(this.timer);
@@ -149,7 +197,99 @@ class CopilotPace implements vscode.Disposable {
     this.timer = setTimeout(() => { void this.refresh(); }, Math.min(delay, 2_147_483_647));
     this.timer.unref();
   }
-  get model(): ViewModel { return createViewModel(this.service.current, this.clock, this.dayMode, this.demo, this.scenario, this.service.nextAllowedAt, this.language); }
+  private observe(state: ServiceState) {
+    const key = !this.demo && state.account ? historyIdentity(this.connection.provider,
+      this.connection.provider === 'github' ? 'https://github.com' : this.connection.origins[0] ?? '', state.account.id) : '';
+    if (key !== this.historyKey) {
+      this.historyKey = key;
+      this.history = [];
+      this.historyFailed = false;
+      this.historyFile = undefined;
+      this.lastObservation = undefined;
+      if (key && this.historyStore) {
+        void this.historyStore.read(key, this.clock.now().getTime()).then(items => {
+          if (this.disposed || this.historyKey !== key) return;
+          // A refresh may have completed while storage was being read.
+          this.history = retainObservations([...items, ...this.history], this.clock.now().getTime());
+          this.render();
+          void this.updateHistoryFile(key);
+        }).catch(() => {
+          if (!this.disposed && this.historyKey === key) {
+            this.historyFailed = true;
+            this.render();
+          }
+        });
+      }
+    }
+    if (!key || state.phase !== 'ready' || !state.snapshot || state.snapshot === this.lastObservation) return;
+    this.lastObservation = state.snapshot;
+    const item = observation(state.snapshot);
+    if (!item) return;
+    this.history = retainObservations([...this.history, item], this.clock.now().getTime());
+    if (this.historyStore) {
+      void this.historyStore.append(key, item).then(items => {
+        if (this.disposed || this.historyKey !== key) return;
+        this.history = retainObservations([...items, ...this.history], this.clock.now().getTime());
+        this.historyFailed = false;
+        this.render();
+        void this.updateHistoryFile(key);
+      }).catch(() => {
+        if (!this.disposed && this.historyKey === key) {
+          this.historyFailed = true;
+          this.render();
+        }
+      });
+    }
+  }
+  private async updateHistoryFile(key: string) {
+    try {
+      const file = await this.historyStore?.latestFile(key);
+      if (!this.disposed && this.historyKey === key) {
+        this.historyFile = file;
+        this.render();
+      }
+    } catch {
+      if (!this.disposed && this.historyKey === key) {
+        this.historyFile = undefined;
+        this.render();
+      }
+    }
+  }
+  private async showHistoryFile(action: 'open' | 'reveal') {
+    if (this.demo || !this.historyKey || !this.historyStore) return;
+    const key = this.historyKey;
+    try {
+      // The panel chooses an action, never a file path or another account's identity.
+      const file = await this.historyStore.latestFile(key);
+      if (this.disposed || this.historyKey !== key) return;
+      if (!file) {
+        this.historyFile = undefined;
+        this.render();
+        void vscode.window.showInformationMessage(getStrings(this.language).historyFileUnavailable);
+        return;
+      }
+      const uri = vscode.Uri.file(file);
+      if (action === 'reveal') {
+        await vscode.commands.executeCommand('revealFileInOS', uri);
+        return;
+      }
+      const document = await vscode.workspace.openTextDocument(uri);
+      if (!this.disposed && this.historyKey === key) await vscode.window.showTextDocument(document, { preview: true });
+    } catch {
+      if (!this.disposed && this.historyKey === key) {
+        const text = getStrings(this.language);
+        void vscode.window.showErrorMessage(action === 'reveal' ? text.historyLocationError : text.historyFileOpenError);
+      }
+    }
+  }
+  get model(): ViewModel {
+    return createViewModel(this.service.current, this.clock, this.dayMode, this.demo, this.scenario,
+      this.service.nextAllowedAt, this.language, {
+        statusStyle: this.statusStyle, chartStyle: this.chartStyle, chartMetric: this.chartMetric,
+        history: this.history, historyFailed: this.historyFailed,
+        historyFileAvailable: !this.demo && !!this.historyFile,
+      });
+  }
   private render() {
     if (this.disposed) return;
     const model = this.model;
@@ -161,11 +301,15 @@ class CopilotPace implements vscode.Disposable {
     // Native Markdown sanitizes this HTML; renderHover only adds a fixed theme-colored status span.
     tooltip.supportHtml = true;
     this.status.tooltip = tooltip;
-    this.status.accessibilityInformation = { label: `Copilot Pace: ${model.statusText}` };
+    this.status.accessibilityInformation = { label: `Copilot Pace: ${model.statusDescription}` };
     if (this.panel) void this.panel.webview.postMessage({ type: 'state', model });
   }
   private showDetails() {
-    if (this.panel) { this.panel.reveal(); this.render(); return; }
+    if (this.panel) {
+      this.panel.reveal();
+      this.render();
+      return;
+    }
     const iconPath = vscode.Uri.joinPath(this.imageDirectory, 'copilot-pace-ui.svg');
     const darkIconPath = vscode.Uri.joinPath(this.imageDirectory, 'copilot-pace-ui-dark.svg');
     const panel = vscode.window.createWebviewPanel('copilotPace.details', 'Copilot Pace', vscode.ViewColumn.Beside, {
@@ -177,16 +321,39 @@ class CopilotPace implements vscode.Disposable {
     const webviewIcon = panel.webview.asWebviewUri(iconPath).toString();
     panel.webview.html = renderHtml(this.model, randomBytes(18).toString('hex'), webviewIcon, panel.webview.cspSource);
     const receiver = panel.webview.onDidReceiveMessage((message: unknown) => { void this.receiveMessage(message); });
-    panel.onDidDispose(() => { receiver.dispose(); if (this.panel === panel) { this.panel = undefined; this.panelReady = false; } });
+    panel.onDidDispose(() => {
+      receiver.dispose();
+      if (this.panel === panel) {
+        this.panel = undefined;
+        this.panelReady = false;
+      }
+    });
   }
   async receiveMessage(message: unknown) {
     if (this.disposed || !message || typeof message !== 'object') return;
     const data = message as { action?: unknown; value?: unknown };
-    if (data.action === 'ready') { this.panelReady = true; this.render(); }
-    else if (data.action === 'refresh') await this.refresh();
-    else if (data.action === 'connect') await this.connect();
-    else if (data.action === 'dayMode' && (data.value === 'all' || data.value === 'weekdays')) await this.updateConfig('dayMode', data.value);
-    else if (data.action === 'language' && (data.value === 'en' || data.value === 'es-ES')) await this.updateConfig('language', data.value);
+    if (data.action === 'ready') {
+      this.panelReady = true;
+      this.render();
+    } else if (data.action === 'refresh') {
+      await this.refresh();
+    } else if (data.action === 'connect') {
+      await this.connect();
+    } else if (data.action === 'openHistory') {
+      await this.showHistoryFile('open');
+    } else if (data.action === 'revealHistory') {
+      await this.showHistoryFile('reveal');
+    } else if (data.action === 'dayMode' && (data.value === 'all' || data.value === 'weekdays')) {
+      await this.updateConfig('dayMode', data.value);
+    } else if (data.action === 'language' && (data.value === 'en' || data.value === 'es-ES')) {
+      await this.updateConfig('language', data.value);
+    } else if (data.action === 'statusStyle' && typeof data.value === 'string' && resolveStatusStyle(data.value) === data.value) {
+      await this.updateConfig('statusStyle', data.value);
+    } else if (data.action === 'chartStyle' && typeof data.value === 'string' && resolveChartStyle(data.value) === data.value) {
+      await this.updateConfig('chartStyle', data.value);
+    } else if (data.action === 'chartMetric' && typeof data.value === 'string' && resolveChartMetric(data.value) === data.value) {
+      await this.updateConfig('chartMetric', data.value);
+    }
   }
   get testApi(): TestApi {
     return {
@@ -200,7 +367,8 @@ class CopilotPace implements vscode.Disposable {
     if (this.disposed) return;
     this.disposed = true;
     if (this.timer) clearTimeout(this.timer);
-    this.service.dispose(); this.panel?.dispose();
+    this.service.dispose();
+    this.panel?.dispose();
     for (const subscription of this.subscriptions) subscription.dispose();
   }
 }

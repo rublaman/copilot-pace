@@ -9,6 +9,11 @@ The extension separates quota calculations from authentication, HTTP transport a
 | Module | Responsibility |
 | --- | --- |
 | `domain.ts` | Quota normalization, UTC cycles and pure pace calculations |
+| `history.ts` | Validated numeric observations, hashed account/origin identity and atomic daily journals per window |
+| `status.ts` | Validated status appearance preference and native text indicators |
+| `chart.ts` | Validated observed-usage chart preference |
+| `daily.ts` | Same-day observed credit differences and reported-day precedence |
+| `billing.ts` | Optional current-cycle daily billing retrieval, account discovery, caching and fallback |
 | `connection.ts` | Provider resolution, validated Enterprise origins and matched quota destinations |
 | `sessions.ts` | VS Code GitHub/GitHub Enterprise authentication with `read:user` |
 | `transport.ts` | Matched HTTPS endpoint, cancellation, 10-second total timeout and 1 MiB response limit |
@@ -18,15 +23,41 @@ The extension separates quota calculations from authentication, HTTP transport a
 | `presentation.ts` | Theme-aware webview with text-only values, nonce CSP and allowed actions |
 | `extension.ts` | Status item, commands and one reusable detail panel |
 
-The status item uses right alignment and priority 100.05. Pace states use VS Code theme colors; unavailable states clear the custom foreground. The panel provides labeled progress bars and keyboard focus. Messages are limited to `ready`, `refresh`, `connect`, `dayMode` (values `all` or `weekdays`) and `language` (values `en` or `es-ES`).
+## Presentation
 
-`copilotPace.language` defaults to `en`, independently of VS Code's display language, and is stored as an application-level preference. Only the detail panel has a language button: Spanish in English, Inglés in Spanish. A language change updates the existing panel's text, accessible labels and HTML language, plus the status and hover, without replacing the panel or fetching usage. Display formatters use `en-US` or `es-ES`, retaining UTC for dates and calculations. Pace classification and tone are language-independent. Authentication details and safe failure messages are localized in presentation; provider scopes and transport behavior are unchanged. Development-only translations are excluded from production with the demo adapter.
+The status item is right-aligned with priority 100.05. The hover shows the account, pace, remaining credits, daily allowance, projection and last update. Monthly averages, cycle progress and renewal are in the detail panel. Daily allowance divides remaining credits by eligible days left and is omitted when either value is unavailable.
 
-The hover summarizes pace status, remaining credits, daily allowance, projection and last update, retaining account identity, recovery messages and actions. It reuses the existing allowance calculation (remaining credits divided by remaining eligible days) and identifies the selected calendar as Mon–Sun or Mon–Fr (De lunes a domingo or De lunes a viernes in Spanish). The allowance is omitted when it cannot be calculated. Monthly averages, cycle progress and renewal stay in the detail panel. Today's usage is omitted even for a connected account: the quota source has no daily breakdown, and no midnight baseline or daily history is recorded. Credits are not tokens. The Comfortable indicator uses a text check to share the label's baseline. Unsupported model usage is omitted from the panel for all accounts and demos.
+Pace states use `charts.green`, `charts.yellow` and `charts.red`. The panel's `data-tone` attribute applies the same color to status, percentage, usage bar and forecast. Stale, disconnected and unavailable states clear the pace color. CSS theme variables follow editor theme changes.
 
-Pace colors consistently use `charts.green`, `charts.yellow` and `charts.red` in the status bar, hover and detail panel. The hover enables VS Code's sanitized HTML subset only for a fixed status `span` with a fixed theme-color variable; all dynamic Markdown values remain escaped and the command allowlist is unchanged. The panel sets a `data-tone` attribute on every update, coloring the status, percentage, usage bar and forecast while keeping the cycle bar and other labels neutral. CSS theme variables update automatically when the editor theme changes. Stale, disconnected and unavailable states clear the pace colors rather than implying a healthy quota.
+The hover escapes dynamic Markdown values and enables commands through `hoverCommands`. Its only HTML is a fixed status `span` using a theme color. The webview uses a nonce-based CSP, restricted local images and `textContent` for dynamic values. Its message handler accepts `ready`, `refresh`, `connect`, `openHistory`, `revealHistory`, `dayMode` (`all` or `weekdays`), `language` (`en` or `es-ES`), `statusStyle` (`text`, `compact`, `bar` or `dots`), `chartStyle` (`line` or `columns`) and `chartMetric` (`cumulative` or `daily`). History actions resolve a journal from the active account identity in the extension host; they never accept a path from the webview. Paths remain in the host; the model exposes only whether the actions are available. Account changes disable the actions and invalidate pending file lookups/opens. History content does not become a webview resource.
 
-Development demos use the same response contract with a current UTC calendar. Tests inject fixed clocks. Production removes the demo adapter and contributions; see [CONTRIBUTING.md](../CONTRIBUTING.md).
+`copilotPace.statusStyle` defaults to the existing percentage-and-pace label. Compact, segmented and dot indicators use native status item text; errors and pending estimates remain explicit, and accessibility labels retain the percentage and pace. The dropdown changes only presentation. A divided **Customization / Personalización** section below the history chart groups language, status appearance and chart style; account and refresh controls remain in the footer.
+
+Exhaustion and excess are calculated from the last accepted snapshot's cycle average, anchored to its timestamp. Weekday exhaustion skips weekends in UTC. No new forecast is shown after a failed refresh or outside a known cycle. Excess represents projected credits above the quota, not an additional invoice amount.
+
+## Local observations
+
+After the service accepts a successful response, the extension records normalized numbers under `globalStorageUri`. A SHA-256 key separates provider, validated origin and account ID; labels and credentials are not stored. Each window writes a private daily journal using a unique temporary file and atomic rename. Readers merge journals, deduplicate timestamps and remove expired daily files after 90 days. Separate journals avoid shared-file write races and abandoned locks. A read or write failure is displayed without failing quota refreshes.
+
+Only bounded or usage-only snapshots with known cycles are recorded. Pending/stale responses and demos are excluded. Account changes clear the visible history immediately; asynchronous storage completions must still match the selected identity before updating the panel. The current-cycle SVG uses numeric coordinates and text-only point titles. It connects observations only within two hours with nondecreasing usage and an unchanged budget. Unknown intervals and corrections remain disconnected; the dashed budget line follows the selected calendar.
+
+The saved `copilotPace.chartStyle` defaults to Line; saved Area or unsupported values resolve to Line. Line views use disconnected segments. In cumulative mode, columns select the last observation per UTC day. The separate `copilotPace.chartMetric` preference defaults to cumulative and has a Daily / Cumulative switch above the chart. Daily columns represent that day's consumption; known adjacent days connect in Line mode. Missing days stay empty. Both styles use theme colors, explicit credit labels and a calendar-aware budget legend. The reference endpoint is labeled with the cycle budget or daily calendar limit. Weekday daily charts show short UTC dates at Saturday/Monday transitions, staggered on narrow cards. Style and metric changes do not fetch quota or change stored observations. SVG assets are local; CSP permissions remain unchanged.
+
+Chart colors compare each daily total with its calendar-adjusted daily budget, or each cumulative observation with the budget elapsed at that timestamp. Values at the reference remain green; values above it are red. Unknown budgets stay neutral. Columns and point labels use their value's comparison; line paths use local SVG clip regions along the budget path so colors change at crossings without bridging missing intervals. All colors use editor theme variables, and the legend and point labels describe the comparison in text. Partial observations keep their partial labels and outlines.
+
+### Optional daily billing
+
+After publishing an accepted credit snapshot, the service starts a background billing read with the same VS Code session. It first verifies `/user` against the selected account ID, then tries a personal report or an unambiguous organization/enterprise report. Organization hints come from the quota response; a read-only GraphQL viewer query can discover accessible organizations and enterprise slugs. Identifiers are validated, reports for managed scopes always filter by the verified login, and multiple/truncated payer lists are not combined or guessed. Unsupported discovery or billing responses use local history.
+
+The official `ai_credit/usage` report is queried for the current UTC cycle, using a monthly credit report to validate the payer and units before daily reads. Account identity, reporting period and nonnegative credit quantities are checked. Consumption uses `grossQuantity`, including credits covered by the plan, rather than net billed quantities. Legacy request counts are not converted to credits. Other users' records and unrecognized responses are rejected.
+
+Billing uses the existing transport's matched HTTPS API origin, TLS/proxy integration, response limit, cancellation and timeout. A pass is limited to 40 requests and 30 seconds. It caches current/previous-day reports for one hour and older reports for 24 hours in memory; unavailable discovery is retried after 24 hours. Rate limits honor Retry-After and also delay subsequent quota reads. Redirects and cross-host fallback remain blocked. No additional authentication scopes, separate credentials or user-facing backend selector are introduced.
+
+Background results must still match the current session, account, snapshot and service generation. A refresh, disconnect, account/provider change or disposal cancels earlier reads. Billing failures do not discard accepted quota or trigger reconnection. Demos never invoke billing. No complete API response, model record or discovery result is persisted.
+
+For missing report days, local daily values sum only adjacent nondecreasing observations within two hours, with the same budget and UTC day. Midnight differences, long gaps and corrections are not attributed to a day. Reported days replace local values without addition. Local values and the ongoing UTC day are labeled Partial; API billing delays remain possible. Real-account acceptance of billing is separate from the previously accepted quota runtime.
+
+`copilotPace.language` is an application setting, defaulting to `en`. The detail panel's language button reads **Spanish** in English and **Inglés** in Spanish. Switching language updates text, accessible labels and locale formatting in place, without fetching usage. Formatters use `en-US` or `es-ES`; dates and calculations remain in UTC.
 
 ## Quota contract
 
@@ -38,12 +69,14 @@ Projections require a recognized UTC calendar-month cycle. Missing quotas, legac
 
 This is an internal endpoint without a guaranteed third-party API contract. Account authentication, network behavior and response values require real validation. See the [release guide](RELEASING.md#real-account-acceptance) for the acceptance procedure.
 
-## Other sources and tooling
+## Data limitations
 
-The [billing usage REST API](https://docs.github.com/en/rest/billing/usage) requires access appropriate to personal, organization or enterprise reports. The extension does not request administrative PATs. [Usage monitoring](https://docs.github.com/en/copilot/how-tos/manage-and-track-spending/monitor-ai-usage) and [budgets](https://docs.github.com/en/copilot/concepts/billing-and-usage/organizations-and-enterprises/budgets) describe assigned allowances; they do not establish a readable per-model breakdown for an employee.
+The quota endpoint returns aggregate credits. It provides no daily or per-model breakdown. Local history contains observations collected by Pace, not reconstructed daily consumption. Polling those totals cannot recover model identities, project attribution or token counts.
 
-Quota responses provide aggregate credits. This stable version does not store local usage history or expose per-model token usage.
+The [Copilot SDK](https://docs.github.com/en/copilot/how-tos/copilot-sdk/features/usage-and-billing) reports its own sessions rather than global editor usage.
 
-The [Copilot SDK](https://docs.github.com/en/copilot/how-tos/copilot-sdk/features/usage-and-billing) reports its own sessions and is not a source of global editor history.
+## Build and test boundaries
+
+Development demos use synthetic responses with the same quota shape and a current UTC calendar. Tests inject fixed clocks. Production removes the demo adapter, translations and contributions; see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 The bundle targets ES2022/CommonJS. Node 22 types constrain API usage; build-time Node is separate from VS Code's embedded runtime. Versions are pinned in the manifest/lockfile. Mocha overrides address the [diff](https://github.com/advisories/GHSA-73rr-hh4g-fpgx) and serialize-javascript [RCE](https://github.com/advisories/GHSA-5c6j-r48x-rmvq) / [CPU](https://github.com/advisories/GHSA-qj8w-gfj5-8c6v) advisories. Recheck the audit when dependencies change.

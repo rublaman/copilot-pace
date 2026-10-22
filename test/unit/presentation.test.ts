@@ -6,26 +6,307 @@ import { demoClock } from '../fixtures';
 import { createViewModel, renderHtml, renderHover, hoverCommands, type ViewModel } from '../../src/presentation';
 import { QuotaService } from '../../src/service';
 import { SafeError } from '../../src/transport';
+import { resolveChartStyle } from '../../src/chart';
+
+interface PanelElement {
+  textContent: string; value: string; hidden?: boolean; disabled?: boolean;
+  attributes: Map<string, string>; children: PanelElement[];
+  style: { top?: string; left?: string };
+  setAttribute(key: string, value: string): void;
+  addEventListener(event: string, listener: (event: { target: { value: string } }) => void): void;
+  appendChild(child: PanelElement): void; replaceChildren(): void; click(): void; change(value: string): void;
+}
+
+function panelElement(): PanelElement {
+  const attributes = new Map<string, string>();
+  const listeners = new Map<string, (event: { target: { value: string } }) => void>();
+  return {
+    textContent: '', value: '', attributes, children: [], style: {},
+    setAttribute: (key, value) => { attributes.set(key, value); },
+    addEventListener: (event, listener) => { listeners.set(event, listener); },
+    appendChild(child) { this.children.push(child); },
+    replaceChildren() { this.children = []; },
+    click: () => listeners.get('click')?.({ target: { value: '' } }),
+    change: value => listeners.get('change')?.({ target: { value } }),
+  };
+}
 
 function panelElements(model: ViewModel, updates: ViewModel[] = [], messages: unknown[] = []) {
-  const elements = new Map<string, { textContent: string; hidden?: boolean; disabled?: boolean; attributes: Map<string, string>; setAttribute(key: string, value: string): void; addEventListener(event: string, listener: () => void): void; click(): void }>();
+  const elements = new Map<string, PanelElement>();
   const html = renderHtml(model, 'safe-nonce');
   for (const [, id] of html.matchAll(/id="([\w]+)"/g)) {
-    const attributes = new Map<string, string>();
-    const listeners = new Map<string, () => void>();
-    elements.set(id!, { textContent: '', attributes, setAttribute: (key, value) => { attributes.set(key, value); }, addEventListener: (event, listener) => { listeners.set(event, listener); }, click: () => listeners.get('click')?.() });
+    elements.set(id!, panelElement());
   }
   const script = html.match(/<script nonce="safe-nonce">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script);
   let update!: (event: { data: { type: string; model: ViewModel } }) => void;
   runInNewContext(script, {
     acquireVsCodeApi: () => ({ postMessage: (message: unknown) => messages.push(message) }),
-    document: { getElementById: (id: string) => elements.get(id) },
+    document: { getElementById: (id: string) => elements.get(id), createElementNS: () => panelElement(), createElement: () => panelElement() },
     window: { addEventListener: (_event: string, listener: typeof update) => { update = listener; } },
   });
   for (const next of updates) update({ data: { type: 'state', model: next } });
   return elements;
 }
+
+describe('Forecast, history and appearance presentation', () => {
+  const snapshot = normalizeQuota(boundedFixture(10000, 6000, demoClock.now()), demoClock.now());
+  it('renders the forecast and hides it when the retained snapshot is stale', () => {
+    const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0);
+    assert.ok(model.depletion.includes('Oct'));
+    assert.equal(model.excess, '2,400 credits');
+    assert.ok(renderHover(model).includes('Estimated exhaustion:'));
+    const stale = createViewModel({ phase: 'error', snapshot }, demoClock, 'all', false, '', 0);
+    assert.equal(stale.depletion, '—');
+    assert.equal(stale.excess, '—');
+  });
+  it('keeps projection, exhaustion and excess anchored to the same observation', () => {
+    const later = { now: () => new Date('2026-10-17T00:00Z') };
+    const first = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0);
+    const reopened = createViewModel({ phase: 'ready', snapshot }, later, 'all', false, '', 0);
+    assert.equal(reopened.projection, first.projection);
+    assert.equal(reopened.depletion, first.depletion);
+    assert.equal(reopened.excess, first.excess);
+  });
+  it('draws observations while leaving offline gaps, budget changes and corrections disconnected', () => {
+    const start = Date.parse('2026-10-01T00:00Z');
+    const end = Date.parse('2026-11-01T00:00Z');
+    const base = Date.parse('2026-10-12T00:00Z');
+    const history = [
+      { at: base, used: 100, total: 10000, start, end },
+      { at: base + 3600000, used: 120, total: 10000, start, end },
+      { at: base + 7200000, used: 110, total: 10000, start, end },
+      { at: base + 10800000, used: 130, total: 12000, start, end },
+      { at: base + 86400000, used: 140, total: 12000, start, end },
+      { at: base, used: 100, start: 0, end: 1 },
+    ];
+    const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'en', { statusStyle: 'bar', history });
+    assert.deepEqual(model.history.map(point => point.connect), [false, true, false, false, false]);
+    const elements = panelElements(model);
+    assert.equal(elements.get('historyPlot')?.hidden, false);
+    const shapes = elements.get('historyPoints')!.children;
+    const lines = shapes.filter(shape => shape.attributes.get('class')?.startsWith('chart-line'));
+    assert.equal(lines.length, 2);
+    assert.equal(lines[0]!.attributes.get('d'), lines[1]!.attributes.get('d'));
+    assert.equal(shapes.filter(shape => shape.attributes.get('class')?.startsWith('chart-area')).length, 0);
+    assert.equal(shapes.find(shape => shape.attributes.get('class')?.startsWith('chart-dot'))?.children[0]?.textContent, model.history[0]?.label);
+    assert.ok(elements.get('historyBudget')?.attributes.get('d')?.startsWith('M32 168L'));
+    const empty = createViewModel({ phase: 'disconnected' }, demoClock, 'all', false, '', 0);
+    const updated = panelElements(model, [empty]);
+    assert.equal(updated.get('historyPlot')?.hidden, true);
+    assert.equal(updated.get('historyPoints')?.children.length, 0);
+  });
+  it('uses the weekday calendar for the ideal history line', () => {
+    const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'weekdays', false, '', 0);
+    assert.equal(model.historyBudget[2]?.y, model.historyBudget[3]?.y);
+    assert.equal(model.historyBudget[3]?.y, model.historyBudget[4]?.y);
+    assert.notEqual(model.historyBudget[4]?.y, model.historyBudget[5]?.y);
+  });
+  it('labels the monthly target and the daily calendar limits at the dashed reference', () => {
+    const cumulative = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0);
+    assert.equal(cumulative.historyBudgetTarget, '10,000 credits');
+    assert.equal(cumulative.historyBudgetTargetY, cumulative.historyBudget.at(-1)?.y);
+    assert.equal(cumulative.historyBudgetTargetHint, 'Cycle budget');
+    const daily = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'es-ES', { chartMetric: 'daily' });
+    assert.equal(daily.historyBudgetTarget, '322,6 créditos');
+    assert.equal(daily.historyBudgetTargetY, daily.historyBudget.at(-1)?.y);
+    assert.equal(daily.historyBudgetTargetHint, 'Límite medio diario');
+    assert.equal(daily.historyCalendarTicks.length, 0);
+    const weekdays = createViewModel({ phase: 'ready', snapshot }, demoClock, 'weekdays', false, '', 0, 'es-ES', { chartMetric: 'daily' });
+    assert.equal(weekdays.historyBudgetTarget, '454,5 créditos');
+    assert.equal(weekdays.historyBudgetTargetHint, 'Límite por día laborable');
+    assert.deepEqual(weekdays.historyCalendarTicks.map(tick => tick.label), ['3 oct', '5 oct', '10 oct', '12 oct', '17 oct', '19 oct', '24 oct', '26 oct', '31 oct']);
+    const elements = panelElements(weekdays);
+    assert.equal(elements.get('historyCalendarTicks')!.children.length, 9);
+    assert.equal(elements.get('historyCalendarMarks')!.children.length, 9);
+    assert.equal(elements.get('historyBudgetTarget')!.textContent, '454,5 créditos');
+    const unknown = createViewModel({ phase: 'ready', snapshot: { kind: 'usageOnly', used: 6000, asOf: snapshot.asOf, cycle: snapshot.cycle } }, demoClock, 'all', false, '', 0);
+    assert.equal(unknown.historyBudgetTarget, '');
+    assert.equal(panelElements(unknown).get('historyBudgetTargetPosition')!.hidden, true);
+  });
+  it('explains the projected cycle total and shows total used credits in both hover languages', () => {
+    for (const language of ['en', 'es-ES'] as const) {
+      const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, language);
+      const elements = panelElements(model);
+      assert.equal(elements.get('projectionHint')!.textContent, model.text.projectionHint);
+      assert.ok(renderHover(model).includes(`${model.text.usedHover}: **${model.used}**`));
+    }
+  });
+  it('migrates removed area and unsupported chart settings to a line', () => {
+    for (const value of ['area', undefined, 'invalid', '__proto__']) assert.equal(resolveChartStyle(value), 'line');
+    assert.equal(resolveChartStyle('columns'), 'columns');
+  });
+  it('offers file and location actions without exposing a path and disables both when unavailable', () => {
+    const account = { id: 'account', label: 'Test' };
+    const available = createViewModel({ phase: 'ready', snapshot, account }, demoClock, 'all', false, '', 0, 'es-ES', { historyFileAvailable: true });
+    const messages: unknown[] = [];
+    const elements = panelElements(available, [], messages);
+    assert.equal(elements.has('historyPath'), false);
+    assert.equal(elements.get('historyFile')!.hidden, false);
+    assert.equal(elements.get('openHistory')!.disabled, false);
+    assert.equal(elements.get('revealHistory')!.disabled, false);
+    assert.equal(elements.get('revealHistory')!.textContent, 'Mostrar ubicación');
+    elements.get('revealHistory')!.click();
+    assert.equal(JSON.stringify(messages.at(-1)), JSON.stringify({ action: 'revealHistory' }));
+    elements.get('openHistory')!.click();
+    assert.equal(JSON.stringify(messages.at(-1)), JSON.stringify({ action: 'openHistory' }));
+    const empty = createViewModel({ phase: 'disconnected' }, demoClock, 'all', false, '', 0);
+    const cleared = panelElements(available, [empty]);
+    assert.equal(cleared.get('openHistory')!.disabled, true);
+    assert.equal(cleared.get('revealHistory')!.disabled, true);
+  });
+  it('hides local file controls without an account and restores them after login', () => {
+    for (const language of ['en', 'es-ES'] as const) {
+      const account = { id: 'account', label: 'Test' };
+      const disconnected = createViewModel({ phase: 'disconnected' }, demoClock, 'all', false, '', 0, language, { historyFileAvailable: true });
+      assert.equal(disconnected.canOpenHistory, false);
+      assert.equal(panelElements(disconnected).get('historyFile')!.hidden, true);
+      const loading = createViewModel({ phase: 'loading' }, demoClock, 'all', false, '', 0, language);
+      assert.equal(panelElements(loading).get('historyFile')!.hidden, true);
+      const connected = createViewModel({ phase: 'ready', snapshot, account }, demoClock, 'all', false, '', 0, language);
+      const signedIn = panelElements(disconnected, [connected]);
+      assert.equal(signedIn.get('historyFile')!.hidden, false);
+      assert.equal(signedIn.get('openHistory')!.disabled, true);
+      assert.equal(signedIn.get('revealHistory')!.disabled, true);
+      assert.equal(panelElements(connected, [disconnected]).get('historyFile')!.hidden, true);
+      assert.equal(panelElements(connected, [disconnected, connected]).get('historyFile')!.hidden, false);
+    }
+  });
+  it('localizes appearance controls, sends the selected style and reports storage errors', () => {
+    const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'es-ES', { statusStyle: 'dots', historyFailed: true });
+    const messages: unknown[] = [];
+    const elements = panelElements(model, [], messages);
+    assert.equal(elements.get('statusStyle')?.value, 'dots');
+    assert.equal(elements.get('styleBar')?.textContent, 'Barra segmentada');
+    assert.equal(elements.get('historyMessage')?.textContent, model.text.historyError);
+    elements.get('statusStyle')?.change('bar');
+    assert.equal(JSON.stringify(messages.at(-1)), JSON.stringify({ action: 'statusStyle', value: 'bar' }));
+    assert.equal(model.statusDescription, '60% · Ritmo excesivo');
+  });
+  it('defaults to a line and switches to last-per-day cumulative columns without changing the observations', () => {
+    const start = Date.parse('2026-10-01T00:00Z');
+    const end = Date.parse('2026-11-01T00:00Z');
+    const at = Date.parse('2026-10-12T10:00Z');
+    const history = [
+      { at, used: 100, total: 10000, start, end },
+      { at: at + 3600000, used: 150, total: 10000, start, end },
+      { at: at + 86400000, used: 300, total: 10000, start, end },
+    ];
+    const initial = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'en', { history });
+    const line = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'en', { history, chartStyle: 'line' });
+    const columns = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'es-ES', { history, chartStyle: 'columns' });
+    assert.equal(initial.chartStyle, 'line');
+    assert.ok(!renderHtml(initial, 'safe-nonce').includes('value="area"'));
+    const lineShapes = panelElements(initial, [line]).get('historyPoints')!.children;
+    assert.ok(lineShapes.some(shape => shape.attributes.get('class')?.startsWith('chart-line')));
+    assert.ok(!lineShapes.some(shape => shape.attributes.get('class')?.startsWith('chart-area')));
+    assert.deepEqual(line.history, initial.history);
+    assert.equal(columns.history.length, 3);
+    assert.equal(columns.historyColumns.length, 2);
+    assert.equal(columns.historyColumns[0]?.y, columns.history[1]?.y);
+    const messages: unknown[] = [];
+    const elements = panelElements(line, [columns], messages);
+    assert.equal(elements.get('historyPoints')?.children.length, 2);
+    assert.ok(elements.get('historyPoints')?.children.every(shape => shape.attributes.get('class')?.startsWith('chart-column')));
+    assert.equal(elements.get('historyColumnsNote')?.hidden, false);
+    assert.equal(elements.get('chartColumns')?.textContent, 'Columnas');
+    assert.equal(elements.get('chartStyle')?.value, 'columns');
+    elements.get('chartStyle')?.change('line');
+    assert.equal(JSON.stringify(messages.at(-1)), JSON.stringify({ action: 'chartStyle', value: 'line' }));
+  });
+  it('renders reported daily credits with partial local fallback and keeps unknown days empty', () => {
+    const start = Date.parse('2026-10-01T00:00Z');
+    const end = Date.parse('2026-11-01T00:00Z');
+    const at = Date.parse('2026-10-12T10:00Z');
+    const history = [
+      { at, used: 100, total: 10000, start, end },
+      { at: at + 3600000, used: 150, total: 10000, start, end },
+      { at: at + 86400000, used: 300, total: 10000, start, end },
+      { at: at + 90000000, used: 325, total: 10000, start, end },
+    ];
+    const dailyUsage = [{ day: Date.parse('2026-10-12T00:00Z'), used: 200, partial: false }];
+    for (const chartStyle of ['line', 'columns'] as const) {
+      const model = createViewModel({ phase: 'ready', snapshot, dailyUsage }, demoClock, 'all', false, '', 0, 'es-ES', { history, chartMetric: 'daily', chartStyle });
+      assert.equal(model.history.length, 2);
+      assert.match(model.history[0]!.label, /200 créditos$/);
+      assert.match(model.history[1]!.label, /25 créditos · Parcial$/);
+      assert.equal(model.historyLatest, '25 créditos');
+      const messages: unknown[] = [];
+      const elements = panelElements(model, [], messages);
+      assert.equal(elements.get('metricDaily')!.attributes.get('aria-pressed'), 'true');
+      assert.equal(elements.get('historyColumnsNote')!.hidden, true);
+      assert.equal(elements.get('historyMetricLabel')!.textContent, 'Créditos diarios');
+      assert.match(elements.get('historyChart')!.attributes.get('aria-label')!, /por día UTC/);
+      elements.get('metricCumulative')!.click();
+      assert.equal(JSON.stringify(messages.at(-1)), JSON.stringify({ action: 'chartMetric', value: 'cumulative' }));
+    }
+  });
+  for (const reported of [false, true]) {
+    for (const chartStyle of ['line', 'columns'] as const) {
+      it(`colors ${reported ? 'reported' : 'local'} ${chartStyle} values green within pace and red over pace`, () => {
+        const start = Date.parse('2026-10-01T00:00Z');
+        const end = Date.parse('2026-11-01T00:00Z');
+        const day = Date.parse('2026-10-12T00:00Z');
+        const history = [
+          { at: day + 3600000, used: 5000, total: 10000, start, end },
+          { at: day + 7200000, used: 5100, total: 10000, start, end },
+          { at: day + 86400000 + 3600000, used: 5200, total: 10000, start, end },
+          { at: day + 86400000 + 7200000, used: 6000, total: 10000, start, end },
+        ];
+        const dailyUsage = reported ? [{ day, used: 100, partial: false }, { day: day + 86400000, used: 800, partial: false }] : undefined;
+        const model = createViewModel({ phase: 'ready', snapshot, dailyUsage }, demoClock, 'all', false, '', 0, 'en', { history, chartMetric: 'daily', chartStyle });
+        assert.deepEqual(model.history.map(point => point.tone), ['good', 'over']);
+        assert.equal(model.historyLatestTone, 'over');
+        assert.ok(model.history[0]!.label.includes('Within budget pace'));
+        assert.ok(model.history[1]!.label.includes('Over budget pace'));
+        assert.equal(model.history.every(point => point.partial), !reported);
+        const elements = panelElements(model);
+        const shapes = elements.get('historyPoints')!.children;
+        assert.equal(elements.get('historyWithinLabel')!.hidden, false);
+        assert.equal(elements.get('historyOverLabel')!.hidden, false);
+        assert.equal(elements.get('historyObservedLabel')!.hidden, true);
+        assert.equal(elements.get('historyLatest')!.attributes.get('data-chart-tone'), 'over');
+        if (chartStyle === 'columns') {
+          assert.match(shapes[0]!.attributes.get('class')!, /chart-column good/);
+          assert.match(shapes[1]!.attributes.get('class')!, /chart-column over/);
+        } else {
+          const within = shapes.find(shape => shape.attributes.get('class') === 'chart-line good')!;
+          const over = shapes.find(shape => shape.attributes.get('class') === 'chart-line over')!;
+          assert.equal(within.attributes.get('clip-path'), 'url(#historyWithinClip)');
+          assert.equal(over.attributes.get('clip-path'), 'url(#historyOverClip)');
+          assert.equal(within.attributes.get('d'), over.attributes.get('d'));
+          assert.ok(elements.get('historyWithinClipShape')!.attributes.get('d')!.endsWith('L552 192L32 192Z'));
+          assert.ok(elements.get('historyOverClipShape')!.attributes.get('d')!.endsWith('L552 0L32 0Z'));
+        }
+      });
+    }
+  }
+  it('compares cumulative usage with the budget at each observation rather than the full monthly limit', () => {
+    const start = Date.parse('2026-10-01T00:00Z');
+    const end = Date.parse('2026-11-01T00:00Z');
+    const at = Date.parse('2026-10-12T00:00Z');
+    const expected = 10000 * 11 / 31;
+    const history = [
+      { at, used: expected, total: 10000, start, end },
+      { at: at + 3600000, used: expected + 1000, total: 10000, start, end },
+    ];
+    const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'en', { history });
+    assert.deepEqual(model.history.map(point => point.tone), ['good', 'over']);
+  });
+  it('uses a zero weekend budget in weekday mode and stays neutral without a known budget', () => {
+    const day = Date.parse('2026-10-03T00:00Z');
+    const dailyUsage = [{ day, used: 0, partial: false }, { day: day + 86400000, used: 1, partial: false }];
+    const weekend = createViewModel({ phase: 'ready', snapshot, dailyUsage }, demoClock, 'weekdays', false, '', 0, 'en', { chartMetric: 'daily' });
+    assert.deepEqual(weekend.history.map(point => point.tone), ['good', 'over']);
+    const unknown = createViewModel({ phase: 'ready', snapshot: { kind: 'usageOnly', used: 6000, asOf: snapshot.asOf, cycle: snapshot.cycle }, dailyUsage }, demoClock, 'all', false, '', 0, 'en', { chartMetric: 'daily' });
+    assert.ok(unknown.history.every(point => point.tone === 'neutral'));
+    const elements = panelElements(unknown);
+    assert.equal(elements.get('historyWithinLabel')!.hidden, true);
+    assert.equal(elements.get('historyOverLabel')!.hidden, true);
+    assert.equal(elements.get('historyObservedLabel')!.hidden, false);
+    assert.ok(elements.get('historyPoints')!.children.every(shape => !shape.attributes.has('clip-path')));
+  });
+});
 
 describe('Presentation and demo scenarios', () => {
   const snapshot = normalizeQuota(boundedFixture(10000, 4000, demoClock.now()), demoClock.now());
@@ -62,16 +343,20 @@ describe('Presentation and demo scenarios', () => {
       { kind: 'bounded' as const, used: 15, total: 20, usedPercent: 75, asOf: 0, cycle: { start: 0, end: 86400000 } },
     ]) {
       const model = createViewModel({ phase: 'ready', snapshot: state }, demoClock, 'all', false, '', 0);
-      assert.equal(model.allowance, '—'); assert.equal(model.cycleValue, null); assert.equal(model.projection, '—');
+      assert.equal(model.allowance, '—');
+      assert.equal(model.cycleValue, null);
+      assert.equal(model.projection, '—');
       assert.ok(!renderHover(model).includes('Daily allowance'));
       assert.ok(!renderHover(model).includes('Today:'));
     }
   });
   it('keeps early-cycle averages pending and exhausted allowances at zero', () => {
     const early = createViewModel({ phase: 'ready', snapshot }, { now: () => new Date('2026-10-01T12:00Z') }, 'all', true, 'Demo', 0);
-    assert.equal(early.dailyAverage, '—'); assert.equal(early.summary, 'Calculating pace');
+    assert.equal(early.dailyAverage, '—');
+    assert.equal(early.summary, 'Calculating pace');
     const exhausted = createViewModel({ phase: 'ready', snapshot: normalizeQuota(boundedFixture(3900, 3900, demoClock.now()), demoClock.now()) }, demoClock, 'all', true, 'Demo', 0);
-    assert.equal(exhausted.remaining, '0 credits'); assert.equal(exhausted.allowance, '0 / day');
+    assert.equal(exhausted.remaining, '0 credits');
+    assert.equal(exhausted.allowance, '0 / day');
     assert.ok(renderHover(exhausted).includes('Daily allowance: **0 / day** · Mon–Sun'));
     assert.ok(renderHover(early).includes('A daily estimate will appear after one full eligible day.'));
   });
@@ -108,7 +393,8 @@ describe('Presentation and demo scenarios', () => {
     const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', true, 'Demo', 0);
     model.message = '[run](command:evil) <img> | $(warning)\nextra';
     const hover = renderHover(model);
-    assert.ok(hover.includes('Projected at renewal:')); assert.ok(hover.includes('6,000 credits'));
+    assert.ok(hover.includes('Projected at renewal:'));
+    assert.ok(hover.includes('6,000 credits'));
     assert.ok(hover.includes('\\[run\\]\\(command:evil\\)'));
     assert.ok(!hover.includes('[run](command:evil)'));
     assert.ok(hover.includes('\\<img\\> \\| \\$\\(warning\\) extra'));
@@ -122,7 +408,8 @@ describe('Presentation and demo scenarios', () => {
   });
   it('keeps the status text minimal and identifies synthetic data', () => {
     const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', true, 'Demo', 0);
-    assert.equal(model.statusText, '40% · Comfortable · Demo'); assert.equal(model.canConnect, false);
+    assert.equal(model.statusText, '40% · Comfortable · Demo');
+    assert.equal(model.canConnect, false);
     assert.ok(model.referenceDate.includes('2026'));
   });
   for (const [used, percentage] of [[0, '0%'], [1, '<0.1%'], [2, '<0.1%'], [4, '<0.1%'], [6, '0.1%'], [10, '0.1%'], [40, '0.4%'], [1234, '12.3%'], [1950, '19.5%'], [10000, '100%']] as const) {
@@ -176,7 +463,8 @@ describe('Presentation and demo scenarios', () => {
       [{ phase: 'error', account, failure: new SafeError('auth', 'Cancelled') }, 'Reconnect GitHub', 'Test'],
     ] as const) {
       const model = createViewModel(state, demoClock, 'all', false, '', 0);
-      assert.equal(model.connectLabel, label); assert.equal(model.accountLabel, displayedAccount);
+      assert.equal(model.connectLabel, label);
+      assert.equal(model.accountLabel, displayedAccount);
       assert.ok(!renderHover(model).includes('Today:'));
       assert.ok(renderHover(model).includes(`[${label}](command:copilotPace.connect)`));
       assert.equal(renderHover(model).includes('GitHub account:'), !!displayedAccount);
@@ -218,14 +506,16 @@ describe('Presentation and demo scenarios', () => {
     const label = '[run](command:evil) </script><img src=x onerror=alert(1)> $(warning)\nOther';
     const model = createViewModel({ phase: 'ready', snapshot, account: { id: 'account', label } }, demoClock, 'all', false, '', 0);
     const hover = renderHover(model);
-    assert.ok(!hover.includes('[run](command:evil)')); assert.ok(!hover.includes('$(warning)'));
+    assert.ok(!hover.includes('[run](command:evil)'));
+    assert.ok(!hover.includes('$(warning)'));
     assert.ok(hover.includes('\\[run\\]\\(command:evil\\)'));
     assert.ok(!renderHtml(model, 'safe-nonce').includes('</script><img'));
     assert.equal(panelElements(model).get('accountLabel')?.textContent, label);
   });
   it('hides account identity and connection controls for synthetic demos', () => {
     const model = createViewModel({ phase: 'ready', snapshot, account: { id: 'synthetic', label: 'Demo' } }, demoClock, 'all', true, 'Demo', 0);
-    assert.equal(model.accountLabel, ''); assert.equal(model.canConnect, false);
+    assert.equal(model.accountLabel, '');
+    assert.equal(model.canConnect, false);
     assert.ok(!renderHover(model).includes('GitHub account:'));
     assert.ok(renderHover(model).includes('[Change demo](command:copilotPace.demo)'));
     const elements = panelElements(model);
@@ -288,8 +578,10 @@ describe('Presentation and demo scenarios', () => {
   it('uses CSP and text content without exposing credentials', () => {
     const model = createViewModel({ phase: 'ready' }, demoClock, 'all', true, '</script><img src=x onerror=alert(1)>', 0);
     const html = renderHtml(model, 'safe-nonce');
-    assert.ok(html.includes("default-src 'none'")); assert.ok(!html.includes('</script><img'));
-    assert.ok(html.includes('textContent')); assert.ok(!html.includes('accessToken'));
+    assert.ok(html.includes("default-src 'none'"));
+    assert.ok(!html.includes('</script><img'));
+    assert.ok(html.includes('textContent'));
+    assert.ok(!html.includes('accessToken'));
   });
   it('localizes Spanish figures, dates, states and hover without a language action in the hover', () => {
     const spanish = createViewModel({ phase: 'ready', snapshot, updatedAt: demoClock.now().getTime(), account: { id: 'test', label: 'Test' } }, demoClock, 'weekdays', false, '', 0, 'es-ES');
@@ -309,7 +601,8 @@ describe('Presentation and demo scenarios', () => {
     assert.ok(hover.includes('Previsión al renovar:'));
     assert.ok(hover.includes('[$(graph) Ver detalles](command:copilotPace.showDetails)'));
     assert.ok(!hover.includes('Daily allowance'));
-    assert.ok(!hover.includes('[Inglés]')); assert.ok(!hover.includes('[Spanish]'));
+    assert.ok(!hover.includes('[Inglés]'));
+    assert.ok(!hover.includes('[Spanish]'));
     assert.ok(!hover.includes('Today:'));
     assert.deepEqual(snapshot, normalizeQuota(boundedFixture(10000, 4000, demoClock.now()), demoClock.now()));
   });
@@ -365,7 +658,7 @@ describe('Presentation and demo scenarios', () => {
   });
   for (const scenario of Object.keys(scenarioLabels) as Array<keyof typeof scenarioLabels>) {
     it(`runs ${scenario} through authentication, transport, normalization and presentation`, async () => {
-      const service = new QuotaService({ sessions: new MockSessions(scenario), transport: new MockTransport(scenario, demoClock), dataClock: demoClock }, () => {});
+      const service = new QuotaService({ sessions: new MockSessions(scenario), transport: new MockTransport(scenario, demoClock), dataClock: demoClock }, () => { });
       await service.refresh();
       const model = createViewModel(service.current, demoClock, 'all', true, scenarioLabels[scenario], service.nextAllowedAt);
       assert.ok(model.statusText.endsWith('Demo'));

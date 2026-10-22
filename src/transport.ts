@@ -8,29 +8,56 @@ export interface Session { id: string; accessToken: string; account: SessionAcco
 export interface SessionProvider { get(interactive: boolean, forceNewSession?: boolean): Promise<Session | undefined> }
 export interface HttpResponse { status: number; headers: Record<string, string | undefined>; body: unknown }
 export interface HttpTransport { request(accessToken: string, signal: AbortSignal): Promise<HttpResponse> }
+export interface ApiTransport {
+  api(path: string, accessToken: string, signal: AbortSignal, query?: string): Promise<HttpResponse>;
+}
 export type FailureCode = 'timeout' | 'network' | 'invalidResponse' | 'unauthorized' | 'forbidden' | 'rateLimited' | 'server' | 'cancelled' | 'auth' | 'configuration' | 'configurationChanged';
 export class SafeError extends Error {
   constructor(public readonly code: FailureCode, message: string, public readonly retryAt?: number) { super(message); }
 }
 
 export class GitHubTransport implements HttpTransport {
-  constructor(private readonly editorVersion: string, private readonly timeoutMs = 10_000,
-    private readonly requestFactory: (url: string, options: https.RequestOptions, callback: (response: IncomingMessage) => void) => ClientRequest = (url, options, callback) => https.request(url, options, callback),
-    private readonly connection: Connection = defaultConnection) {}
+  constructor(
+    private readonly editorVersion: string,
+    private readonly timeoutMs = 10_000,
+    private readonly requestFactory: (
+      url: string, options: https.RequestOptions, callback: (response: IncomingMessage) => void,
+    ) => ClientRequest = (url, options, callback) => https.request(url, options, callback),
+    private readonly connection: Connection = defaultConnection,
+  ) {}
   request(accessToken: string, signal: AbortSignal): Promise<HttpResponse> {
+    return this.send('/copilot_internal/user', accessToken, signal);
+  }
+  api(path: string, accessToken: string, signal: AbortSignal, query?: string): Promise<HttpResponse> {
+    return this.send(path, accessToken, signal, query);
+  }
+  private send(path: string, accessToken: string, signal: AbortSignal, query?: string): Promise<HttpResponse> {
     return new Promise((resolve, reject) => {
       if (this.connection.provider === 'github-enterprise' && this.connection.requiresReload) {
-        reject(new SafeError('configurationChanged', getStrings('en').errorConfigurationChanged)); return;
+        reject(new SafeError('configurationChanged', getStrings('en').errorConfigurationChanged));
+        return;
       }
-      const endpoint = quotaEndpoint(this.connection);
-      if (!endpoint) { reject(new SafeError('configuration', getStrings('en').errorConfiguration)); return; }
+      const quota = quotaEndpoint(this.connection);
+      if (!quota || !path.startsWith('/') || path.startsWith('//') || path.includes('\\')) {
+        reject(new SafeError('configuration', getStrings('en').errorConfiguration));
+        return;
+      }
+      const origin = new URL(quota).origin;
+      const endpoint = new URL(path, origin);
+      if (endpoint.origin !== origin) {
+        reject(new SafeError('configuration', getStrings('en').errorConfiguration));
+        return;
+      }
+      const payload = query === undefined ? undefined : JSON.stringify({ query });
       // VS Code patches Node HTTPS to apply its proxy and certificate support. Do not supply a custom agent.
-      const request = this.requestFactory(endpoint, {
-        method: 'GET', signal,
+      const request = this.requestFactory(endpoint.href, {
+        method: payload === undefined ? 'GET' : 'POST', signal,
         headers: {
           Authorization: `Bearer ${accessToken}`, Accept: 'application/json',
           'User-Agent': `Copilot-Pace/${__EXTENSION_VERSION__}`, 'Editor-Version': `vscode/${this.editorVersion}`,
           'Editor-Plugin-Version': `copilot-pace/${__EXTENSION_VERSION__}`,
+          ...(path !== '/copilot_internal/user' ? { 'X-GitHub-Api-Version': '2026-03-10' } : {}),
+          ...(payload !== undefined ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } : {}),
         },
       }, response => {
         const status = response.statusCode ?? 0;
@@ -50,8 +77,12 @@ export class GitHubTransport implements HttpTransport {
           }
           let body: unknown;
           if (status >= 200 && status < 300) {
-            try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown; }
-            catch { reject(new SafeError('invalidResponse', 'GitHub returned an unsupported response.')); return; }
+            try {
+              body = JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown;
+            } catch {
+              reject(new SafeError('invalidResponse', 'GitHub returned an unsupported response.'));
+              return;
+            }
           }
           resolve({ status, headers, body });
         });
@@ -62,7 +93,7 @@ export class GitHubTransport implements HttpTransport {
       request.on('error', error => reject(signal.aborted
         ? new SafeError('cancelled', 'Request cancelled.')
         : error instanceof SafeError ? error : new SafeError('network', 'Could not connect. Check your network, proxy and VS Code certificates.')));
-      request.end();
+      request.end(payload);
     });
   }
 }

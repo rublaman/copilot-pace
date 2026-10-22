@@ -4,9 +4,9 @@ This guide defines the release workflow. Published versions, tested artifacts, c
 
 ## Published channels
 
-- Stable: [1.2.1](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.1) from `main`, with `preview: false` and Latest.
-- Pilot: [1.3.4](https://github.com/rublaman/copilot-pace/releases/tag/v1.3.4) from `develop`, with `preview: true`, as a GitHub prerelease without Latest.
-- Real-account daily billing/corporate-policy acceptance remains pending. Synthetic tests do not establish that acceptance.
+- Stable: releases from `main`, with `preview: false` and Latest. See [the latest stable release](https://github.com/rublaman/copilot-pace/releases/latest) for the published version.
+- Pilot: GitHub prereleases from `develop`, with `preview: true`, without Latest. See [GitHub Releases](https://github.com/rublaman/copilot-pace/releases) for published pilot versions.
+- The maintainer confirmed real-account acceptance of the 1.3.x pilot, including daily billing and corporate policies, on 2026-10-22. This is maintainer-reported acceptance; synthetic tests do not establish it.
 - Marketplace upload and store verification are separate from GitHub publication. The 1.3.2 candidate remains an unpublished draft; retain its tag and assets.
 
 ## Documentation records
@@ -120,10 +120,18 @@ The root README supplies the packaged Marketplace overview. [MARKETPLACE.md](MAR
 
 Edit the publisher profile through its [management page](https://marketplace.visualstudio.com/manage/publishers/rubenblancomanzano). The extension's short description, repository and issue links are configured in `package.json`.
 
-Marketplace upload and store verification of stable 1.2.1 remain pending. Automated publishing and the Marketplace prerelease channel are unconfigured. Before adding automation, use restricted publishing permissions and check the current [secure publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace).
+Marketplace upload and store verification remain pending. Automated publishing and the Marketplace prerelease channel are unconfigured. Before adding automation, use restricted publishing permissions and check the current [secure publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace).
 
 Publish the same VSIX from the reviewed GitHub Release, through the publisher portal or `vsce publish --azure-credential --packagePath <tested.vsix>` with configured credentials. Verify the listing and an install/update before recording success. Do not rebuild or use `--skip-duplicate` to hide an existing version.
 
 If upload fails, check whether the destination received the asset before retrying. Retry only that tested file. Code or package changes after a remote tag require a new version/tag; after distribution, use a hotfix. Preserve the release history.
+
+## Return to the previous stable version
+
+Keep the [1.2.1 release](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.1), its original VSIX and checksum available when promoting the 1.3.x pilot. Never move its tag or replace its assets.
+
+If a regression requires a local rollback, close Pace panels, retain a copy of extension settings and local usage files, and install the original `copilot-pace-1.2.1.vsix` through **Extensions: Install from VSIX...** or `code --install-extension <path-to-vsix> --force`. Reload VS Code and verify the connection and quota. Version 1.2.1 does not display the 1.3.x usage history or status styles; keep those files and settings for a later upgrade. An isolated CLI retention check does not establish account or network acceptance of the downgrade.
+
+If the maintainer decides to restore the GitHub download recommendation, run `gh release edit v1.2.1 --latest`. This changes the recommended download, not installations already using a newer version. Keep the newer release and its evidence intact; distribute a fix under a new version. Marketplace publication and update behavior must be handled separately if that channel is used.
 
 Keep this guide current with workflow changes. [CONTRIBUTING.md](../CONTRIBUTING.md) owns development commands; [AGENTS.md](../AGENTS.md) owns shared agent rules. `.github/copilot-instructions.md` remains a local, ignored summary with no exclusive rules.

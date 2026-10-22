@@ -1,5 +1,9 @@
 import { Buffer } from 'node:buffer';
-import { calculatePace, equivalentDays, type Clock, type DayMode } from './domain';
+import { calculateForecast, calculatePace, equivalentDays, type Clock, type DayMode } from './domain';
+import { statusText, type StatusStyle } from './status';
+import type { Observation } from './history';
+import { chartTone, type ChartMetric, type ChartStyle, type ChartTone } from './chart';
+import { mergeDailyUsage, observedDailyUsage, UTC_DAY } from './daily';
 import { getStrings, type Language, type Strings } from './i18n';
 import { localizeDemoScenario } from './development';
 import type { ServiceState } from './service';
@@ -11,8 +15,9 @@ const formatters = Object.fromEntries((['en', 'es-ES'] as const).map(language =>
     number: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }),
     date: new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }),
     period: new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }),
+    shortDate: new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }),
   }];
-})) as Record<Language, { number: Intl.NumberFormat; date: Intl.DateTimeFormat; period: Intl.DateTimeFormat }>;
+})) as Record<Language, { number: Intl.NumberFormat; date: Intl.DateTimeFormat; period: Intl.DateTimeFormat; shortDate: Intl.DateTimeFormat }>;
 
 function failureMessage(failure: SafeError, language: Language, text: Strings): string {
   if (language === 'en') return failure.message;
@@ -35,8 +40,22 @@ export interface ViewModel {
   cycleProgress: string; daysLeft: string; period: string; forecastNote: string;
   usageValue: number | null; cycleValue: number | null;
   accountLabel: string; connectLabel: string;
+  statusStyle: StatusStyle; statusDescription: string;
+  depletion: string; excess: string;
+  history: Array<{ x: number; y: number; connect: boolean; label: string; partial?: boolean; tone: ChartTone }>;
+  historyMaximum: string; historyStart: string; historyEnd: string; historyBudget: Array<{ x: number; y: number }>;
+  historyMessage: string;
+  chartStyle: ChartStyle; chartStyleName: string; historyLatest: string; chartMetric: ChartMetric;
+  historyMetricLabel: string; historyLatestDate: string; historyAria: string;
+  historyLatestTone: ChartTone;
+  historyColumns: ViewModel['history'];
+  historyBudgetTarget: string; historyBudgetTargetY: number; historyBudgetTargetHint: string;
+  historyCalendarTicks: Array<{ x: number; label: string; weekend: boolean }>;
+  showHistoryFile: boolean; canOpenHistory: boolean;
 }
-export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayMode, demo: boolean, scenario: string, retryAt: number, language: Language = 'en'): ViewModel {
+export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayMode, demo: boolean, scenario: string, retryAt: number, language: Language = 'en',
+  options: { statusStyle?: StatusStyle; chartStyle?: ChartStyle; chartMetric?: ChartMetric; history?: readonly Observation[]; historyFailed?: boolean; historyFileAvailable?: boolean } = {}): ViewModel {
+  const { statusStyle: style = 'text', chartStyle = 'line', chartMetric = 'cumulative', history = [], historyFailed = false } = options;
   const text = getStrings(language);
   const formatter = formatters[language];
   const amount = (value: number) => formatter.number.format(value);
@@ -44,17 +63,27 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
   const date = (value: number) => formatter.date.format(value) + ' UTC';
   const snapshot = state.snapshot;
   const now = clock.now();
-  const pace = snapshot ? calculatePace(snapshot, now, dayMode) : undefined;
+  const observedAt = snapshot?.cycle && now.getTime() < snapshot.cycle.end ? new Date(Math.min(now.getTime(), snapshot.asOf)) : now;
+  const pace = snapshot ? calculatePace(snapshot, observedAt, dayMode) : undefined;
+  const pacePresentation = pace?.kind === 'available' ? {
+    Comfortable: { summary: text.comfortable, tone: 'good' as const, note: text.comfortableNote },
+    'On track': { summary: text.onTrack, tone: 'watch' as const, note: text.onTrackNote },
+    'Over pace': { summary: text.overPace, tone: 'over' as const, note: text.overPaceNote },
+  }[pace.label] : undefined;
   let summary = text.readingUsage;
   let tone: ViewModel['tone'] = 'neutral';
-  if (state.phase === 'disconnected') summary = text.connect;
-  else if (state.phase === 'error') summary = snapshot ? text.outOfDate : state.failure?.code === 'rateLimited' ? text.waiting : text.unavailable;
-  else if (snapshot?.kind === 'unavailable') summary = text.quotaUnavailable;
-  else if (snapshot?.kind === 'usageOnly') summary = text.noKnownLimit;
-  else if (snapshot?.kind === 'bounded') {
-    summary = pace?.kind === 'available' ? { Comfortable: text.comfortable, 'On track': text.onTrack, 'Over pace': text.overPace }[pace.label]
-      : pace?.kind === 'pending' ? text.calculatingPace : text.paceUnavailable;
-    if (pace?.kind === 'available') tone = pace.label === 'Comfortable' ? 'good' : pace.label === 'On track' ? 'watch' : 'over';
+  if (state.phase === 'disconnected') {
+    summary = text.connect;
+  } else if (state.phase === 'error') {
+    if (snapshot) summary = text.outOfDate;
+    else summary = state.failure?.code === 'rateLimited' ? text.waiting : text.unavailable;
+  } else if (snapshot?.kind === 'unavailable') {
+    summary = text.quotaUnavailable;
+  } else if (snapshot?.kind === 'usageOnly') {
+    summary = text.noKnownLimit;
+  } else if (snapshot?.kind === 'bounded') {
+    summary = pacePresentation?.summary ?? (pace?.kind === 'pending' ? text.calculatingPace : text.paceUnavailable);
+    tone = pacePresentation?.tone ?? 'neutral';
   }
   const cycle = snapshot?.cycle;
   const validCycle = cycle && now.getTime() >= cycle.start && now.getTime() < cycle.end;
@@ -63,17 +92,129 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
   const cycleValue = totalDays > 0 ? (totalDays - daysLeft) / totalDays * 100 : null;
   const remaining = snapshot?.kind === 'bounded' ? Math.max(0, snapshot.total - snapshot.used) : undefined;
   const percentage = snapshot?.kind === 'bounded' ? percent(snapshot.usedPercent) : '—';
-  const forecastNote = pace?.kind === 'available'
-    ? pace.label === 'Comfortable' ? text.comfortableNote : pace.label === 'On track' ? text.onTrackNote : text.overPaceNote
-    : pace?.kind === 'pending' ? text.pendingNote : text.unavailableNote;
-  const quotaReason = snapshot?.kind === 'unavailable' ? language === 'en' ? snapshot.reason
-    : snapshot.reason === 'No supported credit quota was returned.' ? text.unsupportedQuota : text.missingQuota : undefined;
+  const forecastNote = pacePresentation?.note ?? (pace?.kind === 'pending' ? text.pendingNote : text.unavailableNote);
+  let quotaReason: string | undefined;
+  if (snapshot?.kind === 'unavailable') {
+    quotaReason = language === 'en' ? snapshot.reason
+      : snapshot.reason === 'No supported credit quota was returned.' ? text.unsupportedQuota : text.missingQuota;
+  }
   const message = state.failure ? failureMessage(state.failure, language, text)
     : quotaReason ?? (state.phase === 'disconnected' ? text.connectNote : forecastNote);
   const reconnect = state.failure?.code === 'unauthorized' || (state.failure?.code === 'auth' && state.account !== undefined);
+  const forecast = snapshot && state.phase === 'ready' ? calculateForecast(snapshot, now, dayMode) : undefined;
+  let depletion = '—';
+  let excess = '—';
+  if (forecast?.kind === 'available') {
+    if (forecast.exhausted) depletion = text.budgetExhausted;
+    else if (forecast.exhaustionAt !== undefined) depletion = date(forecast.exhaustionAt);
+    else depletion = text.notBeforeRenewal;
+    excess = `${amount(forecast.excess)} ${text.credits}`;
+  }
+  if (state.phase === 'ready' && validCycle && snapshot?.kind === 'bounded' && snapshot.used >= snapshot.total) depletion = text.budgetExhausted;
+  const observations = validCycle ? history.filter(item => item.start === cycle.start && item.end === cycle.end && item.at <= now.getTime()) : [];
+  const daily = validCycle && !demo ? mergeDailyUsage(observedDailyUsage(observations, cycle),
+    (state.dailyUsage ?? []).filter(item => item.day >= cycle.start && item.day < cycle.end && item.day <= now.getTime())) : [];
+  const dailyMode = chartMetric === 'daily';
+  const baseRate = snapshot?.kind === 'bounded' && totalDays > 0 ? snapshot.total / totalDays : 0;
+  const knownBudget = snapshot?.kind === 'bounded' && !!validCycle && totalDays > 0;
+  const pointLabel = (at: number, used: number, pointTone: ChartTone, partial = false) => {
+    const status = { good: text.historyWithinLabel, over: text.historyOverLabel, neutral: '' }[pointTone];
+    return `${date(at)}${status ? ` · ${status}` : ''} · ${amount(used)} ${text.credits}${partial ? ` · ${text.historyPartial}` : ''}`;
+  };
+  let historyMessage = text.historyNote;
+  if (dailyMode) historyMessage = daily.length ? text.historyDailyNote : text.historyDailyEmpty;
+  if (demo) historyMessage = text.historyDemo;
+  else if (historyFailed) historyMessage = text.historyError;
+  else if (!dailyMode && observations.length === 0) historyMessage = text.historyEmpty;
+  const maximum = dailyMode ? Math.max(1, baseRate, ...daily.map(item => item.used))
+    : Math.max(1, snapshot?.kind === 'bounded' ? snapshot.total : 0, ...observations.map(item => item.used));
+  const points: ViewModel['history'] = dailyMode ? daily.map((item, index) => {
+    const allowance = knownBudget ? baseRate * equivalentDays(item.day, item.day + UTC_DAY, dayMode) : undefined;
+    const pointTone = chartTone(item.used, allowance);
+    return {
+      x: 32 + (item.day + UTC_DAY / 2 - cycle!.start) / (cycle!.end - cycle!.start) * 520,
+      y: 168 - item.used / maximum * 144,
+      connect: !!daily[index - 1] && item.day - daily[index - 1]!.day === UTC_DAY,
+      label: pointLabel(item.day, item.used, pointTone, item.partial),
+      partial: item.partial, tone: pointTone,
+    };
+  }) : observations.map((item, index) => {
+    const previous = observations[index - 1];
+    const allowance = knownBudget ? baseRate * equivalentDays(item.start, item.at, dayMode) : undefined;
+    const pointTone = chartTone(item.used, allowance);
+    return {
+      x: 32 + (item.at - item.start) / (item.end - item.start) * 520,
+      y: 168 - item.used / maximum * 144,
+      connect: !!previous && item.at - previous.at <= 2 * 60 * 60_000 && item.used >= previous.used && item.total === previous.total,
+      label: pointLabel(item.at, item.used, pointTone), tone: pointTone,
+    };
+  });
+  // Columns are cumulative snapshots, never inferred daily spending.
+  const dayIndices = new Map<string, number>();
+  observations.forEach((item, index) => dayIndices.set(new Date(item.at).toISOString().slice(0, 10), index));
+  const columns = dailyMode ? points : [...dayIndices.values()].map(index => points[index]!);
+  const budget: Array<{ x: number; y: number }> = [];
+  const historyCalendarTicks: ViewModel['historyCalendarTicks'] = [];
+  if (snapshot?.kind === 'bounded' && validCycle && totalDays > 0) {
+    for (let cursor = cycle.start; cursor <= cycle.end; cursor += 86_400_000) {
+      if (dailyMode && cursor < cycle.end) {
+        const allowance = baseRate * equivalentDays(cursor, cursor + UTC_DAY, dayMode);
+        const y = 168 - allowance / maximum * 144;
+        budget.push({ x: 32 + (cursor - cycle.start) / (cycle.end - cycle.start) * 520, y },
+          { x: 32 + (cursor + UTC_DAY - cycle.start) / (cycle.end - cycle.start) * 520, y });
+        // Mark the two daily-budget transitions without crowding every day on the axis.
+        const weekday = new Date(cursor).getUTCDay();
+        if (dayMode === 'weekdays' && cursor > cycle.start && (weekday === 1 || weekday === 6)) {
+          historyCalendarTicks.push({
+            x: 32 + (cursor - cycle.start) / (cycle.end - cycle.start) * 520,
+            label: formatter.shortDate.format(cursor),
+            weekend: weekday === 6,
+          });
+        }
+      } else if (!dailyMode) {
+        budget.push({
+          x: 32 + (cursor - cycle.start) / (cycle.end - cycle.start) * 520,
+          y: 168 - snapshot.total / maximum * equivalentDays(cycle.start, cursor, dayMode) / totalDays * 144,
+        });
+      }
+    }
+  }
+  let historyLatest = '—';
+  let historyLatestDate = '';
+  if (dailyMode && daily.length) {
+    const latest = daily[daily.length - 1]!;
+    historyLatest = `${amount(latest.used)} ${text.credits}`;
+    historyLatestDate = `${date(latest.day)}${latest.partial ? ` · ${text.historyPartial}` : ''}`;
+  } else if (!dailyMode && observations.length) {
+    historyLatest = `${amount(observations[observations.length - 1]!.used)} ${text.credits}`;
+  }
+  let historyBudgetTarget = '';
+  let historyBudgetTargetY = 24;
+  let historyBudgetTargetHint = text.historyCycleTarget;
+  if (knownBudget) {
+    const target = dailyMode ? baseRate : snapshot.total;
+    historyBudgetTarget = `${amount(target)} ${text.credits}`;
+    historyBudgetTargetY = 168 - target / maximum * 144;
+  }
+  if (dailyMode) historyBudgetTargetHint = dayMode === 'weekdays' ? text.historyWeekdayTarget : text.historyDailyTarget;
   return {
     language, text,
-    statusText: `${snapshot?.kind === 'bounded' ? `${percentage} · ` : ''}${summary}${demo ? ' · Demo' : ''}`,
+    statusText: statusText(style, percentage, snapshot?.kind === 'bounded' ? snapshot.usedPercent : null, summary, tone === 'neutral', demo),
+    statusDescription: `${percentage} · ${summary}`, statusStyle: style, depletion, excess,
+    history: points, historyMaximum: `${amount(maximum)} ${text.credits}`,
+    historyStart: validCycle ? formatter.shortDate.format(cycle.start) : '', historyEnd: validCycle ? formatter.shortDate.format(cycle.end) : '',
+    historyBudget: budget,
+    historyBudgetTarget, historyBudgetTargetY, historyBudgetTargetHint,
+    historyCalendarTicks,
+    showHistoryFile: !demo && state.account !== undefined,
+    canOpenHistory: !demo && state.account !== undefined && !!options.historyFileAvailable,
+    historyMessage,
+    chartStyle, chartMetric, chartStyleName: { line: text.chartLine, columns: text.chartColumns }[chartStyle],
+    historyMetricLabel: dailyMode ? text.historyDailyLabel : text.historyMetricLabel,
+    historyAria: dailyMode ? text.historyDailyAria : text.historyAria,
+    historyLatestDate, historyLatest,
+    historyLatestTone: points[points.length - 1]?.tone ?? 'neutral',
+    historyColumns: columns,
     summary, tone, message, demo, scenario: __DEV__ ? localizeDemoScenario(scenario, language) : scenario, forecastNote,
     used: snapshot && snapshot.kind !== 'unavailable' ? `${amount(snapshot.used)} ${text.credits}` : '—',
     total: snapshot?.kind === 'bounded' ? `${amount(snapshot.total)} ${text.credits}` : '—',
@@ -121,9 +262,11 @@ export function renderHover(model: ViewModel): string {
     '', divider, '',
     row(`${status}${model.usageValue !== null ? ` · ${text(model.percentage)} ${label.usedSuffix}` : ''}`),
     ...(model.message !== model.forecastNote || model.projection === '—' ? ['', row(text(model.message))] : []),
-    '', row(`${label.remainingHover}: **${text(model.remaining)}**`),
+    '', row(`${label.usedHover}: **${text(model.used)}**`),
+    row(`${label.remainingHover}: **${text(model.remaining)}**`),
     ...(model.allowance !== '—' ? [row(`${label.allowanceHover}: **${text(model.allowance)}** · ${model.dayMode === 'weekdays' ? label.allowanceCalendarWeekdays : label.allowanceCalendarAll}`)] : []),
     row(`${label.projectionLabel}: **${text(model.projection)}**`),
+    ...(model.depletion !== '—' ? [row(`${label.depletionHeading}: **${text(model.depletion)}**`), row(`${label.excessHeading}: **${text(model.excess)}**`)] : []),
     row(`${label.updatedHover} ${text(model.updated)}`),
   ];
   if (__DEV__ && model.demo) lines.push('', row(`$(beaker) ${label.simulatedData} · ${text(model.referenceDate)}`));
