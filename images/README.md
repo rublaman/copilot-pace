@@ -6,4 +6,4 @@ Original transparent SVG (512 × 512 viewBox) and 128/1024 px PNGs are preserved
 
 The repository social preview is `social-preview/copilot-pace.png` (1280 × 640). Regenerate it on Windows with `pwsh -NoProfile -File scripts/render-social-preview.ps1`, then upload it under GitHub Settings → Social preview. It is excluded from the VSIX.
 
-The same banner opens the root README. Product screenshots and their capture notes live in [docs/images](../docs/images/README.md); English Marketplace listing copy is maintained in [docs/MARKETPLACE.md](../docs/MARKETPLACE.md).
+The same banner opens the root README. Product screenshots live in [docs/images](../docs/images/); English Marketplace listing copy is maintained in [docs/MARKETPLACE.md](../docs/MARKETPLACE.md).
