@@ -5,7 +5,7 @@ This guide defines the release workflow. Published versions, tested artifacts, c
 ## Published channels
 
 - Stable: [1.2.1](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.1) from `main`, with `preview: false` and Latest.
-- Pilot: [1.3.4](https://github.com/rublaman/copilot-pace/releases/tag/v1.3.4) from `develop`, with `preview: true`, as a GitHub prerelease without Latest.
+- Pilot: GitHub prereleases from `develop`, with `preview: true`, without Latest. See [GitHub Releases](https://github.com/rublaman/copilot-pace/releases) for published pilot versions.
 - Real-account daily billing/corporate-policy acceptance remains pending. Synthetic tests do not establish that acceptance.
 - Marketplace upload and store verification are separate from GitHub publication. The 1.3.2 candidate remains an unpublished draft; retain its tag and assets.
 
