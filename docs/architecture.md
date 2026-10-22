@@ -1,6 +1,6 @@
 # Architecture
 
-The extension separates quota calculations from authentication, HTTP transport and VS Code presentation. [Corporate authentication](corporate-authentication.md) covers provider selection and Enterprise host restrictions; [validation](validation.md) records automated and real-account results.
+The extension separates quota calculations from authentication, HTTP transport and VS Code presentation. [Corporate authentication](corporate-authentication.md) covers provider selection and Enterprise host restrictions; [CONTRIBUTING.md](../CONTRIBUTING.md#validation) describes automated checks.
 
 ## Data flow
 
@@ -67,13 +67,11 @@ For bounded quotas, `entitlement` supplies the budget, `quota_remaining` supplie
 
 Projections require a recognized UTC calendar-month cycle. Missing quotas, legacy billing or unknown shapes produce unavailable data. The extension never infers a budget from a plan name.
 
-This is an internal endpoint without a guaranteed third-party API contract. Account authentication, network behavior and response values require real validation. See [validation](validation.md) for the acceptance procedure.
+This is an internal endpoint without a guaranteed third-party API contract. Account authentication, network behavior and response values require real validation. See the [release guide](RELEASING.md#real-account-acceptance) for the acceptance procedure.
 
 ## Data limitations
 
 The quota endpoint returns aggregate credits. It provides no daily or per-model breakdown. Local history contains observations collected by Pace, not reconstructed daily consumption. Polling those totals cannot recover model identities, project attribution or token counts.
-
-Separate billing sources were reviewed on October 16, 2026: the [billing REST API](https://docs.github.com/en/rest/billing/usage) documents model-level credit quantities and the downloadable [AI usage report](https://docs.github.com/en/billing/reference/billing-reports) includes token counts. Both require billing access beyond the current quota session. At that review, the [automation tutorial](https://docs.github.com/en/billing/tutorials/automate-usage-reporting) and endpoint reference disagreed on fine-grained-token support. A billing integration would need its own authentication and access validation. Neither source is integrated here.
 
 The [Copilot SDK](https://docs.github.com/en/copilot/how-tos/copilot-sdk/features/usage-and-billing) reports its own sessions rather than global editor usage.
 
