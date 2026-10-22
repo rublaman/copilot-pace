@@ -4,6 +4,11 @@ Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0 and 1.3.x are 
 
 ## [Unreleased]
 
+## [1.3.5] - 2026-10-22
+
+- Shorten the status-mode GIF to eight seconds and show both green Comfortable and red Over pace examples.
+- Keep internal reports, review captures and the corporate authentication reference local and excluded from public documentation and extension packages.
+
 ## [1.3.4] - 2026-10-22
 
 - Improve the README and Marketplace status-mode GIF with native high-resolution captures, explicit mode labels and a full-resolution link.
