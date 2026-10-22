@@ -60,3 +60,6 @@ Desktop.ini
 
 # Maintainer's local Copilot summary
 /.github/copilot-instructions.md
+
+# Internal reports, validation evidence and capture notes
+/.local/

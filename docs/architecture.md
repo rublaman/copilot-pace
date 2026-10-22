@@ -1,8 +1,6 @@
 # Architecture
 
-Synthetic fixtures exercise the response contract; they are not captured corporate traffic.
-
-The [corporate authentication implementation](corporate-authentication.md) documents provider selection, experimental Enterprise routing, stable-API constraints and pending real-account validation.
+The extension separates quota calculations from authentication, HTTP transport and VS Code presentation. [Corporate authentication](corporate-authentication.md) covers provider selection and Enterprise host restrictions; [CONTRIBUTING.md](../CONTRIBUTING.md#validation) describes automated checks.
 
 ## Data flow
 
@@ -38,15 +36,13 @@ For bounded quotas, `entitlement` supplies the budget, `quota_remaining` supplie
 
 Projections require a recognized UTC calendar-month cycle. Missing quotas, legacy billing or unknown shapes produce unavailable data. The extension never infers a budget from a plan name.
 
-This is an internal endpoint without a guaranteed third-party API contract. Account authentication, network behavior and response values require real validation. See [validation](validation.md) for the acceptance procedure.
+This is an internal endpoint without a guaranteed third-party API contract. Account authentication, network behavior and response values require real validation. See the [release guide](RELEASING.md#real-account-acceptance) for the acceptance procedure.
 
 ## Other sources and tooling
 
 The [billing usage REST API](https://docs.github.com/en/rest/billing/usage) requires access appropriate to personal, organization or enterprise reports. The extension does not request administrative PATs. [Usage monitoring](https://docs.github.com/en/copilot/how-tos/manage-and-track-spending/monitor-ai-usage) and [budgets](https://docs.github.com/en/copilot/concepts/billing-and-usage/organizations-and-enterprises/budgets) describe assigned allowances; they do not establish a readable per-model breakdown for an employee.
 
-Reviewed October 16, 2026: GitHub's downloadable [AI usage report](https://docs.github.com/en/billing/reference/billing-reports) has model-level input, output, cache-read and cache-write token counts. The billing REST API's `/users/{username}/settings/billing/ai_credit/usage` endpoint documents model-level credit quantities, calendar filters and separate billing access (including the fine-grained user permission `Plan: read`); personal endpoints exclude organization-billed licenses. Organization-level reports require administrative access. The [automation tutorial](https://docs.github.com/en/billing/tutorials/automate-usage-reporting) and endpoint reference currently disagree on fine-grained-token support, so authentication must be validated before implementing a separate billing integration. Neither source establishes model-level token access through this extension's `github` session with `read:user` and fixed `copilot_internal/user` quota source. The panel omits the model-usage section entirely. No extra billing requests, authentication scopes or credit-to-token conversions are added.
-
-Persisting the current aggregate quota snapshots cannot recover missing model identities, per-model attribution or tokens. Differences between snapshots could support an explicitly approximate credit-usage history from the start of recording, with gaps while VS Code is closed, delayed source updates, account and cycle boundaries, and other-device usage handled explicitly. That is a separate feature and cannot supply a reliable monthly top-five ranking. No local usage history or Copilot chat/log collection is implemented. An explicitly imported AI usage report could support a historical ranking in a future feature, subject to report access and validation; it would not be live usage through the current connection.
+Quota responses provide aggregate credits. This stable version does not store local usage history or expose per-model token usage.
 
 The [Copilot SDK](https://docs.github.com/en/copilot/how-tos/copilot-sdk/features/usage-and-billing) reports its own sessions and is not a source of global editor history.
 
