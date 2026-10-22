@@ -8,6 +8,7 @@ Copilot Pace is a VS Code extension that displays GitHub Copilot credits and an 
 - Before changing versions, packaging, CI, branches, tags or publishing, read [docs/RELEASING.md](docs/RELEASING.md). It is the reference for the release workflow and outstanding work.
 - Verify the actual state in Git, `package.json`, `package-lock.json`, `.github/workflows/ci.yml` and the scripts. A documented proposal does not mean automation is implemented or a check has run.
 - Keep detailed validation records, internal reviews, planning and capture notes in `.local/docs/`; never commit them or package them in a VSIX. Keep shared rules and technical guides public.
+- `docs/corporate-authentication.md` is a local-only reference: keep it ignored and untracked, without public documentation links to it.
 - Update the guide when the workflow or outstanding work changes. If `.github/copilot-instructions.md` exists, keep it consistent with these instructions. The maintainer has chosen to keep it local and ignored by Git; do not commit it or store rules exclusively there.
 
 ## Environment and changes
