@@ -1,5 +1,15 @@
 # Documentation captures
 
+## High-resolution status modes: October 22, 2026
+
+`status-modes-hd-dark.gif` (1104 × 998) replaces the enlarged low-resolution example in the README and Marketplace overview. Both documents display it at 640 pixels wide and link to the full-resolution file. It keeps the four mode labels and four-second frame delays, with a sixteen-second infinite loop.
+
+The isolated VS Code 1.143.0 harness was captured again with the same fixed fixture. The tooltip was rendered at zoom level 4 (about 207%) and the status indicator at zoom level 8 (about 430%). Both are native rasterizations at their capture size; neither crop is enlarged from a smaller screenshot. The renderer is unchanged from the source recorded below; the documentation baseline is `62f252ee0eec8b3d4629997bc9fcef75037a63b1`.
+
+Each tooltip capture was taken after its transition completed. The usage-number region is pixel-identical across the four source frames, ruling out transitional double text in those figures. FFmpeg places each native indicator above its tooltip, adds the mode label and encodes a shared 256-color palette without dithering. The mouse pointer, halo and Codex controls stay outside the crops.
+
+All four frames decoded from the final GIF were visually reviewed at the README display size, including the percentage, credit amounts and forecast. The earlier GIFs below remain as reference assets.
+
 ## Enlarged status modes: October 22, 2026
 
 `status-modes-dark.gif` (530 × 484) makes the four status indicators visible above the native tooltip. Its frames are labeled Default — Percentage and pace, Compact, Segmented bar and Dots. Each frame lasts four seconds; the sixteen-second animation loops indefinitely.
