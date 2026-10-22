@@ -34,6 +34,8 @@ Restart watch after changing either manifest. `scripts/development.contributions
 
 ## Validation
 
+Keep detailed test evidence, internal reviews, planning and capture notes in `.local/docs/`, which is ignored by Git and excluded from the VSIX. Publish artifact provenance and checksums with the corresponding GitHub Release.
+
 ```powershell
 npm run check
 npm run test:integration

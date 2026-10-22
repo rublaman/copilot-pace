@@ -1,56 +1,153 @@
-# Visual Studio Marketplace listing
+![Copilot Pace — GitHub Copilot credits and daily usage pace](../images/social-preview/copilot-pace.png)
 
-English listing copy and publication reference for Copilot Pace. See [RELEASING.md](RELEASING.md#current-state) for the current GitHub release, tested artifacts and recorded Marketplace verification. The [public Marketplace listing](https://marketplace.visualstudio.com/items?itemName=rubenblancomanzano.copilot-pace) is updated separately from this repository.
+# Copilot Pace
 
-## Publisher setup
+**Know your Copilot budget. Keep your pace in view.**
 
-On October 15, 2026, the maintainer created and selected the personal publisher ID `rubenblancomanzano` for this and future extensions, and confirmed that **Details → Name** is saved as **Ruben Blanco Manzano**. This is separate from the extension's display name, **Copilot Pace**. The unused `CopilotPace` publisher does not need to be deleted to continue.
+Track GitHub Copilot credits from your VS Code status bar. See what you have used, what remains, and where your current daily pace could take you by renewal.
 
-1. Open the selected publisher's [management page](https://marketplace.visualstudio.com/manage/publishers/rubenblancomanzano) and select **Details**.
-2. Set **Name** to **Ruben Blanco Manzano** and save. Keep the immutable **ID** `rubenblancomanzano`. The publisher profile represents the developer across extensions: use a personal website or GitHub profile, a general contact if desired, and leave the source repository empty unless there is a shared repository. Copilot Pace's own repository and issue tracker belong in its extension manifest.
-3. Version 0.2.3 and later use `rubenblancomanzano.copilot-pace`; the manifest, release workflow and installed-package tests use this identity. Pilots through 0.2.2 retain `rublaman.copilot-pace`. Migration details remain in the [release guide](RELEASING.md#current-state), since this is a separate extension rather than an automatic update.
-4. Follow the stable release workflow in [RELEASING.md](RELEASING.md). Validate the final package independently of any earlier runtime acceptance.
-5. Upload the exact tested VSIX identified in the release record under **Ruben Blanco Manzano**. Verify its public listing, package hash and store installation. Keep published artifacts unchanged.
+Works with personal and Business accounts on GitHub.com and GitHub Enterprise (GHE) accounts.
 
-Version 1.0.1 changes the categories from `Other` to `Visualization` and `AI` and removes the earlier-pilot replacement section from the main README. It uses the stable release workflow from `main` with `preview: false`. Marketplace prerelease publishing is a separate channel and remains unconfigured.
+**GitHub.com and Enterprise GHE · Desktop VS Code 1.120+**
 
-This repository change does not edit or save the online publisher profile. GitHub repository ownership and source URLs remain `rublaman/copilot-pace`. The manifest's `bugs` URL points to this extension's issue tracker.
+[Get started](#get-started) · [Commands](#commands) · [Settings](#settings) · [Report an issue](https://github.com/rublaman/copilot-pace/issues)
 
-## Display name
+## Your usage, at a glance
 
-Copilot Pace
+- **Status bar:** budget used and a color-coded pace indicator while you work.
+- **Hover summary:** pace status, remaining credits, daily allowance, projected usage and last update.
+- **Detail panel:** compare credits used with cycle progress and see the numbers behind the estimate.
+- **Consistent pace colors:** green for Comfortable, yellow for On track and red for Over pace in the status bar, hover and detail panel, following your VS Code theme.
+- **Flexible calendar:** switch between Every day and Mon–Fri to match your working week.
+- **Display language:** English by default, with Spanish (Spain) available from the detail panel.
+- **Account controls:** see which GitHub account is being queried, switch accounts or reconnect when needed.
+- **Automatic refresh:** check every 15 minutes by default, with a manual refresh whenever you need it.
 
-## Short description
+Hover over the status item for a quick summary. Click it to open the detail panel beside your editor.
 
-Track GitHub Copilot credits, daily allowance and projected usage in your VS Code status bar.
+<p align="center">
+  <img src="images/hover-dark.gif" alt="Animated dark tooltip and status bar: 45% used is green, 50% is yellow and 60% is red as projected usage increases" />
+</p>
 
-This text matches `description` in [package.json](../package.json).
+## See your pace
 
-## Description
+The panel puts your remaining budget and daily allowance next to your average consumption. Usage and cycle progress have separate bars, so you can compare how quickly you are spending credits with how much of the cycle has elapsed.
 
-Keep your GitHub Copilot credit budget in view while you code. Copilot Pace shows your used percentage and estimated monthly pace in the VS Code status bar, with a hover summary and a detail panel when you need a closer look.
+<p align="center">
+  <img src="images/details-dark.gif" alt="Animated dark detail panel: 45%, 50% and 60% of a 3,900-credit budget used, with green, yellow and red pace indicators" />
+</p>
 
-See used and remaining credits, compare consumption with cycle progress, and check how much is available per day. A projection at renewal helps you understand whether your current pace leaves room in the budget, is close to the limit, or may exceed it. Choose Every day or Mon–Fri for the estimate.
+*Illustrative usage figures. Both animations cycle through Comfortable, On track and Over pace.*
 
-Connect through VS Code's GitHub authentication, see which account is selected, and switch or reconnect from the extension. Usage refreshes automatically at a configurable interval and can also be refreshed manually.
+### What the colors mean
 
-No workspace access or telemetry. Figures represent credits, and estimates depend on the quota and monthly cycle reported by GitHub.
+The color follows **projected usage at renewal**, calculated from your average consumption so far. In these captures, 45%, 50% and 60% used project to approximately 89.2%, 99.1% and 118.9% of the budget respectively. The same used percentage can have a different color at another point in the cycle.
 
-Supports personal and Business accounts on GitHub.com and GitHub Enterprise (GHE) accounts on desktop VS Code for Windows, version 1.120 or later. Corporate usage queries require a single HTTPS instance configured in VS Code. The extension uses an internal GitHub endpoint that may change. Browser-based VS Code is unsupported.
+| Status | Projected usage at renewal | Meaning |
+| --- | --- | --- |
+| **Comfortable** · green | Below 90% of budget | Your current pace leaves room in the cycle's budget. |
+| **On track** · yellow | 90–100% of budget | Your projection is close to the cycle's budget. |
+| **Over pace** · red | Above 100% of budget | You may exceed your budget before renewal. |
 
-## Marketplace overview and images
+These are estimates based on your average so far. They change as your usage changes.
 
-The [root README](../README.md) is the full Marketplace overview, including installation, commands, settings, privacy and limitations. Keep it as the source for the published overview rather than maintaining a second copy here. See the official [Marketplace presentation guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#marketplace-integration).
+## Get started
 
-| Asset | Suggested caption |
+1. In VS Code, open **Extensions** (`Ctrl+Shift+X`) and search for **Copilot Pace** by **Ruben Blanco Manzano**. Select **Install**.
+2. Open the Command Palette (`Ctrl+Shift+P`) and run **Copilot Pace: Connect GitHub**. Authorize access through VS Code and select the account with Copilot.
+3. Find Copilot Pace on the right side of the status bar. Hover for a summary or click for details.
+
+You can also download the stable VSIX from [GitHub Releases](https://github.com/rublaman/copilot-pace/releases/latest). In Extensions, choose **Install from VSIX…**, select the file and reload VS Code.
+
+### Choose the right account
+
+Copilot Pace uses VS Code's GitHub authentication. Its authorization and account selection are separate from Copilot's own connection.
+
+The hover and detail panel identify the account being queried. Use **Switch GitHub account…** to select another account through VS Code, or **Reconnect GitHub** to renew authorization. Copilot Pace shows one account at a time; switching it does not change the account used by Copilot itself.
+
+By default, Copilot Pace follows Copilot's configured authentication provider and otherwise uses GitHub.com. When a corporate instance is configured, **Connect GitHub** offers **GitHub.com** for personal and Business accounts or **GitHub Enterprise** for GHE accounts. VS Code handles account selection and sign-in. The choice is saved only for Copilot Pace; use `copilotPace.authProvider: "auto"` to follow Copilot again.
+
+For GHE, use the corporate instance already configured in VS Code's GitHub Enterprise settings. Configure a single HTTPS instance address, without a login, project or repository path. Recent VS Code versions use `github-enterprise.uris`; older versions use `github-enterprise.uri`. Usage queries require one configured instance.
+
+After changing the Enterprise instance settings, reload VS Code before reconnecting.
+
+## Commands
+
+Open the Command Palette and type **Copilot Pace**:
+
+![VS Code Command Palette showing Connect GitHub, Refresh Usage and Show Details](images/commands.png)
+
+| Command | What it does |
 | --- | --- |
-| [Brand banner](../images/social-preview/copilot-pace.png) | GitHub Copilot credits and daily usage pace. |
-| [Hover · dark](images/hover-dark.gif) | Watch the tooltip and status bar change from Comfortable to On track to Over pace. Simulated data. |
-| [Detail panel · dark](images/details-dark.gif) | Compare average consumption, daily allowance and renewal projections across all three pace colors. Simulated data. |
-| [Command Palette](images/commands.png) | Connect GitHub, refresh usage or open details from the Command Palette. |
+| **Copilot Pace: Show Details** | Opens the usage and pace panel. |
+| **Copilot Pace: Refresh Usage** | Requests the latest usage for the selected account. |
+| **Copilot Pace: Connect GitHub** | Opens the interactive GitHub account flow to connect, switch or reconnect. |
 
-The overview displays only the dark-theme GIFs on separate lines and centers both animations for readability. Light-theme captures remain available in the repository as reference assets. Screenshot provenance and capture notes are in [images/README.md](images/README.md).
+The panel also offers **Refresh usage** and the appropriate account action. **Every day / Mon–Fri** changes the calendar used for the estimate.
 
-The README uses relative PNG and GIF paths for local and GitHub viewing. The existing packaging script rewrites them to HTTPS URLs for the packaged commit. Commit and push the referenced assets before preparing a publication candidate, then verify those exact URLs resolve. The banner and documentation captures are hosted in the repository and excluded from the VSIX by the existing ignore rules.
+Use **Spanish** in the detail panel's header to switch to Spanish (Spain); the button becomes **Inglés** to switch back. The preference is saved across VS Code restarts and is independent of the editor's display language. Status, hover, panel text, numbers and dates update immediately. The language switch appears only in the detail panel, not in the hover. Calculations continue to use UTC.
 
-The animated GIFs are documentation captures from the 1.1.1 UI; the GIF files themselves remain excluded from the package. Updating the GitHub README alone does not update the Marketplace overview. Stable 1.2.1 includes the simplified README and GitHub.com/GHE compatibility text. Upload the exact tested VSIX identified in its [release record](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.1) to refresh the listing; do not rebuild or replace any published artifact. Store upload and verification remain separate from GitHub publication.
+## How the estimate works
+
+All amounts represent **credits**. The budget and used percentage come from GitHub's Copilot quota snapshot; Copilot Pace does not guess your budget from a plan name.
+
+| Measure | Calculation |
+| --- | --- |
+| **Your average** | Used credits ÷ elapsed eligible days |
+| **Available per day** | Remaining credits ÷ eligible days left |
+| **Cycle baseline** | Budget ÷ eligible days in the cycle |
+| **Projected at renewal** | Used credits + daily average × eligible days left |
+
+Calculations use **UTC**, include partial days and require a known budget and a recognized monthly cycle. **Mon–Fri** excludes Saturdays and Sundays, without a public holiday calendar. Before one eligible day has elapsed, the extension shows **Calculating pace**.
+
+The hover reuses **Available per day** as **Daily allowance**, following the selected calendar. It is the sustainable daily average for the remaining cycle, not today's consumption or the average already used. All amounts are credits, not tokens. The quota connection supplies a monthly total without a daily breakdown, even for a connected account, so today's consumption is omitted rather than inferred from the monthly average.
+
+## Settings
+
+Search for **Copilot Pace** in VS Code Settings, or edit these application-level settings:
+
+| Setting | Default | Options |
+| --- | --- | --- |
+| `copilotPace.authProvider` | `"auto"` | `"auto"` follows Copilot; `"github"` uses GitHub.com; `"github-enterprise"` uses the configured corporate instance |
+| `copilotPace.language` | `"en"` | `"en"` for English; `"es-ES"` for Spanish (Spain) |
+| `copilotPace.dayMode` | `"all"` | `"all"` for every day; `"weekdays"` for Monday–Friday |
+| `copilotPace.pollIntervalMinutes` | `15` | Automatic refresh interval, from 5 to 120 minutes |
+
+```json
+{
+  "copilotPace.language": "en",
+  "copilotPace.dayMode": "weekdays",
+  "copilotPace.pollIntervalMinutes": 15
+}
+```
+
+## Privacy
+
+- Authentication stays with VS Code's built-in GitHub or GitHub Enterprise provider, using the `read:user` scope.
+- Usage requests go directly to GitHub over HTTPS with TLS verification.
+- The extension does not read workspace files or conversations, send telemetry, or log tokens or complete response bodies.
+
+## Compatibility
+
+Supports **GitHub.com personal and Business accounts** and **GitHub Enterprise (GHE) accounts** on desktop VS Code for Windows, version 1.120 or later. Enterprise usage queries require a single configured HTTPS instance.
+
+Copilot Pace uses an internal GitHub endpoint that may change. Browser-based VS Code is unsupported.
+
+Daily history, individual sessions and usage by model are unavailable.
+
+The panel omits model usage because the quota connection supplies no per-model breakdown. GitHub's separate [billing API](https://docs.github.com/en/rest/billing/usage) provides model-level credit quantities with billing access; its [AI usage reports](https://docs.github.com/en/billing/reference/billing-reports) include token counts by model. Neither is integrated here. Saving quota totals locally cannot recover model identities or token counts, and credits are not converted into token estimates.
+
+### When a value is unavailable
+
+- **No known limit / Quota unavailable:** GitHub has not supplied enough information to display a budget or estimate. The extension does not invent missing values.
+- **Calculating pace:** wait until one eligible day has elapsed in the recognized cycle.
+- **Out of date:** a refresh failed and the last successful snapshot is still displayed. Check the message, then refresh or reconnect as appropriate.
+- **Waiting:** GitHub has rate-limited requests. The extension respects the retry delay before trying again.
+
+## Feedback and development
+
+[Report a bug or request a feature](https://github.com/rublaman/copilot-pace/issues). Include the extension version, VS Code version, operating system and steps to reproduce. Remove account identifiers from screenshots and never include tokens or complete API responses.
+
+For local builds, tests and demo scenarios, see [CONTRIBUTING.md](../CONTRIBUTING.md). See the [changelog](../CHANGELOG.md) for version history and the [release guide](RELEASING.md) for distribution details.
+
+Licensed under [MIT](../LICENSE).
