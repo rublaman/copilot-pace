@@ -2,6 +2,13 @@
 
 Validation records identify the tested source, artifact, environment and scope. Local checks, CI and maintainer-reported account acceptance are recorded separately.
 
+## 1.3.4 candidate preflight: October 22, 2026
+
+- Prepared on `develop` baseline `dd04d423cb96a22786a5020a2d6054fdecbbb205` with version 1.3.4 and `preview: true`. Runtime source and dependencies are unchanged from 1.3.3.
+- Windows 11, standalone Node 26.11.1 and npm 11.20.0: `npm ci`, `npm run check` (298 unit/service/activation tests and 8 release-script tests), `npm run test:integration` (21 tests on each of VS Code 1.120.0 and 1.141.0), `npm run test:package` (8 installed-package tests and production inspection) and `npm audit` passed; zero vulnerabilities.
+- Local preflight VSIX SHA-256: `3421c828ad249fea1f0d50b18420b0f9b920a415f6b8011d67ccec0a25f64982`. This working-tree build is not the publication artifact; the clean tagged workflow artifact must pass its own downloaded-package checks.
+- Local Markdown links/anchors and `git diff --check` passed. Real-account daily billing/corporate-policy acceptance remains pending.
+
 ## Status mode image quality: October 22, 2026
 
 - Documentation baseline: `62f252ee0eec8b3d4629997bc9fcef75037a63b1`. Runtime, manifests and packaging are unchanged.
