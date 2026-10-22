@@ -63,3 +63,6 @@ Desktop.ini
 
 # Internal reports, validation evidence and capture notes
 /.local/
+
+# Local-only corporate authentication reference
+/docs/corporate-authentication.md

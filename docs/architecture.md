@@ -1,6 +1,6 @@
 # Architecture
 
-The extension separates quota calculations from authentication, HTTP transport and VS Code presentation. [Corporate authentication](corporate-authentication.md) covers provider selection and Enterprise host restrictions; [CONTRIBUTING.md](../CONTRIBUTING.md#validation) describes automated checks.
+The extension separates quota calculations from authentication, HTTP transport and VS Code presentation. [CONTRIBUTING.md](../CONTRIBUTING.md#validation) describes automated checks.
 
 ## Data flow
 
