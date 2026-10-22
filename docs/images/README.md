@@ -1,8 +1,23 @@
 # Documentation captures
 
-## High-resolution status modes: October 22, 2026
+## Current status modes and pace colors: October 22, 2026
 
-`status-modes-hd-dark.gif` (1104 × 998) replaces the enlarged low-resolution example in the README and Marketplace overview. Both documents display it at 640 pixels wide and link to the full-resolution file. It keeps the four mode labels, with three-second frame delays and a twelve-second infinite loop. The timing adjustment changes only GIF delay metadata; image data and decoded pixels are unchanged.
+`status-modes-hd-dark.gif` keeps the native 1104 × 998 resolution, a 640-pixel README/Marketplace display width and a full-resolution link. Its four labeled frames last two seconds each, reducing the infinite loop from twelve to eight seconds.
+
+| Frame | Mode | Credits used | Projection at renewal | Pace |
+| --- | --- | --- | --- | --- |
+| 1 | Default — Percentage and pace | 2,100 / 6,000 (35%) | 4,200 (70%) | Comfortable · green |
+| 2 | Compact | 3,115 / 6,000 (51.9%) | 6,230 (103.8%) | Over pace · red |
+| 3 | Segmented bar | 2,100 / 6,000 (35%) | 4,200 (70%) | Comfortable · green |
+| 4 | Dots | 3,115 / 6,000 (51.9%) | 6,230 (103.8%) | Over pace · red |
+
+The green examples were captured in an isolated VS Code 1.143.0 harness using the actual presentation functions from `7d60a460c3a4910fc17db9f32ad5d773ba953a61`. They retain the earlier fictional account, fixed October 16, 2026 12:00 UTC clock and October cycle; only the quota fixture changes. Comfortable follows the calculated 70% projection, not a recoloring of the red example. No chart from this harness is included in this asset.
+
+The tooltip uses native zoom level 4 and the indicators level 8, matching the earlier high-resolution captures. The tooltip opens through keyboard focus after transitions finish; the pointer and capture halo remain outside the crops. Temporary notifications were dismissed before capture, and indicator focus outlines are excluded. The red frames reuse the previously reviewed native compositions. FFmpeg assembles the crops without raster enlargement and encodes a shared 256-color palette without dithering. All four decoded frames were reviewed at the README display size for numbers, colors, complete text and absence of pointer/halo artifacts.
+
+## Original high-resolution status captures: October 22, 2026
+
+The original `status-modes-hd-dark.gif` (1104 × 998) replaced the enlarged low-resolution example in the README and Marketplace overview. Both documents displayed it at 640 pixels wide and linked to the full-resolution file. That version used four mode labels, three-second frame delays and a twelve-second infinite loop. Its timing adjustment changed only GIF delay metadata; image data and decoded pixels were unchanged. The current version above adds green examples and shortens the loop.
 
 The isolated VS Code 1.143.0 harness was captured again with the same fixed fixture. The tooltip was rendered at zoom level 4 (about 207%) and the status indicator at zoom level 8 (about 430%). Both are native rasterizations at their capture size; neither crop is enlarged from a smaller screenshot. The renderer is unchanged from the source recorded below; the documentation baseline is `62f252ee0eec8b3d4629997bc9fcef75037a63b1`.
 

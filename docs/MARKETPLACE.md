@@ -25,13 +25,13 @@ Hover over the status item for a quick summary. Click it to open the detail pane
 
 ### Status bar and tooltip
 
-Choose **Percentage and pace** (default), **Compact**, **Segmented bar** or **Dots** in Customization. The GIF cycles through all four, with the indicator enlarged above its native tooltip. The usage details stay the same in every mode.
+Choose **Percentage and pace** (default), **Compact**, **Segmented bar** or **Dots** in Customization. The GIF shows all four modes, alternating **Comfortable** (green) and **Over pace** (red) examples, with each indicator above its native tooltip.
 
 <p align="center">
-  <img src="images/status-modes-hd-dark.gif" width="640" alt="High-resolution comparison of default Percentage and pace, Compact, Segmented bar and Dots above the native tooltip" />
+  <img src="images/status-modes-hd-dark.gif" width="640" alt="Default Percentage and pace, Compact, Segmented bar and Dots with green Comfortable and red Over pace tooltips" />
 </p>
 
-*Illustrative data. Each mode is shown for three seconds. [Open the full-resolution GIF](images/status-modes-hd-dark.gif).*
+*Illustrative data. Two seconds per mode; eight seconds per loop. [Open the full-resolution GIF](images/status-modes-hd-dark.gif).*
 
 ## Detail panel
 
