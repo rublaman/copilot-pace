@@ -2,6 +2,14 @@
 
 Validation records identify the tested source, artifact, environment and scope. Local checks, CI and maintainer-reported account acceptance are recorded separately.
 
+## Status mode image quality: October 22, 2026
+
+- Documentation baseline: `62f252ee0eec8b3d4629997bc9fcef75037a63b1`. Runtime, manifests and packaging are unchanged.
+- Recaptured the native tooltip and indicators at larger VS Code zoom levels, with no raster enlargement of either crop. Used the same synthetic fixture and waited for each tooltip transition to finish.
+- The usage-number region is pixel-identical across all four raw tooltip captures. Reviewed all four frames decoded from the final GIF at 640-pixel display width, with particular attention to percentages and credit totals; no pointer, halo or Codex controls appear.
+- `status-modes-hd-dark.gif`: 1104 × 998 pixels, four four-second frames and an infinite loop. It uses a shared 256-color palette without dithering, and README/Marketplace link to its full resolution.
+- Documentation-only validation covers local links, matching README/Marketplace content, tracked assets, GIF metadata and `git diff --check`. No repeat local host tests or release publication.
+
 ## Enlarged status mode documentation: October 22, 2026
 
 - Based on `develop` at `88d6f290b746969a474696fdae17dc804d7e99cb`. Runtime, manifests and packaging are unchanged.
