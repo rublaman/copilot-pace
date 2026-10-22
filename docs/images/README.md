@@ -1,5 +1,13 @@
 # Documentation captures
 
+## Enlarged status modes: October 22, 2026
+
+`status-modes-dark.gif` (530 × 484) makes the four status indicators visible above the native tooltip. Its frames are labeled Default — Percentage and pace, Compact, Segmented bar and Dots. Each frame lasts four seconds; the sixteen-second animation loops indefinitely.
+
+The source is the four pointer-free native VS Code crops used for `status-styles-dark.gif`, described below. FFmpeg enlarges each actual indicator crop by a factor of two and places it above the corresponding tooltip, with a mode label outside the captured UI. The tooltip contents and synthetic values are unchanged. This is an annotated comparison, not a new UI layout or a generated rendering.
+
+All four final frames were reviewed for readable labels, distinct indicators, complete tooltip content and absence of the mouse pointer, capture halo and Codex controls. The enlarged indicator crops also exclude VS Code's keyboard-focus outline. The README and Marketplace overview use this enlarged comparison; the original full crops remain reference assets.
+
 ## Current charts and status styles: October 22, 2026
 
 `charts-dark.gif` (650 × 480) and `status-styles-dark.gif` (530 × 400) show the renderer from `51861f5a1ec18715de388c7d0f22c35ad5b62eec` (1.3.2), captured on Windows 11 / VS Code 1.143.0 with Default Dark Modern. Each GIF contains four frames held for three seconds, including the last frame, and loops every twelve seconds.

@@ -2,6 +2,14 @@
 
 Validation records identify the tested source, artifact, environment and scope. Local checks, CI and maintainer-reported account acceptance are recorded separately.
 
+## Enlarged status mode documentation: October 22, 2026
+
+- Based on `develop` at `88d6f290b746969a474696fdae17dc804d7e99cb`. Runtime, manifests and packaging are unchanged.
+- README and Marketplace overview now give the four modes a dedicated Status bar and tooltip section, with matching text and image references adjusted for their locations.
+- `status-modes-dark.gif` reuses the reviewed native crops from the documented October 22 capture session. Each frame labels and enlarges the actual status indicator above its native tooltip, so Default, Compact, Segmented bar and Dots are distinguishable.
+- All four final frames were visually reviewed without the pointer, capture halo or Codex controls. FFprobe confirms 530 × 484 pixels, four frames and sixteen seconds; FFmpeg sets a four-second delay for every frame and an infinite loop.
+- Documentation-only checks cover local links, README/Marketplace consistency, tracked assets and `git diff --check`. No repeat local host tests or new release publication.
+
 ## Published 1.3.3 pilot: October 22, 2026
 
 - Release: [v1.3.3](https://github.com/rublaman/copilot-pace/releases/tag/v1.3.3), a GitHub prerelease without Latest and with `preview: true`. Stable 1.2.1 remains Latest.

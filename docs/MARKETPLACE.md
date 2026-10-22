@@ -23,11 +23,15 @@ Copilot Pace is a VS Code extension that displays GitHub Copilot credit usage an
 
 Hover over the status item for a quick summary. Click it to open the detail panel beside your editor.
 
+### Status bar and tooltip
+
+Choose **Percentage and pace** (default), **Compact**, **Segmented bar** or **Dots** in Customization. The GIF cycles through all four, with the indicator enlarged above its native tooltip. The usage details stay the same in every mode.
+
 <p align="center">
-  <img src="images/status-styles-dark.gif" alt="Percentage and pace, Compact, Segmented bar and Dots indicators with the same native usage tooltip" />
+  <img src="images/status-modes-dark.gif" alt="Four labeled status modes: default Percentage and pace, Compact, Segmented bar and Dots, each enlarged above the native tooltip" />
 </p>
 
-*Four status bar styles, with the same usage details in the hover. Illustrative data.*
+*Illustrative data. Each mode is shown for four seconds.*
 
 ## Detail panel
 
