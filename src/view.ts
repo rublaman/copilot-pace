@@ -51,7 +51,7 @@ export interface ViewModel {
   historyColumns: ViewModel['history'];
   historyBudgetTarget: string; historyBudgetTargetY: number; historyBudgetTargetHint: string;
   historyCalendarTicks: Array<{ x: number; label: string; weekend: boolean }>;
-  canOpenHistory: boolean;
+  showHistoryFile: boolean; canOpenHistory: boolean;
 }
 export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayMode, demo: boolean, scenario: string, retryAt: number, language: Language = 'en',
   options: { statusStyle?: StatusStyle; chartStyle?: ChartStyle; chartMetric?: ChartMetric; history?: readonly Observation[]; historyFailed?: boolean; historyFileAvailable?: boolean } = {}): ViewModel {
@@ -206,7 +206,8 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
     historyBudget: budget,
     historyBudgetTarget, historyBudgetTargetY, historyBudgetTargetHint,
     historyCalendarTicks,
-    canOpenHistory: !demo && !!options.historyFileAvailable,
+    showHistoryFile: !demo && state.account !== undefined,
+    canOpenHistory: !demo && state.account !== undefined && !!options.historyFileAvailable,
     historyMessage,
     chartStyle, chartMetric, chartStyleName: { line: text.chartLine, columns: text.chartColumns }[chartStyle],
     historyMetricLabel: dailyMode ? text.historyDailyLabel : text.historyMetricLabel,

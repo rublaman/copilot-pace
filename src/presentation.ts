@@ -903,7 +903,7 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
         <option id="chartColumns" value="columns"></option>
       </select>
     </div>
-    <div class="history-file">
+    <div id="historyFile" class="history-file" hidden>
       <div class="customization-row">
         <span id="historyFileLabel"></span>
         <div class="controls" role="group" aria-labelledby="historyFileLabel">
@@ -1042,6 +1042,7 @@ function show(model) {
   }
   document.getElementById('statusStyle').value = model.statusStyle;
   document.getElementById('chartStyle').value = model.chartStyle;
+  document.getElementById('historyFile').hidden = !model.showHistoryFile;
   document.getElementById('openHistory').disabled = !model.canOpenHistory;
   document.getElementById('revealHistory').disabled = !model.canOpenHistory;
   let fileNote = model.text.historyFileEmpty;

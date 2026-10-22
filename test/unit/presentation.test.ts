@@ -137,10 +137,12 @@ describe('Forecast, history and appearance presentation', () => {
     assert.equal(resolveChartStyle('columns'), 'columns');
   });
   it('offers file and location actions without exposing a path and disables both when unavailable', () => {
-    const available = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'es-ES', { historyFileAvailable: true });
+    const account = { id: 'account', label: 'Test' };
+    const available = createViewModel({ phase: 'ready', snapshot, account }, demoClock, 'all', false, '', 0, 'es-ES', { historyFileAvailable: true });
     const messages: unknown[] = [];
     const elements = panelElements(available, [], messages);
     assert.equal(elements.has('historyPath'), false);
+    assert.equal(elements.get('historyFile')!.hidden, false);
     assert.equal(elements.get('openHistory')!.disabled, false);
     assert.equal(elements.get('revealHistory')!.disabled, false);
     assert.equal(elements.get('revealHistory')!.textContent, 'Mostrar ubicación');
@@ -152,6 +154,23 @@ describe('Forecast, history and appearance presentation', () => {
     const cleared = panelElements(available, [empty]);
     assert.equal(cleared.get('openHistory')!.disabled, true);
     assert.equal(cleared.get('revealHistory')!.disabled, true);
+  });
+  it('hides local file controls without an account and restores them after login', () => {
+    for (const language of ['en', 'es-ES'] as const) {
+      const account = { id: 'account', label: 'Test' };
+      const disconnected = createViewModel({ phase: 'disconnected' }, demoClock, 'all', false, '', 0, language, { historyFileAvailable: true });
+      assert.equal(disconnected.canOpenHistory, false);
+      assert.equal(panelElements(disconnected).get('historyFile')!.hidden, true);
+      const loading = createViewModel({ phase: 'loading' }, demoClock, 'all', false, '', 0, language);
+      assert.equal(panelElements(loading).get('historyFile')!.hidden, true);
+      const connected = createViewModel({ phase: 'ready', snapshot, account }, demoClock, 'all', false, '', 0, language);
+      const signedIn = panelElements(disconnected, [connected]);
+      assert.equal(signedIn.get('historyFile')!.hidden, false);
+      assert.equal(signedIn.get('openHistory')!.disabled, true);
+      assert.equal(signedIn.get('revealHistory')!.disabled, true);
+      assert.equal(panelElements(connected, [disconnected]).get('historyFile')!.hidden, true);
+      assert.equal(panelElements(connected, [disconnected, connected]).get('historyFile')!.hidden, false);
+    }
   });
   it('localizes appearance controls, sends the selected style and reports storage errors', () => {
     const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'es-ES', { statusStyle: 'dots', historyFailed: true });

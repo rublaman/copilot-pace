@@ -61,6 +61,8 @@ describe('Installed production VSIX', () => {
     assert.equal(api.getState().phase, 'disconnected');
     assert.equal(api.getState().snapshot, undefined);
     assert.equal(api.getStatus().text, 'Connect GitHub');
+    assert.equal(api.getModel().showHistoryFile, false);
+    assert.equal(api.getModel().canOpenHistory, false);
     assert.equal(vscode.workspace.getConfiguration('copilotPace').get('mockScenario'), '3900-justo');
   });
   it('does not register demos or allow direct execution of their commands', async () => {
