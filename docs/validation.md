@@ -2,6 +2,15 @@
 
 Validation records identify the tested source, artifact, environment and scope. Local checks, CI and maintainer-reported account acceptance are recorded separately.
 
+## Published 1.3.4 pilot: October 22, 2026
+
+- Release: [v1.3.4](https://github.com/rublaman/copilot-pace/releases/tag/v1.3.4), GitHub prerelease without Latest and with `preview: true`. Annotated tag and `develop` release SHA: `c0b44430308aedde5e2d96e622091f53bb6efeec`. Stable 1.2.1 remains Latest; earlier assets and the unpublished 1.3.2 candidate are unchanged.
+- [Develop CI](https://github.com/rublaman/copilot-pace/actions/runs/39802148342) and [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/39802739272) passed both Node and VS Code matrices, production packaging and dependency audit.
+- Downloaded the tagged draft VSIX and verified its clean build record, checksum, identity and production contents. All 8 installed-package tests passed again on Windows 11 / VS Code 1.141.0 without rebuilding.
+- An isolated CLI upgrade from the published 1.3.3 VSIX retained settings and a synthetic observed journal byte for byte; only 1.3.4 remained active.
+- All five packaged README images resolve at the tagged commit and match repository bytes, including the 1104 × 998 status-mode GIF with four three-second frames. The anonymous public VSIX download matched SHA-256 `e15dbd278cd2ed414a6ab613407f486d37e479e0a1f5d710991b00c5f90bb416`.
+- Runtime source and dependencies are unchanged from 1.3.3. Real-account daily billing/corporate-policy acceptance remains pending; Marketplace publication is separate.
+
 ## 1.3.4 candidate preflight: October 22, 2026
 
 - Prepared on `develop` baseline `dd04d423cb96a22786a5020a2d6054fdecbbb205` with version 1.3.4 and `preview: true`. Runtime source and dependencies are unchanged from 1.3.3.

@@ -4,11 +4,11 @@ This guide defines version preparation, validation and distribution. Read the wo
 
 ## Status mode documentation pilot 1.3.4
 
-Candidate prepared from `develop` with `preview: true` for a GitHub prerelease without Latest. It includes the high-resolution status-mode GIF, explicit mode labels and three-second frame delays in the README and Marketplace overview. Runtime source and dependencies are unchanged from 1.3.3; the bundle's version header follows the manifest.
+Published on October 22, 2026 as [v1.3.4](https://github.com/rublaman/copilot-pace/releases/tag/v1.3.4), a GitHub prerelease without Latest. [PR #55](https://github.com/rublaman/copilot-pace/pull/55) was squash-merged into `develop` at `c0b44430308aedde5e2d96e622091f53bb6efeec`; the annotated tag identifies that commit. The manifest and lockfile use `1.3.4` with `preview: true`. Stable 1.2.1 remains Latest.
 
-Publication requires CI on the merged SHA, the annotated tag workflow and validation of its downloaded VSIX. Record the tested SHA and checksum here after publication. Real-account daily billing/corporate-policy acceptance remains pending; stable 1.2.1 remains Latest. Retain the earlier published assets and the unpublished 1.3.2 candidate unchanged.
+The pilot packages the high-resolution status-mode GIF, explicit labels and three-second frames in the README and Marketplace overview. Runtime source and dependencies are unchanged from 1.3.3; the bundle's version header follows the manifest. [Capture provenance](images/README.md) records the illustrative fixture and pixel-preserving timing adjustment. Real-account daily billing/corporate-policy acceptance remains pending.
 
-The Windows 11 local preflight passed all three project checks and dependency audit; [validation.md](validation.md#134-candidate-preflight-october-22-2026) records its scope. The tagged artifact remains the publication candidate.
+[Develop CI](https://github.com/rublaman/copilot-pace/actions/runs/39802148342) and the [tag workflow](https://github.com/rublaman/copilot-pace/actions/runs/39802739272) passed. The exact attached VSIX passed production inspection and all 8 installed-package tests on Windows 11 / VS Code 1.141.0 without rebuilding. An isolated upgrade from 1.3.3 retained preferences and a synthetic journal unchanged. All five packaged README images resolve at the tagged commit and match repository bytes. Its anonymous public download matched SHA-256 `e15dbd278cd2ed414a6ab613407f486d37e479e0a1f5d710991b00c5f90bb416`. The release retains that VSIX, `SHA256SUMS.txt` and `build-info.json`; Marketplace publication remains separate. Earlier tags/assets and the unpublished 1.3.2 candidate are unchanged.
 
 ## Documentation and local history pilot 1.3.3
 
@@ -53,7 +53,7 @@ Feature [#39](https://github.com/rublaman/copilot-pace/issues/39) was integrated
 Reviewed on October 22, 2026:
 
 - Stable: [1.2.1](https://github.com/rublaman/copilot-pace/releases/tag/v1.2.1) from `main`, `preview: false`, publisher `rubenblancomanzano`. The [main CI](https://github.com/rublaman/copilot-pace/actions/runs/39267811489) and tagged release artifact validation identify the tested source and package. See the release's attached build record/checksum for artifact provenance.
-- Pilot: [1.3.3](https://github.com/rublaman/copilot-pace/releases/tag/v1.3.3) from `develop`, `preview: true`, without Latest. The artifact and remaining billing acceptance are recorded above. Published 1.3.1/1.3.0 retain their assets; 1.3.2 remains an unpublished draft with its original tag and assets.
+- Pilot: [1.3.4](https://github.com/rublaman/copilot-pace/releases/tag/v1.3.4) from `develop`, `preview: true`, without Latest. The artifact and remaining billing acceptance are recorded above. Published 1.3.3/1.3.1/1.3.0 retain their assets; 1.3.2 remains an unpublished draft with its original tag and assets.
 - Account support: GitHub.com personal/Business and GitHub Enterprise (GHE), with maintainer-reported real-environment acceptance of the 1.2.0 pilot. The stable runtime retains that behavior. The README contains account/setup guidance instead of test-environment history.
 - [PR #43](https://github.com/rublaman/copilot-pace/pull/43) synchronized `main` back into `develop` with a merge commit on October 19.
 - Marketplace upload and store verification of the exact tested 1.2.1 VSIX remain pending and separate from GitHub publication. Published pilots and older assets are retained.
