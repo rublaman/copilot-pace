@@ -24,9 +24,9 @@ Use `develop` for integration and pilots, and `main` for stable releases. Keep p
 | Test builds | Push to `develop` | Tested production VSIX in Actions artifacts |
 | Pilot / beta | Annotated `vX.Y.Z` on `develop`, `preview: true` | Draft GitHub prerelease with tested VSIX |
 | Stable | PR `develop` → `main` with a merge commit; annotated tag, `preview: false` | Draft stable GitHub Release |
-| Hotfix | `hotfix/*` from `main` → PR to `main` | New patch; merge back to `develop` |
+| Hotfix | `hotfix/*` from `main` → PR to `main` | New patch; synchronize `main` into `develop` |
 
-After stable promotion, synchronize `main` → `develop` through a PR with a merge commit. Avoid squash/rebase for promotions between these permanent branches. A separate release branch is unnecessary until a candidate needs to be frozen while development continues.
+After stable promotion or a hotfix, synchronize `main` → `develop` through a PR with a merge commit. Avoid squash/rebase for promotions between these permanent branches. A separate release branch is unnecessary until a candidate needs to be frozen while development continues.
 
 All VSIX artifacts are production builds. Demos belong to the development host, including when a VSIX comes from `develop`.
 
@@ -39,6 +39,18 @@ A merge commit is an exception when the PR contains independently useful commits
 Use **Create a merge commit** for `develop` → `main` promotions and `main` → `develop` synchronization. These permanent branches need their shared ancestry preserved; do not squash or rebase those PRs.
 
 Keep both squash and merge commits available in GitHub so each flow can use its intended method. This policy is a contributor and agent convention; documenting it does not configure automatic enforcement or change repository settings.
+
+### Branch cleanup
+
+GitHub's [automatic head-branch deletion](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-the-automatic-deletion-of-branches) is enabled for this repository. It removes unprotected source branches after their PRs merge, including `feature/*`, `fix/*` and `chore/*` branches merged into `develop`. This is a repository-wide setting, not a filter for a particular target branch or naming prefix. Fork branch cleanup depends on the fork's settings and permissions.
+
+- Keep `main` and `develop` protected against deletion, including for administrators. They remain available after promotion and synchronization PRs.
+- Do not reuse a merged temporary branch. Start follow-up work from the updated target branch.
+- Resolve dependent work before merging a temporary branch. If another PR still requires that branch, protect it from deletion before merging.
+- A `hotfix/*` branch can be deleted after merging into `main`. Complete the required synchronization with a `main` → `develop` PR using a merge commit; it does not depend on retaining the hotfix branch.
+- Review any future release or maintenance branch for retention before merging it; protect long-lived branches against deletion.
+
+Remote deletion does not remove local branches. Run `git fetch --prune` to remove obsolete remote-tracking references. Delete local branches only after checking that their PRs merged and that they contain no additional work. After a squash merge, `git branch --merged` alone cannot establish whether a PR's changes were integrated because the squash commit has different ancestry.
 
 ### Version policy
 

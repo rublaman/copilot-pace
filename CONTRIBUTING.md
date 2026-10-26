@@ -71,6 +71,8 @@ Open regular PRs from `feature/*`, `fix/*` or `chore/*` against `develop` and us
 
 Use **Create a merge commit** for `develop` → `main` promotions and `main` → `develop` synchronization. The [release guide](docs/RELEASING.md#merge-policy) defines the merge policy.
 
+GitHub automatically deletes temporary source branches after their PRs merge. Keep `main` and `develop` protected against deletion. The setting applies to all target branches; after a hotfix merges into `main`, synchronize `main` into `develop` through a merge-commit PR. Resolve dependent work or protect a temporary branch before merging if it must remain available. See [branch cleanup](docs/RELEASING.md#branch-cleanup) for retention and local cleanup rules.
+
 CI checks Node 24.21.0 / 26.11.1 and both VS Code versions, audits dependencies, and uploads `copilot-pace-production-vsix` with its checksum and build record. The same validation is reused for tagged release candidates.
 
 Pushes to `develop` provide installable test artifacts without creating a release or changing the version. Tagged pilots and stable promotion follow [RELEASING.md](docs/RELEASING.md). CI results apply only to the commit and artifact tested.
