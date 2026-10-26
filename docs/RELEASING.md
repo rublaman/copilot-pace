@@ -6,6 +6,7 @@ This guide defines the release workflow. Published versions, tested artifacts, c
 
 - Stable: releases from `main`, with `preview: false` and Latest. See [the latest stable release](https://github.com/rublaman/copilot-pace/releases/latest) for the published version.
 - Pilot: GitHub prereleases from `develop`, with `preview: true`, without Latest. See [GitHub Releases](https://github.com/rublaman/copilot-pace/releases) for published pilot versions.
+- The 1.3.7 presentation-refactor pilot retains the existing panel controls and chart behavior. Real-account and corporate-network acceptance of its final artifact remains pending; earlier 1.3.x acceptance does not validate this new package.
 - The maintainer confirmed real-account acceptance of the 1.3.x pilot, including daily billing and corporate policies, on 2026-10-22. This is maintainer-reported acceptance; synthetic tests do not establish it.
 - Marketplace: stable 1.3.6 is published on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=rubenblancomanzano.copilot-pace). The maintainer confirmed publication and successful operation on 2026-10-26. Marketplace and GitHub publication remain separate steps.
 - The 1.3.2 candidate remains an unpublished draft; retain its tag and assets.
