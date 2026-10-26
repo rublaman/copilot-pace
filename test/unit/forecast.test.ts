@@ -50,7 +50,7 @@ describe('Credit exhaustion forecast', () => {
     for (const value of [
       snapshot('2026-10-01T12:00Z', 100),
       { kind: 'usageOnly', used: 100, asOf: start, cycle: { start, end } },
-      { kind: 'unavailable', reason: 'Unknown', asOf: start },
+      { kind: 'unavailable', reason: 'missingQuota', asOf: start },
     ] as Snapshot[]) assert.deepEqual(calculateForecast(value, new Date(value.asOf), 'all'), { kind: 'unavailable' });
     const value = snapshot('2026-10-11T00:00Z', 2000);
     assert.deepEqual(calculateForecast(value, new Date(end), 'all'), { kind: 'unavailable' });

@@ -1,4 +1,6 @@
 import type { ViewModel } from './view';
+import { chartLayout } from './chart';
+import webviewScript from 'copilot-pace:webview';
 export { createViewModel, renderHover, hoverCommands, type ViewModel } from './view';
 
 export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSource = "'none'"): string {
@@ -56,6 +58,7 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
 
   header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
@@ -704,10 +707,6 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     filter: none;
   }
 
-  header {
-    flex-wrap: wrap;
-  }
-
   .header-tools {
     margin-left: auto;
     justify-content: flex-end;
@@ -836,7 +835,7 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
       </div>
       <div class="chart-body">
         <div class="chart-plot">
-          <svg id="historyChart" viewBox="0 0 584 224" preserveAspectRatio="none" role="img">
+          <svg id="historyChart" viewBox="0 0 ${chartLayout.svgWidth} ${chartLayout.svgHeight}" preserveAspectRatio="none" role="img">
             <defs>
               <clipPath id="historyWithinClip"><path id="historyWithinClipShape"></path></clipPath>
               <clipPath id="historyOverClip"><path id="historyOverClipShape"></path></clipPath>
@@ -853,8 +852,8 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
                 <stop class="chart-column-bottom" offset="100%"></stop>
               </linearGradient>
             </defs>
-            <path class="chart-grid" d="M32 24H552M32 72H552M32 120H552"></path>
-            <path class="chart-axis" d="M32 168H552"></path>
+            <path class="chart-grid" d="${[0, 1, 2].map(step => `M${chartLayout.left} ${chartLayout.top + step * chartLayout.height / 3}H${chartLayout.right}`).join('')}"></path>
+            <path class="chart-axis" d="M${chartLayout.left} ${chartLayout.bottom}H${chartLayout.right}"></path>
             <g id="historyPoints"></g>
             <path id="historyBudget"></path>
             <path id="historyBudgetLeader"></path>
@@ -930,197 +929,8 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
   </footer>
 </main>
 <script nonce="${nonce}">
-const vscode = acquireVsCodeApi();
-let currentLanguage;
-function drawHistory(model) {
-  const layer = document.getElementById('historyPoints');
-  layer.replaceChildren();
-  const create = (tag, attributes, label) => {
-    const element = document.createElementNS('http://www.w3.org/2000/svg', tag);
-    for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, String(value));
-    if (label) {
-      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-      title.textContent = label;
-      element.appendChild(title);
-    }
-    layer.appendChild(element);
-  };
-  const drawPath = (path, className) => {
-    if (model.historyBudget.length === 0) {
-      create('path', { d: path, class: className });
-      return;
-    }
-    create('path', { d: path, class: className + ' good', 'clip-path': 'url(#historyWithinClip)' });
-    create('path', { d: path, class: className + ' over', 'clip-path': 'url(#historyOverClip)' });
-  };
-  if (model.chartStyle === 'columns') {
-    for (const point of model.historyColumns) {
-      create('rect', {
-        x: point.x - 5, y: point.y, width: 10, height: Math.max(.5, 168 - point.y),
-        rx: 3, class: 'chart-column ' + point.tone + (point.partial ? ' partial' : ''), tabindex: 0, 'aria-label': point.label,
-      }, point.label);
-    }
-    return;
-  }
-  const segments = [];
-  for (const point of model.history) {
-    if (!point.connect || segments.length === 0) segments.push([]);
-    segments[segments.length - 1].push(point);
-  }
-  for (const segment of segments) {
-    const first = segment[0];
-    const last = segment[segment.length - 1];
-    const path = segment.map((point, index) => (index === 0 ? 'M' : 'L') + point.x + ' ' + point.y).join('');
-    if (segment.length > 1) {
-      drawPath(path, 'chart-line');
-    }
-    if (model.chartMetric !== 'daily') {
-      create('circle', { cx: first.x, cy: first.y, r: 3, class: 'chart-dot ' + first.tone }, first.label);
-      if (last !== first) create('circle', { cx: last.x, cy: last.y, r: 3, class: 'chart-dot ' + last.tone }, last.label);
-    }
-  }
-  if (model.chartMetric === 'daily') {
-    for (const point of model.history) create('circle', {
-      cx: point.x, cy: point.y, r: 3.5, class: 'chart-dot ' + point.tone + (point.partial ? ' partial' : ''),
-      tabindex: 0, 'aria-label': point.label,
-    }, point.label);
-  }
-  const latest = model.history[model.history.length - 1];
-  if (latest) create('circle', { cx: latest.x, cy: latest.y, r: 4.5, class: 'chart-last ' + latest.tone, tabindex: 0, 'aria-label': latest.label }, latest.label);
-}
-function drawCalendarTicks(model) {
-  const layer = document.getElementById('historyCalendarTicks');
-  const marks = document.getElementById('historyCalendarMarks');
-  layer.replaceChildren();
-  marks.replaceChildren();
-  for (const tick of model.historyCalendarTicks) {
-    const mark = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    mark.setAttribute('d', 'M' + tick.x + ' 168v7');
-    marks.appendChild(mark);
-    const label = document.createElement('span');
-    label.setAttribute('class', 'chart-calendar-label' + (tick.weekend ? '' : ' monday'));
-    label.style.left = (tick.x / 584 * 100) + '%';
-    label.textContent = tick.label;
-    layer.appendChild(label);
-  }
-}
-function show(model) {
-  currentLanguage = model.language;
-  document.getElementById('page').setAttribute('lang', model.language);
-  document.getElementById('content').setAttribute('data-tone', model.tone);
-
-  const labelIds = [
-    'eyebrow', 'budgetUsedLabel', 'remainingLabel', 'progressHeading',
-    'usageBarLabel', 'cycleBarLabel', 'paceHeading', 'all', 'weekdays',
-    'averageHeading', 'averageHint', 'allowanceHeading', 'allowanceHint',
-    'projectionLabel', 'projectionHint', 'baselinePrefix', 'calendarNote', 'accountHeading',
-    'renewalHeading', 'updatedHeading', 'refresh',
-    'depletionHeading', 'excessHeading', 'forecastHint', 'historyHeading',
-    'statusStyleLabel', 'styleText', 'styleCompact', 'styleBar', 'styleDots',
-    'customizationHeading', 'languageLabel',
-    'chartStyleLabel', 'chartLine', 'chartColumns', 'metricCumulative', 'metricDaily',
-    'historyFileLabel', 'openHistory', 'revealHistory',
-    'historyObservedLabel', 'historyWithinLabel', 'historyOverLabel', 'historyBudgetLabel', 'historyColumnsNote',
-  ];
-  for (const id of labelIds) {
-    document.getElementById(id).textContent = model.text[id];
-  }
-  document.getElementById('days').setAttribute('aria-label', model.text.daysAria);
-  document.getElementById('language').textContent = model.text.switchLanguage;
-  document.getElementById('language').setAttribute('aria-label', model.text.switchLanguageAria);
-
-  const valueIds = [
-    'summary', 'message', 'used', 'total', 'percentage', 'remaining', 'renewal',
-    'dailyAverage', 'allowance', 'projection', 'updated', 'retry',
-    'cycleProgress', 'daysLeft', 'period', 'baseRate', 'accountLabel',
-    'depletion', 'excess', 'historyMaximum', 'historyStart', 'historyEnd', 'historyMessage',
-    'historyLatest', 'chartStyleName', 'historyMetricLabel', 'historyLatestDate',
-    'historyBudgetTarget', 'historyBudgetTargetHint',
-  ];
-  for (const id of valueIds) {
-    document.getElementById(id).textContent = model[id];
-  }
-  document.getElementById('statusStyle').value = model.statusStyle;
-  document.getElementById('chartStyle').value = model.chartStyle;
-  document.getElementById('historyFile').hidden = !model.showHistoryFile;
-  document.getElementById('openHistory').disabled = !model.canOpenHistory;
-  document.getElementById('revealHistory').disabled = !model.canOpenHistory;
-  let fileNote = model.text.historyFileEmpty;
-  if (model.demo) fileNote = model.text.historyDemo;
-  else if (model.canOpenHistory) fileNote = model.text.historyFileNote;
-  document.getElementById('historyFileNote').textContent = fileNote;
-  const chart = document.getElementById('historyChart');
-  document.getElementById('historyPlot').hidden = model.history.length === 0;
-  chart.setAttribute('aria-label', model.historyAria);
-  chart.setAttribute('role', model.chartMetric === 'daily' ? 'group' : 'img');
-  const budgetPath = model.historyBudget.map((point, index) => (index === 0 ? 'M' : 'L') + point.x + ' ' + point.y).join('');
-  document.getElementById('historyBudget').setAttribute('d', budgetPath);
-  const target = document.getElementById('historyBudgetTargetPosition');
-  target.hidden = !model.historyBudgetTarget;
-  target.style.top = (model.historyBudgetTargetY / 224 * 100) + '%';
-  document.getElementById('historyBudgetLeader').setAttribute('d', model.historyBudgetTarget ? 'M552 ' + model.historyBudgetTargetY + 'H584' : '');
-  document.getElementById('historyWithinClipShape').setAttribute('d', budgetPath ? budgetPath + 'L552 192L32 192Z' : '');
-  document.getElementById('historyOverClipShape').setAttribute('d', budgetPath ? budgetPath + 'L552 0L32 0Z' : '');
-  document.getElementById('historyLatest').setAttribute('data-chart-tone', model.historyLatestTone);
-  document.getElementById('historyObservedLabel').hidden = model.historyBudget.length > 0;
-  document.getElementById('historyWithinLabel').hidden = model.historyBudget.length === 0;
-  document.getElementById('historyOverLabel').hidden = model.historyBudget.length === 0;
-  document.getElementById('historyBudgetLabel').hidden = model.historyBudget.length === 0;
-  document.getElementById('historyColumnsNote').hidden = model.chartStyle !== 'columns' || model.chartMetric === 'daily';
-  document.getElementById('chartMetrics').setAttribute('aria-label', model.text.chartMetricAria);
-  document.getElementById('metricCumulative').setAttribute('aria-pressed', String(model.chartMetric === 'cumulative'));
-  document.getElementById('metricDaily').setAttribute('aria-pressed', String(model.chartMetric === 'daily'));
-  drawHistory(model);
-  drawCalendarTicks(model);
-  ${__DEV__ ? `document.getElementById('demo').hidden = !model.demo;
-  const note = document.getElementById('demoNote');
-  note.hidden = !model.demo;
-  note.textContent = model.text.simulatedData + ' · ' + model.scenario + ' · ' + model.text.asOf + ' ' + model.referenceDate;` : ''}
-
-  document.getElementById('usageLabel').textContent = model.percentage;
-  for (const [id, value] of [['usageBar', model.usageValue], ['cycleBar', model.cycleValue]]) {
-    const bar = document.getElementById(id);
-    bar.value = value === null ? 0 : Math.min(100, Math.max(0, value));
-    const percentage = id === 'usageBar' ? model.percentage : model.cycleProgress;
-    const description = value === null ? model.text.unavailable
-      : percentage.replace('%', model.text.percentAria).replace('<', model.text.lessThan);
-    bar.setAttribute('aria-valuetext', description);
-  }
-  document.getElementById('connect').hidden = !model.canConnect;
-  document.getElementById('connect').textContent = model.connectLabel;
-  for (const id of ['accountHeading', 'accountLabel']) {
-    document.getElementById(id).hidden = !model.accountLabel;
-  }
-  document.getElementById('refresh').disabled = model.busy;
-  document.getElementById('connect').disabled = model.busy;
-  for (const mode of ['all', 'weekdays']) {
-    document.getElementById(mode).setAttribute('aria-pressed', String(model.dayMode === mode));
-  }
-}
-show(${initial});
-window.addEventListener('message', event => {
-  if (event.data && event.data.type === 'state') show(event.data.model);
-});
-document.getElementById('refresh').addEventListener('click', () => vscode.postMessage({ action: 'refresh' }));
-document.getElementById('connect').addEventListener('click', () => vscode.postMessage({ action: 'connect' }));
-document.getElementById('openHistory').addEventListener('click', () => vscode.postMessage({ action: 'openHistory' }));
-document.getElementById('revealHistory').addEventListener('click', () => vscode.postMessage({ action: 'revealHistory' }));
-document.getElementById('language').addEventListener('click', () => {
-  vscode.postMessage({ action: 'language', value: currentLanguage === 'en' ? 'es-ES' : 'en' });
-});
-document.getElementById('statusStyle').addEventListener('change', event => {
-  vscode.postMessage({ action: 'statusStyle', value: event.target.value });
-});
-document.getElementById('chartStyle').addEventListener('change', event => {
-  vscode.postMessage({ action: 'chartStyle', value: event.target.value });
-});
-for (const mode of ['all', 'weekdays']) {
-  document.getElementById(mode).addEventListener('click', () => vscode.postMessage({ action: 'dayMode', value: mode }));
-}
-for (const metric of ['Cumulative', 'Daily']) {
-  document.getElementById('metric' + metric).addEventListener('click', () => vscode.postMessage({ action: 'chartMetric', value: metric.toLowerCase() }));
-}
-vscode.postMessage({ action: 'ready' });
+const initialModel = ${initial};
+${webviewScript}
 </script>
 </body>
 </html>`;

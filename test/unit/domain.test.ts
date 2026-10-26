@@ -9,6 +9,17 @@ function quota(overrides: Record<string, unknown>, root: Record<string, unknown>
   return { token_based_billing: true, quota_reset_date_utc: '2026-11-01T00:00:00Z', quota_snapshots: { premium_interactions: { unlimited: false, entitlement: 3900, percent_remaining: 50, ...overrides } }, ...root };
 }
 describe('Quota normalization', () => {
+  it('distinguishes unsupported billing from missing credit data with stable reason codes', () => {
+    const unsupported = normalizeQuota({}, now);
+    assert.equal(unsupported.kind, 'unavailable');
+    if (unsupported.kind !== 'unavailable') return assert.fail();
+    assert.equal(unsupported.reason, 'unsupportedQuota');
+
+    const missing = normalizeQuota(quota({ entitlement: 0 }), now);
+    assert.equal(missing.kind, 'unavailable');
+    if (missing.kind !== 'unavailable') return assert.fail();
+    assert.equal(missing.reason, 'missingQuota');
+  });
   it('respects the assigned budget without treating has_quota false as exhaustion', () => {
     const snapshot = bounded(10000, 4000);
     assert.equal(snapshot.kind, 'bounded');

@@ -131,7 +131,7 @@ describe('Optional daily billing usage', () => {
     const { billing, requests } = setup();
     const cancelled = new AbortController();
     cancelled.abort();
-    await billing.read(session, { kind: 'unavailable', asOf: now, reason: 'Unsupported' }, {}, new AbortController().signal);
+    await billing.read(session, { kind: 'unavailable', asOf: now, reason: 'unsupportedQuota' }, {}, new AbortController().signal);
     await billing.read(session, { ...snapshot, cycle: undefined }, {}, new AbortController().signal);
     await billing.read(session, snapshot, {}, cancelled.signal);
     assert.equal(requests.length, 0);

@@ -13,7 +13,7 @@ export interface ApiTransport {
 }
 export type FailureCode = 'timeout' | 'network' | 'invalidResponse' | 'unauthorized' | 'forbidden' | 'rateLimited' | 'server' | 'cancelled' | 'auth' | 'configuration' | 'configurationChanged';
 export class SafeError extends Error {
-  constructor(public readonly code: FailureCode, message: string, public readonly retryAt?: number) { super(message); }
+  constructor(public readonly code: FailureCode, message: string, public readonly retryAt?: number, public readonly httpStatus?: number) { super(message); }
 }
 
 export class GitHubTransport implements HttpTransport {
@@ -117,5 +117,5 @@ export function responseError(response: HttpResponse, now: number): SafeError | 
     return new SafeError('rateLimited', 'GitHub has limited requests. Usage will refresh after the waiting period.', retryAt);
   }
   if (status === 403) return new SafeError('forbidden', 'GitHub does not allow this session to read the quota.');
-  return new SafeError('server', `Usage is currently unavailable (HTTP ${status}).`);
+  return new SafeError('server', `Usage is currently unavailable (HTTP ${status}).`, undefined, status);
 }

@@ -11,7 +11,9 @@ The extension separates quota calculations from authentication, HTTP transport a
 | `domain.ts` | Quota normalization, UTC cycles and pure pace calculations |
 | `history.ts` | Validated numeric observations, hashed account/origin identity and atomic daily journals per window |
 | `status.ts` | Validated status appearance preference and native text indicators |
-| `chart.ts` | Validated observed-usage chart preference |
+| `chart.ts` | Validated chart preferences, shared SVG dimensions and budget comparison tones |
+| `history-view.ts` | Current-cycle chart points, budget paths, calendar ticks and localized history labels |
+| `formatters.ts` | Shared English/Spanish number and UTC date formatters |
 | `daily.ts` | Same-day observed credit differences and reported-day precedence |
 | `billing.ts` | Optional current-cycle daily billing retrieval, account discovery, caching and fallback |
 | `connection.ts` | Provider resolution, validated Enterprise origins and matched quota destinations |
@@ -21,6 +23,7 @@ The extension separates quota calculations from authentication, HTTP transport a
 | `view.ts` | Localized values and escaped Markdown hover |
 | `i18n.ts` | English defaults and Spanish (Spain) strings |
 | `presentation.ts` | Theme-aware webview with text-only values, nonce CSP and allowed actions |
+| `webview.ts` | Typed browser rendering and panel action handlers |
 | `extension.ts` | Status item, commands and one reusable detail panel |
 
 ## Presentation
@@ -30,6 +33,8 @@ The status item is right-aligned with priority 100.05. The hover shows the accou
 Pace states use `charts.green`, `charts.yellow` and `charts.red`. The panel's `data-tone` attribute applies the same color to status, percentage, usage bar and forecast. Stale, disconnected and unavailable states clear the pace color. CSS theme variables follow editor theme changes.
 
 The hover escapes dynamic Markdown values and enables commands through `hoverCommands`. Its only HTML is a fixed status `span` using a theme color. The webview uses a nonce-based CSP, restricted local images and `textContent` for dynamic values. Its message handler accepts `ready`, `refresh`, `connect`, `openHistory`, `revealHistory`, `dayMode` (`all` or `weekdays`), `language` (`en` or `es-ES`), `statusStyle` (`text`, `compact`, `bar` or `dots`), `chartStyle` (`line` or `columns`) and `chartMetric` (`cumulative` or `daily`). History actions resolve a journal from the active account identity in the extension host; they never accept a path from the webview. Paths remain in the host; the model exposes only whether the actions are available. Account changes disable the actions and invalidate pending file lookups/opens. History content does not become a webview resource.
+
+Unavailable quotas carry reason codes, and HTTP failures carry their status separately from the diagnostic message. Localization uses these fields rather than matching English sentences. The panel script is TypeScript checked by the same lint/type commands as the host. The build compiles it for the browser and embeds the result in the nonce-authorized script; watch mode tracks its source dependencies. Production compilation removes its demo controls. Chart construction, the HTML template and the browser renderer share the dimensions in `chart.ts`.
 
 `copilotPace.statusStyle` defaults to the existing percentage-and-pace label. Compact, segmented and dot indicators use native status item text; errors and pending estimates remain explicit, and accessibility labels retain the percentage and pace. The dropdown changes only presentation. A divided **Customization / Personalización** section below the history chart groups language, status appearance and chart style; account and refresh controls remain in the footer.
 
