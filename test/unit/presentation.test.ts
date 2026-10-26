@@ -27,7 +27,10 @@ function panelElement(): PanelElement {
     appendChild(child) { this.children.push(child); },
     replaceChildren() { this.children = []; },
     click: () => listeners.get('click')?.({ target: { value: '' } }),
-    change: value => listeners.get('change')?.({ target: { value } }),
+    change(value) {
+      this.value = value;
+      listeners.get('change')?.({ target: { value } });
+    },
   };
 }
 
@@ -644,7 +647,7 @@ describe('Presentation and demo scenarios', () => {
       ['unauthorized', 'Vuelve a conectar'], ['forbidden', 'no permite'], ['rateLimited', 'limitado'],
       ['server', 'HTTP 503'], ['cancelled', 'cancelada'], ['auth', 'autorización'],
     ] as const) {
-      const failure = new SafeError(code, 'Usage is currently unavailable (HTTP 503).');
+      const failure = new SafeError(code, 'Usage is currently unavailable (HTTP 503).', undefined, 503);
       const model = createViewModel({ phase: 'error', failure }, demoClock, 'all', false, '', demoClock.now().getTime() + 60_000, 'es-ES');
       assert.ok(model.message.includes(expected), `${code}: ${model.message}`);
       assert.ok(model.retry.startsWith('Próxima actualización permitida:'));
@@ -655,6 +658,28 @@ describe('Presentation and demo scenarios', () => {
     assert.ok(model.message.includes('cuota de créditos compatible'));
     const disconnected = createViewModel({ phase: 'disconnected' }, demoClock, 'all', false, '', 0, 'es-ES');
     assert.equal(disconnected.connectLabel, 'Conectar con GitHub');
+  });
+  it('localizes each quota reason without exposing its code as UI text', () => {
+    for (const language of ['en', 'es-ES'] as const) {
+      for (const reason of ['unsupportedQuota', 'missingQuota'] as const) {
+        const model = createViewModel({ phase: 'ready', snapshot: { kind: 'unavailable', reason, asOf: demoClock.now().getTime() } },
+          demoClock, 'all', false, '', 0, language);
+        assert.equal(model.message, model.text[reason]);
+        assert.equal(panelElements(model).get('message')?.textContent, model.text[reason]);
+        assert.ok(renderHover(model).includes(model.text[reason]));
+      }
+    }
+  });
+  it('localizes HTTP errors from structured status data independently of the diagnostic message', () => {
+    const failure = new SafeError('server', 'Reworded diagnostic mentioning HTTP 599.', undefined, 502);
+    const spanish = createViewModel({ phase: 'error', failure }, demoClock, 'all', false, '', 0, 'es-ES');
+    assert.equal(spanish.message, 'El consumo no está disponible en este momento (HTTP 502).');
+    const english = createViewModel({ phase: 'error', failure }, demoClock, 'all', false, '', 0);
+    assert.equal(english.message, failure.message);
+
+    const withoutStatus = new SafeError('server', 'Reworded diagnostic mentioning HTTP 599.');
+    const generic = createViewModel({ phase: 'error', failure: withoutStatus }, demoClock, 'all', false, '', 0, 'es-ES');
+    assert.equal(generic.message, 'El consumo no está disponible en este momento.');
   });
   for (const scenario of Object.keys(scenarioLabels) as Array<keyof typeof scenarioLabels>) {
     it(`runs ${scenario} through authentication, transport, normalization and presentation`, async () => {

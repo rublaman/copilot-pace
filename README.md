@@ -65,6 +65,8 @@ The color follows **projected usage at renewal**, calculated from your average c
 
 ## Get started
 
+Version 1.3.6 is available on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=rubenblancomanzano.copilot-pace).
+
 1. In VS Code, open **Extensions** (`Ctrl+Shift+X`) and search for **Copilot Pace** by **Ruben Blanco Manzano**. Select **Install**.
 2. Open the Command Palette (`Ctrl+Shift+P`) and run **Copilot Pace: Connect GitHub**. Authorize access through VS Code and select the account with Copilot.
 3. Find Copilot Pace on the right side of the status bar. Hover for a summary or click for details.
@@ -173,7 +175,7 @@ Supports **GitHub.com personal and Business accounts** and **GitHub Enterprise (
 
 Copilot Pace uses an internal GitHub endpoint that may change. Browser-based VS Code is unsupported.
 
-The quota endpoint provides aggregate credits. Daily billing access is optional and depends on the account, session permissions and API availability. Its new integration has synthetic coverage; real-account billing acceptance is still pending. Pace does not estimate tokens or provide individual-session or per-model analytics.
+The quota endpoint provides aggregate credits. Daily billing access is optional and depends on the account, session permissions and API availability. Pace does not estimate tokens or provide individual-session or per-model analytics.
 
 ### When a value is unavailable
 

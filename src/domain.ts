@@ -6,7 +6,7 @@ interface BaseSnapshot { asOf: number; cycle?: Cycle }
 export type Snapshot =
   | (BaseSnapshot & { kind: 'bounded'; used: number; total: number; usedPercent: number })
   | (BaseSnapshot & { kind: 'usageOnly'; used: number })
-  | (BaseSnapshot & { kind: 'unavailable'; reason: string });
+  | (BaseSnapshot & { kind: 'unavailable'; reason: 'unsupportedQuota' | 'missingQuota' });
 export type Pace =
   | { kind: 'available'; dailyAverage: number; projected: number; projectedPercent: number; label: 'Comfortable' | 'On track' | 'Over pace' }
   | { kind: 'pending' | 'unavailable'; label: string };
@@ -20,7 +20,9 @@ function number(value: unknown, allowNegative = false): number | undefined {
   return Number.isFinite(parsed) && (allowNegative || parsed >= 0) ? parsed : undefined;
 }
 function billingCycle(reset: unknown, now: Date): Cycle | undefined {
-  const end = typeof reset === 'number' ? reset * 1000 : typeof reset === 'string' ? Date.parse(reset) : NaN;
+  let end = NaN;
+  if (typeof reset === 'number') end = reset * 1000;
+  else if (typeof reset === 'string') end = Date.parse(reset);
   const date = new Date(end);
   // The supported credit cycle is the calendar month in UTC. Unknown cycles get no forecast.
   if (!Number.isFinite(end) || date.getUTCDate() !== 1 || date.getUTCHours() !== 0 || date.getUTCMinutes() !== 0 || date.getUTCSeconds() !== 0) return;
@@ -31,7 +33,7 @@ function billingCycle(reset: unknown, now: Date): Cycle | undefined {
 export function normalizeQuota(body: unknown, now: Date): Snapshot {
   const root = record(body);
   const base = { asOf: now.getTime() };
-  if (root.token_based_billing !== true) return { ...base, kind: 'unavailable', reason: 'No supported credit quota was returned.' };
+  if (root.token_based_billing !== true) return { ...base, kind: 'unavailable', reason: 'unsupportedQuota' };
   const quota = record(record(root.quota_snapshots).premium_interactions);
   const resetAt = number(quota.quota_reset_at);
   const cycle = billingCycle(resetAt && resetAt > 0 ? resetAt : root.quota_reset_date_utc ?? root.quota_reset_date, now);
@@ -41,7 +43,7 @@ export function normalizeQuota(body: unknown, now: Date): Snapshot {
   const remaining = number(quota.quota_remaining);
   const percent = number(quota.percent_remaining, true);
   if (quota.unlimited !== false || total === undefined || total === 0 || (remaining === undefined && percent === undefined)) {
-    return { ...base, cycle, kind: 'unavailable', reason: 'Your budget or usage is unavailable.' };
+    return { ...base, cycle, kind: 'unavailable', reason: 'missingQuota' };
   }
   const usedPercent = percent !== undefined ? 100 - Math.min(100, Math.max(0, percent)) : Math.max(0, (total - remaining!) / total * 100);
   const used = remaining !== undefined ? Math.max(0, total - remaining) : total * usedPercent / 100;
@@ -72,7 +74,9 @@ export function calculatePace(snapshot: Snapshot, now: Date, mode: DayMode): Pac
   const dailyAverage = snapshot.used / elapsed;
   const projected = snapshot.used + dailyAverage * remaining;
   const projectedPercent = projected / snapshot.total * 100;
-  const label = projectedPercent > 100 + 1e-9 ? 'Over pace' : projectedPercent >= 90 - 1e-9 ? 'On track' : 'Comfortable';
+  let label: Extract<Pace, { kind: 'available' }>['label'] = 'Comfortable';
+  if (projectedPercent > 100 + 1e-9) label = 'Over pace';
+  else if (projectedPercent >= 90 - 1e-9) label = 'On track';
   return { kind: 'available', dailyAverage, projected, projectedPercent, label };
 }
 

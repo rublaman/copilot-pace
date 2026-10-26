@@ -83,7 +83,7 @@ describe('Local observed usage history', () => {
     const extra = { ...point(), token: 'must-not-persist', prompt: 'private' };
     assert.deepEqual(retainObservations([extra, point(at + 1), { ...point(), used: -1 }], at), [point()]);
     assert.deepEqual(retainObservations([point()], at + 91 * 86_400_000), []);
-    assert.equal(observation({ kind: 'unavailable', reason: 'Unknown', asOf: at }), undefined);
+    assert.equal(observation({ kind: 'unavailable', reason: 'missingQuota', asOf: at }), undefined);
     assert.equal(observation({ kind: 'bounded', used: 1, total: 100, usedPercent: 1, asOf: at }), undefined);
   });
 });

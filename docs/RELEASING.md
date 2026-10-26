@@ -6,8 +6,10 @@ This guide defines the release workflow. Published versions, tested artifacts, c
 
 - Stable: releases from `main`, with `preview: false` and Latest. See [the latest stable release](https://github.com/rublaman/copilot-pace/releases/latest) for the published version.
 - Pilot: GitHub prereleases from `develop`, with `preview: true`, without Latest. See [GitHub Releases](https://github.com/rublaman/copilot-pace/releases) for published pilot versions.
+- The 1.3.7 presentation-refactor pilot retains the existing panel controls and chart behavior. Real-account and corporate-network acceptance of its final artifact remains pending; earlier 1.3.x acceptance does not validate this new package.
 - The maintainer confirmed real-account acceptance of the 1.3.x pilot, including daily billing and corporate policies, on 2026-10-22. This is maintainer-reported acceptance; synthetic tests do not establish it.
-- Marketplace upload and store verification are separate from GitHub publication. The 1.3.2 candidate remains an unpublished draft; retain its tag and assets.
+- Marketplace: stable 1.3.6 is published on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=rubenblancomanzano.copilot-pace). The maintainer confirmed publication and successful operation on 2026-10-26. Marketplace and GitHub publication remain separate steps.
+- The 1.3.2 candidate remains an unpublished draft; retain its tag and assets.
 
 ## Documentation records
 
@@ -23,9 +25,9 @@ Use `develop` for integration and pilots, and `main` for stable releases. Keep p
 | Test builds | Push to `develop` | Tested production VSIX in Actions artifacts |
 | Pilot / beta | Annotated `vX.Y.Z` on `develop`, `preview: true` | Draft GitHub prerelease with tested VSIX |
 | Stable | PR `develop` → `main` with a merge commit; annotated tag, `preview: false` | Draft stable GitHub Release |
-| Hotfix | `hotfix/*` from `main` → PR to `main` | New patch; merge back to `develop` |
+| Hotfix | `hotfix/*` from `main` → PR to `main` | New patch; synchronize `main` into `develop` |
 
-After stable promotion, synchronize `main` → `develop` through a PR with a merge commit. Avoid squash/rebase for promotions between these permanent branches. A separate release branch is unnecessary until a candidate needs to be frozen while development continues.
+After stable promotion or a hotfix, synchronize `main` → `develop` through a PR with a merge commit. Avoid squash/rebase for promotions between these permanent branches. A separate release branch is unnecessary until a candidate needs to be frozen while development continues.
 
 All VSIX artifacts are production builds. Demos belong to the development host, including when a VSIX comes from `develop`.
 
@@ -38,6 +40,18 @@ A merge commit is an exception when the PR contains independently useful commits
 Use **Create a merge commit** for `develop` → `main` promotions and `main` → `develop` synchronization. These permanent branches need their shared ancestry preserved; do not squash or rebase those PRs.
 
 Keep both squash and merge commits available in GitHub so each flow can use its intended method. This policy is a contributor and agent convention; documenting it does not configure automatic enforcement or change repository settings.
+
+### Branch cleanup
+
+GitHub's [automatic head-branch deletion](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-the-automatic-deletion-of-branches) is enabled for this repository. It removes unprotected source branches after their PRs merge, including `feature/*`, `fix/*` and `chore/*` branches merged into `develop`. This is a repository-wide setting, not a filter for a particular target branch or naming prefix. Fork branch cleanup depends on the fork's settings and permissions.
+
+- Keep `main` and `develop` protected against deletion, including for administrators. They remain available after promotion and synchronization PRs.
+- Do not reuse a merged temporary branch. Start follow-up work from the updated target branch.
+- Resolve dependent work before merging a temporary branch. If another PR still requires that branch, protect it from deletion before merging.
+- A `hotfix/*` branch can be deleted after merging into `main`. Complete the required synchronization with a `main` → `develop` PR using a merge commit; it does not depend on retaining the hotfix branch.
+- Review any future release or maintenance branch for retention before merging it; protect long-lived branches against deletion.
+
+Remote deletion does not remove local branches. Run `git fetch --prune` to remove obsolete remote-tracking references. Delete local branches only after checking that their PRs merged and that they contain no additional work. After a squash merge, `git branch --merged` alone cannot establish whether a PR's changes were integrated because the squash commit has different ancestry.
 
 ### Version policy
 
@@ -120,7 +134,7 @@ The root README supplies the packaged Marketplace overview. [MARKETPLACE.md](MAR
 
 Edit the publisher profile through its [management page](https://marketplace.visualstudio.com/manage/publishers/rubenblancomanzano). The extension's short description, repository and issue links are configured in `package.json`.
 
-Marketplace upload and store verification remain pending. Automated publishing and the Marketplace prerelease channel are unconfigured. Before adding automation, use restricted publishing permissions and check the current [secure publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace).
+Marketplace publication of stable 1.3.6 is complete. Automated publishing and the Marketplace prerelease channel are unconfigured. Before adding automation, use restricted publishing permissions and check the current [secure publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace).
 
 Publish the same VSIX from the reviewed GitHub Release, through the publisher portal or `vsce publish --azure-credential --packagePath <tested.vsix>` with configured credentials. Verify the listing and an install/update before recording success. Do not rebuild or use `--skip-duplicate` to hide an existing version.
 

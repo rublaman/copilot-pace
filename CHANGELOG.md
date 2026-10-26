@@ -1,8 +1,14 @@
 # Changelog
 
-Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0 and 1.3.0–1.3.5 are pilot versions. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
+Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.5 and 1.3.7 are pilot versions. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
 
 ## [Unreleased]
+
+## [1.3.7] - 2026-10-26
+
+- Keep Spanish quota and HTTP error messages independent of English diagnostic wording.
+- Preserve panel controls and daily/cumulative chart behavior while moving browser rendering to typed source and separating chart construction.
+- Refresh Marketplace availability and contributor documentation.
 
 ## [1.3.6] - 2026-10-22
 

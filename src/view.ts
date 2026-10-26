@@ -2,28 +2,19 @@ import { Buffer } from 'node:buffer';
 import { calculateForecast, calculatePace, equivalentDays, type Clock, type DayMode } from './domain';
 import { statusText, type StatusStyle } from './status';
 import type { Observation } from './history';
-import { chartTone, type ChartMetric, type ChartStyle, type ChartTone } from './chart';
-import { mergeDailyUsage, observedDailyUsage, UTC_DAY } from './daily';
+import type { ChartMetric, ChartStyle } from './chart';
+import { createHistoryViewModel, type HistoryViewModel } from './history-view';
+import { formatters } from './formatters';
 import { getStrings, type Language, type Strings } from './i18n';
 import { localizeDemoScenario } from './development';
 import type { ServiceState } from './service';
 import type { SafeError } from './transport';
 
-const formatters = Object.fromEntries((['en', 'es-ES'] as const).map(language => {
-  const locale = language === 'en' ? 'en-US' : language;
-  return [language, {
-    number: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }),
-    date: new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }),
-    period: new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }),
-    shortDate: new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }),
-  }];
-})) as Record<Language, { number: Intl.NumberFormat; date: Intl.DateTimeFormat; period: Intl.DateTimeFormat; shortDate: Intl.DateTimeFormat }>;
-
 function failureMessage(failure: SafeError, language: Language, text: Strings): string {
   if (language === 'en') return failure.message;
   if (failure.code === 'server') {
-    const status = failure.message.match(/\bHTTP (\d{3})\b/)?.[1];
-    return `${text.errorServer}${status ? ` (HTTP ${status})` : ''}.`;
+    const status = failure.httpStatus;
+    return `${text.errorServer}${status !== undefined ? ` (HTTP ${status})` : ''}.`;
   }
   return {
     timeout: text.errorTimeout, network: text.errorNetwork, invalidResponse: text.errorInvalidResponse,
@@ -31,7 +22,7 @@ function failureMessage(failure: SafeError, language: Language, text: Strings): 
     cancelled: text.errorCancelled, auth: text.errorAuth, configuration: text.errorConfiguration, configurationChanged: text.errorConfigurationChanged,
   }[failure.code];
 }
-export interface ViewModel {
+export interface ViewModel extends HistoryViewModel {
   language: Language; text: Strings;
   statusText: string; summary: string; message: string; demo: boolean; scenario: string;
   used: string; total: string; percentage: string; renewal: string; dailyAverage: string; projection: string;
@@ -42,15 +33,7 @@ export interface ViewModel {
   accountLabel: string; connectLabel: string;
   statusStyle: StatusStyle; statusDescription: string;
   depletion: string; excess: string;
-  history: Array<{ x: number; y: number; connect: boolean; label: string; partial?: boolean; tone: ChartTone }>;
-  historyMaximum: string; historyStart: string; historyEnd: string; historyBudget: Array<{ x: number; y: number }>;
-  historyMessage: string;
-  chartStyle: ChartStyle; chartStyleName: string; historyLatest: string; chartMetric: ChartMetric;
-  historyMetricLabel: string; historyLatestDate: string; historyAria: string;
-  historyLatestTone: ChartTone;
-  historyColumns: ViewModel['history'];
-  historyBudgetTarget: string; historyBudgetTargetY: number; historyBudgetTargetHint: string;
-  historyCalendarTicks: Array<{ x: number; label: string; weekend: boolean }>;
+  chartStyle: ChartStyle; chartStyleName: string; chartMetric: ChartMetric;
   showHistoryFile: boolean; canOpenHistory: boolean;
 }
 export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayMode, demo: boolean, scenario: string, retryAt: number, language: Language = 'en',
@@ -95,12 +78,15 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
   const forecastNote = pacePresentation?.note ?? (pace?.kind === 'pending' ? text.pendingNote : text.unavailableNote);
   let quotaReason: string | undefined;
   if (snapshot?.kind === 'unavailable') {
-    quotaReason = language === 'en' ? snapshot.reason
-      : snapshot.reason === 'No supported credit quota was returned.' ? text.unsupportedQuota : text.missingQuota;
+    quotaReason = text[snapshot.reason];
   }
-  const message = state.failure ? failureMessage(state.failure, language, text)
-    : quotaReason ?? (state.phase === 'disconnected' ? text.connectNote : forecastNote);
+  let message = quotaReason ?? forecastNote;
+  if (state.failure) message = failureMessage(state.failure, language, text);
+  else if (state.phase === 'disconnected' && quotaReason === undefined) message = text.connectNote;
   const reconnect = state.failure?.code === 'unauthorized' || (state.failure?.code === 'auth' && state.account !== undefined);
+  let connectLabel = text.connect;
+  if (reconnect) connectLabel = text.reconnect;
+  else if (state.account) connectLabel = text.switchAccount;
   const forecast = snapshot && state.phase === 'ready' ? calculateForecast(snapshot, now, dayMode) : undefined;
   let depletion = '—';
   let excess = '—';
@@ -111,110 +97,17 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
     excess = `${amount(forecast.excess)} ${text.credits}`;
   }
   if (state.phase === 'ready' && validCycle && snapshot?.kind === 'bounded' && snapshot.used >= snapshot.total) depletion = text.budgetExhausted;
-  const observations = validCycle ? history.filter(item => item.start === cycle.start && item.end === cycle.end && item.at <= now.getTime()) : [];
-  const daily = validCycle && !demo ? mergeDailyUsage(observedDailyUsage(observations, cycle),
-    (state.dailyUsage ?? []).filter(item => item.day >= cycle.start && item.day < cycle.end && item.day <= now.getTime())) : [];
-  const dailyMode = chartMetric === 'daily';
-  const baseRate = snapshot?.kind === 'bounded' && totalDays > 0 ? snapshot.total / totalDays : 0;
-  const knownBudget = snapshot?.kind === 'bounded' && !!validCycle && totalDays > 0;
-  const pointLabel = (at: number, used: number, pointTone: ChartTone, partial = false) => {
-    const status = { good: text.historyWithinLabel, over: text.historyOverLabel, neutral: '' }[pointTone];
-    return `${date(at)}${status ? ` · ${status}` : ''} · ${amount(used)} ${text.credits}${partial ? ` · ${text.historyPartial}` : ''}`;
-  };
-  let historyMessage = text.historyNote;
-  if (dailyMode) historyMessage = daily.length ? text.historyDailyNote : text.historyDailyEmpty;
-  if (demo) historyMessage = text.historyDemo;
-  else if (historyFailed) historyMessage = text.historyError;
-  else if (!dailyMode && observations.length === 0) historyMessage = text.historyEmpty;
-  const maximum = dailyMode ? Math.max(1, baseRate, ...daily.map(item => item.used))
-    : Math.max(1, snapshot?.kind === 'bounded' ? snapshot.total : 0, ...observations.map(item => item.used));
-  const points: ViewModel['history'] = dailyMode ? daily.map((item, index) => {
-    const allowance = knownBudget ? baseRate * equivalentDays(item.day, item.day + UTC_DAY, dayMode) : undefined;
-    const pointTone = chartTone(item.used, allowance);
-    return {
-      x: 32 + (item.day + UTC_DAY / 2 - cycle!.start) / (cycle!.end - cycle!.start) * 520,
-      y: 168 - item.used / maximum * 144,
-      connect: !!daily[index - 1] && item.day - daily[index - 1]!.day === UTC_DAY,
-      label: pointLabel(item.day, item.used, pointTone, item.partial),
-      partial: item.partial, tone: pointTone,
-    };
-  }) : observations.map((item, index) => {
-    const previous = observations[index - 1];
-    const allowance = knownBudget ? baseRate * equivalentDays(item.start, item.at, dayMode) : undefined;
-    const pointTone = chartTone(item.used, allowance);
-    return {
-      x: 32 + (item.at - item.start) / (item.end - item.start) * 520,
-      y: 168 - item.used / maximum * 144,
-      connect: !!previous && item.at - previous.at <= 2 * 60 * 60_000 && item.used >= previous.used && item.total === previous.total,
-      label: pointLabel(item.at, item.used, pointTone), tone: pointTone,
-    };
+  const historyView = createHistoryViewModel(snapshot, now, dayMode, language, {
+    demo, chartMetric, history, dailyUsage: state.dailyUsage ?? [], historyFailed,
   });
-  // Columns are cumulative snapshots, never inferred daily spending.
-  const dayIndices = new Map<string, number>();
-  observations.forEach((item, index) => dayIndices.set(new Date(item.at).toISOString().slice(0, 10), index));
-  const columns = dailyMode ? points : [...dayIndices.values()].map(index => points[index]!);
-  const budget: Array<{ x: number; y: number }> = [];
-  const historyCalendarTicks: ViewModel['historyCalendarTicks'] = [];
-  if (snapshot?.kind === 'bounded' && validCycle && totalDays > 0) {
-    for (let cursor = cycle.start; cursor <= cycle.end; cursor += 86_400_000) {
-      if (dailyMode && cursor < cycle.end) {
-        const allowance = baseRate * equivalentDays(cursor, cursor + UTC_DAY, dayMode);
-        const y = 168 - allowance / maximum * 144;
-        budget.push({ x: 32 + (cursor - cycle.start) / (cycle.end - cycle.start) * 520, y },
-          { x: 32 + (cursor + UTC_DAY - cycle.start) / (cycle.end - cycle.start) * 520, y });
-        // Mark the two daily-budget transitions without crowding every day on the axis.
-        const weekday = new Date(cursor).getUTCDay();
-        if (dayMode === 'weekdays' && cursor > cycle.start && (weekday === 1 || weekday === 6)) {
-          historyCalendarTicks.push({
-            x: 32 + (cursor - cycle.start) / (cycle.end - cycle.start) * 520,
-            label: formatter.shortDate.format(cursor),
-            weekend: weekday === 6,
-          });
-        }
-      } else if (!dailyMode) {
-        budget.push({
-          x: 32 + (cursor - cycle.start) / (cycle.end - cycle.start) * 520,
-          y: 168 - snapshot.total / maximum * equivalentDays(cycle.start, cursor, dayMode) / totalDays * 144,
-        });
-      }
-    }
-  }
-  let historyLatest = '—';
-  let historyLatestDate = '';
-  if (dailyMode && daily.length) {
-    const latest = daily[daily.length - 1]!;
-    historyLatest = `${amount(latest.used)} ${text.credits}`;
-    historyLatestDate = `${date(latest.day)}${latest.partial ? ` · ${text.historyPartial}` : ''}`;
-  } else if (!dailyMode && observations.length) {
-    historyLatest = `${amount(observations[observations.length - 1]!.used)} ${text.credits}`;
-  }
-  let historyBudgetTarget = '';
-  let historyBudgetTargetY = 24;
-  let historyBudgetTargetHint = text.historyCycleTarget;
-  if (knownBudget) {
-    const target = dailyMode ? baseRate : snapshot.total;
-    historyBudgetTarget = `${amount(target)} ${text.credits}`;
-    historyBudgetTargetY = 168 - target / maximum * 144;
-  }
-  if (dailyMode) historyBudgetTargetHint = dayMode === 'weekdays' ? text.historyWeekdayTarget : text.historyDailyTarget;
   return {
     language, text,
     statusText: statusText(style, percentage, snapshot?.kind === 'bounded' ? snapshot.usedPercent : null, summary, tone === 'neutral', demo),
     statusDescription: `${percentage} · ${summary}`, statusStyle: style, depletion, excess,
-    history: points, historyMaximum: `${amount(maximum)} ${text.credits}`,
-    historyStart: validCycle ? formatter.shortDate.format(cycle.start) : '', historyEnd: validCycle ? formatter.shortDate.format(cycle.end) : '',
-    historyBudget: budget,
-    historyBudgetTarget, historyBudgetTargetY, historyBudgetTargetHint,
-    historyCalendarTicks,
+    ...historyView,
     showHistoryFile: !demo && state.account !== undefined,
     canOpenHistory: !demo && state.account !== undefined && !!options.historyFileAvailable,
-    historyMessage,
     chartStyle, chartMetric, chartStyleName: { line: text.chartLine, columns: text.chartColumns }[chartStyle],
-    historyMetricLabel: dailyMode ? text.historyDailyLabel : text.historyMetricLabel,
-    historyAria: dailyMode ? text.historyDailyAria : text.historyAria,
-    historyLatestDate, historyLatest,
-    historyLatestTone: points[points.length - 1]?.tone ?? 'neutral',
-    historyColumns: columns,
     summary, tone, message, demo, scenario: __DEV__ ? localizeDemoScenario(scenario, language) : scenario, forecastNote,
     used: snapshot && snapshot.kind !== 'unavailable' ? `${amount(snapshot.used)} ${text.credits}` : '—',
     total: snapshot?.kind === 'bounded' ? `${amount(snapshot.total)} ${text.credits}` : '—',
@@ -231,7 +124,7 @@ export function createViewModel(state: ServiceState, clock: Clock, dayMode: DayM
     updated: state.updatedAt !== undefined ? date(state.updatedAt) : '—',
     referenceDate: demo ? date(now.getTime()) : '', dayMode, busy: state.phase === 'loading', canConnect: !demo,
     accountLabel: demo ? '' : state.account?.label ?? '',
-    connectLabel: reconnect ? text.reconnect : state.account ? text.switchAccount : text.connect,
+    connectLabel,
     retry: retryAt > now.getTime() ? `${text.nextRefresh} ${date(retryAt)}` : '',
   };
 }
@@ -250,7 +143,7 @@ export function renderHover(model: ViewModel): string {
   // An invisible character keeps the first and last spacer lines when Markdown trims whitespace.
   const verticalSpace = '\u200b  ';
   // A text check shares the label's baseline; hover codicons use vertical-align: middle.
-  const icon = model.tone === 'good' ? '✓' : model.tone === 'watch' ? '$(clock)' : model.tone === 'over' ? '$(warning)' : '$(info)';
+  const icon = { good: '✓', watch: '$(clock)', over: '$(warning)', neutral: '$(info)' }[model.tone];
   const color = { good: 'green', watch: 'yellow', over: 'red', neutral: undefined }[model.tone];
   const summary = `${icon} **${text(model.summary)}**`;
   // Only this fixed span uses HTML; every dynamic label still passes through Markdown escaping.

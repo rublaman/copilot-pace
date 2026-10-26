@@ -1,5 +1,6 @@
 import { build, context } from 'esbuild';
 import { cp, readdir, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
@@ -13,10 +14,27 @@ if (manifest.contributes.commands.some(item => devCommands.has(item.command)) ||
   throw new Error('The production manifest must not contribute demo commands or settings.');
 }
 const define = { __DEV__: String(!production), __EXTENSION_VERSION__: JSON.stringify(manifest.version) };
+// Compile browser code independently, then embed it under the panel's nonce CSP.
+const webviewPlugin = {
+  name: 'webview-script',
+  setup(plugin) {
+    plugin.onResolve({ filter: /^copilot-pace:webview$/ }, () => ({ path: 'webview', namespace: 'webview-script' }));
+    plugin.onLoad({ filter: /.*/, namespace: 'webview-script' }, async () => {
+      const result = await build({
+        entryPoints: ['src/webview.ts'], bundle: true, platform: 'browser', target: 'es2022', format: 'iife',
+        write: false, metafile: true, minify: production, define,
+      });
+      return {
+        contents: `export default ${JSON.stringify(result.outputFiles[0].text)};`,
+        watchFiles: Object.keys(result.metafile.inputs).map(file => resolve(file)),
+      };
+    });
+  },
+};
 const options = {
   entryPoints: ['src/extension.ts'], bundle: true, platform: 'node', target: 'es2022', format: 'cjs',
   external: ['vscode'], outfile: production ? 'dist/extension.js' : 'out/development/dist/extension.js',
-  sourcemap: !production, minify: production, define,
+  sourcemap: !production, minify: production, define, plugins: [webviewPlugin],
   metafile: production, write: !production,
 };
 if (!production) {
@@ -65,6 +83,6 @@ if (watch) {
       }
     }
     await collect('test');
-    if (testFiles.length) await build({ entryPoints: testFiles, outbase: '.', outdir: 'out', bundle: true, platform: 'node', target: 'es2022', format: 'cjs', external: ['vscode'], sourcemap: true, define });
+    if (testFiles.length) await build({ entryPoints: testFiles, outbase: '.', outdir: 'out', bundle: true, platform: 'node', target: 'es2022', format: 'cjs', external: ['vscode'], sourcemap: true, define, plugins: [webviewPlugin] });
   }
 }
