@@ -7,7 +7,8 @@ This guide defines the release workflow. Published versions, tested artifacts, c
 - Stable: releases from `main`, with `preview: false` and Latest. See [the latest stable release](https://github.com/rublaman/copilot-pace/releases/latest) for the published version.
 - Pilot: GitHub prereleases from `develop`, with `preview: true`, without Latest. See [GitHub Releases](https://github.com/rublaman/copilot-pace/releases) for published pilot versions.
 - The maintainer confirmed real-account acceptance of the 1.3.x pilot, including daily billing and corporate policies, on 2026-10-22. This is maintainer-reported acceptance; synthetic tests do not establish it.
-- Marketplace upload and store verification are separate from GitHub publication. The 1.3.2 candidate remains an unpublished draft; retain its tag and assets.
+- Marketplace: stable 1.3.6 is published on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=rubenblancomanzano.copilot-pace). The maintainer confirmed publication and successful operation on 2026-10-26. Marketplace and GitHub publication remain separate steps.
+- The 1.3.2 candidate remains an unpublished draft; retain its tag and assets.
 
 ## Documentation records
 
@@ -120,7 +121,7 @@ The root README supplies the packaged Marketplace overview. [MARKETPLACE.md](MAR
 
 Edit the publisher profile through its [management page](https://marketplace.visualstudio.com/manage/publishers/rubenblancomanzano). The extension's short description, repository and issue links are configured in `package.json`.
 
-Marketplace upload and store verification remain pending. Automated publishing and the Marketplace prerelease channel are unconfigured. Before adding automation, use restricted publishing permissions and check the current [secure publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace).
+Marketplace publication of stable 1.3.6 is complete. Automated publishing and the Marketplace prerelease channel are unconfigured. Before adding automation, use restricted publishing permissions and check the current [secure publishing guidance](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace).
 
 Publish the same VSIX from the reviewed GitHub Release, through the publisher portal or `vsce publish --azure-credential --packagePath <tested.vsix>` with configured credentials. Verify the listing and an install/update before recording success. Do not rebuild or use `--skip-duplicate` to hide an existing version.
 
