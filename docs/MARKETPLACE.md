@@ -138,7 +138,7 @@ Pace saves successful quota observations in local extension storage and displays
 
 Billing queries are limited to the current cycle and cached in memory. Ambiguous billing accounts and unsupported reports use the observed fallback. The current session is not guaranteed to have billing access, and Pace does not request broader permissions or a separate token. See the [personal and organization API requirements](https://docs.github.com/en/rest/billing/usage) and [enterprise requirements](https://docs.github.com/en/enterprise-cloud@latest/rest/billing/usage).
 
-Account observations can reflect usage from other devices. Daily journals are separated by authentication provider, server and account, and expired journals are removed after 90 days when history is accessed. Demo data is never saved or sent to billing. Storage errors do not prevent quota refreshes. Neither chart attributes consumption to models or projects.
+Account observations can reflect usage from other devices. Daily journals are separated by authentication provider, server and account. The chart loads only the current cycle; journals are retained for 90 days. Cleanup runs when the extension starts and at each new UTC day while it remains active, including when signed out. Files that cannot be deleted are retried on the next cleanup. Damaged or unsupported journals are skipped and preserved until they expire; new observations use a new journal if the active file is damaged. Demo data is never saved or sent to billing. Storage errors do not prevent quota refreshes. Neither chart attributes consumption to models or projects.
 
 ## Settings
 

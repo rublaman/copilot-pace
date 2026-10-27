@@ -4,6 +4,10 @@ Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.5
 
 ## [Unreleased]
 
+- Clean up expired local history at startup and each new UTC day, including when signed out, without blocking usage when a file cannot be deleted.
+- Recover available history when a journal is damaged or unsupported, and preserve that file while continuing new observations in another journal.
+- Load only the active account's current cycle for the history chart while retaining other observations for 90 days.
+
 ## [1.3.7] - 2026-10-26
 
 - Keep Spanish quota and HTTP error messages independent of English diagnostic wording.

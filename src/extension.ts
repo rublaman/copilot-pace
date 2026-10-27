@@ -41,6 +41,8 @@ class CopilotPace implements vscode.Disposable {
   private readonly historyStore?: HistoryStore;
   private history: Observation[] = [];
   private historyKey = '';
+  private historyContext = '';
+  private historyGeneration = 0;
   private historyFailed = false;
   private historyFile?: string;
   private lastObservation?: object;
@@ -53,6 +55,7 @@ class CopilotPace implements vscode.Disposable {
   private panel?: vscode.WebviewPanel;
   private panelReady = false;
   private timer?: ReturnType<typeof setTimeout>;
+  private historyTimer?: ReturnType<typeof setTimeout>;
   private disposed = false;
   constructor(context: vscode.ExtensionContext) {
     this.imageDirectory = vscode.Uri.joinPath(context.extensionUri, 'images');
@@ -82,6 +85,7 @@ class CopilotPace implements vscode.Disposable {
     }
     this.configure();
     this.status.show();
+    void this.maintainHistory();
   }
   private configure() {
     const config = vscode.workspace.getConfiguration('copilotPace');
@@ -197,24 +201,40 @@ class CopilotPace implements vscode.Disposable {
     this.timer = setTimeout(() => { void this.refresh(); }, Math.min(delay, 2_147_483_647));
     this.timer.unref();
   }
+  private async maintainHistory() {
+    if (this.disposed || !this.historyStore) return;
+    try { await this.historyStore.prune(this.clock.now().getTime()); }
+    catch {
+      // Maintenance uses normal storage permissions and must not block quota or history reads.
+    }
+    if (this.disposed) return;
+    const now = this.clock.now();
+    const nextDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+    this.historyTimer = setTimeout(() => { void this.maintainHistory(); }, nextDay - now.getTime());
+    this.historyTimer.unref();
+  }
   private observe(state: ServiceState) {
     const key = !this.demo && state.account ? historyIdentity(this.connection.provider,
       this.connection.provider === 'github' ? 'https://github.com' : this.connection.origins[0] ?? '', state.account.id) : '';
-    if (key !== this.historyKey) {
+    const cycle = state.snapshot?.cycle;
+    const context = key && cycle ? `${key}:${cycle.start}:${cycle.end}` : '';
+    if (key !== this.historyKey || context !== this.historyContext) {
+      const generation = ++this.historyGeneration;
       this.historyKey = key;
+      this.historyContext = context;
       this.history = [];
       this.historyFailed = false;
       this.historyFile = undefined;
       this.lastObservation = undefined;
-      if (key && this.historyStore) {
-        void this.historyStore.read(key, this.clock.now().getTime()).then(items => {
-          if (this.disposed || this.historyKey !== key) return;
+      if (key && cycle && this.historyStore) {
+        void this.historyStore.read(key, this.clock.now().getTime(), cycle).then(items => {
+          if (this.disposed || this.historyGeneration !== generation) return;
           // A refresh may have completed while storage was being read.
           this.history = retainObservations([...items, ...this.history], this.clock.now().getTime());
           this.render();
           void this.updateHistoryFile(key);
         }).catch(() => {
-          if (!this.disposed && this.historyKey === key) {
+          if (!this.disposed && this.historyGeneration === generation) {
             this.historyFailed = true;
             this.render();
           }
@@ -227,14 +247,15 @@ class CopilotPace implements vscode.Disposable {
     if (!item) return;
     this.history = retainObservations([...this.history, item], this.clock.now().getTime());
     if (this.historyStore) {
+      const generation = this.historyGeneration;
       void this.historyStore.append(key, item).then(items => {
-        if (this.disposed || this.historyKey !== key) return;
+        if (this.disposed || this.historyGeneration !== generation) return;
         this.history = retainObservations([...items, ...this.history], this.clock.now().getTime());
         this.historyFailed = false;
         this.render();
         void this.updateHistoryFile(key);
       }).catch(() => {
-        if (!this.disposed && this.historyKey === key) {
+        if (!this.disposed && this.historyGeneration === generation) {
           this.historyFailed = true;
           this.render();
         }
@@ -367,6 +388,7 @@ class CopilotPace implements vscode.Disposable {
     if (this.disposed) return;
     this.disposed = true;
     if (this.timer) clearTimeout(this.timer);
+    if (this.historyTimer) clearTimeout(this.historyTimer);
     this.service.dispose();
     this.panel?.dispose();
     for (const subscription of this.subscriptions) subscription.dispose();
