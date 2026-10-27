@@ -1,12 +1,22 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { systemClock, type Clock, type Snapshot } from './domain';
+import { systemClock, type Clock, type Cycle, type Snapshot } from './domain';
 
 const DAY = 86_400_000;
 const RETENTION = 90 * DAY;
 const MAX_FILE_BYTES = 3 * 1024 * 1024;
 const MAX_OBSERVATIONS = 12_000;
+
+class InvalidJournalError extends Error {}
+
+function journalName(name: string) {
+  const match = /^([a-f0-9]{64})\.(\d{4}-\d{2}-\d{2})\.[a-f0-9-]{36}\.json(?:\.[a-f0-9-]{36}\.tmp|\.corrupt)?$/.exec(name);
+  if (!match) return;
+  const day = Date.parse(match[2]!);
+  if (!Number.isFinite(day) || new Date(day).toISOString().slice(0, 10) !== match[2]) return;
+  return { identity: match[1]!, day, isJournal: name.endsWith('.json') };
+}
 
 export interface Observation {
   at: number;
@@ -53,7 +63,7 @@ export function observation(snapshot: Snapshot): Observation | undefined {
 
 export class HistoryStore {
   private readonly pending = new Map<string, Promise<Observation[]>>();
-  private readonly writer = randomUUID();
+  private writer = randomUUID();
   constructor(private readonly directory: string, private readonly clock: Clock = systemClock) {}
 
   private validateIdentity(identity: string) {
@@ -70,29 +80,31 @@ export class HistoryStore {
     }
     const journals = [];
     for (const name of names) {
-      const match = /^([a-f0-9]{64})\.(\d{4}-\d{2}-\d{2})\.[a-f0-9-]{36}\.json$/.exec(name);
-      if (!match || match[1] !== identity) continue;
+      const journal = journalName(name);
+      if (!journal?.isJournal || journal.identity !== identity) continue;
       const file = join(this.directory, name);
       try {
         const metadata = await stat(file);
-        if (metadata.isFile()) journals.push({ file, day: match[2]!, modified: metadata.mtimeMs });
+        if (metadata.isFile()) journals.push({ file, day: journal.day, modified: metadata.mtimeMs });
       } catch (error) {
         // Retention or another window can remove a journal after the directory read.
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
       }
     }
-    journals.sort((a, b) => b.day.localeCompare(a.day) || b.modified - a.modified || a.file.localeCompare(b.file));
+    journals.sort((a, b) => b.day - a.day || b.modified - a.modified || a.file.localeCompare(b.file));
     return journals[0]?.file;
   }
 
   private async readFile(file: string, now: number): Promise<Observation[]> {
     try {
-      if ((await stat(file)).size > MAX_FILE_BYTES) throw new Error('History file is too large');
+      if ((await stat(file)).size > MAX_FILE_BYTES) throw new InvalidJournalError('History file is too large');
       const body = await readFile(file);
-      if (body.byteLength > MAX_FILE_BYTES) throw new Error('History file is too large');
-      const data: unknown = JSON.parse(body.toString('utf8'));
+      if (body.byteLength > MAX_FILE_BYTES) throw new InvalidJournalError('History file is too large');
+      let data: unknown;
+      try { data = JSON.parse(body.toString('utf8')); }
+      catch { throw new InvalidJournalError('Invalid history JSON'); }
       if (!data || typeof data !== 'object' || !('version' in data) || data.version !== 1 ||
-          !('observations' in data) || !Array.isArray(data.observations)) throw new Error('Unsupported history');
+          !('observations' in data) || !Array.isArray(data.observations)) throw new InvalidJournalError('Unsupported history');
       return retainObservations(data.observations.filter(isObservation), now);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
@@ -100,7 +112,25 @@ export class HistoryStore {
     }
   }
 
-  async read(identity: string, now: number): Promise<Observation[]> {
+  async prune(now: number): Promise<void> {
+    let files: string[];
+    try { files = await readdir(this.directory); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+      throw error;
+    }
+    for (const name of files) {
+      const journal = journalName(name);
+      if (!journal || journal.day + DAY >= now - RETENTION) continue;
+      try { await unlink(join(this.directory, name)); }
+      catch {
+        // Another window can remove a journal, or Windows can keep it locked.
+        // Continue maintenance; inaccessible files are retried on the next daily pass.
+      }
+    }
+  }
+
+  async read(identity: string, now: number, cycle: Cycle): Promise<Observation[]> {
     this.validateIdentity(identity);
     let files: string[];
     try { files = await readdir(this.directory); }
@@ -110,17 +140,16 @@ export class HistoryStore {
     }
     const items: Observation[] = [];
     for (const name of files.sort()) {
-      const match = /^([a-f0-9]{64})\.(\d{4}-\d{2}-\d{2})\.[a-f0-9-]{36}\.json(?:\.[a-f0-9-]{36}\.tmp)?$/.exec(name);
-      if (!match) continue;
+      const journal = journalName(name);
+      if (!journal?.isJournal || journal.identity !== identity || journal.day >= cycle.end ||
+          journal.day + DAY <= cycle.start || journal.day + DAY < now - RETENTION) continue;
       const file = join(this.directory, name);
-      // Daily journals are private to a window: no shared write lock can survive a crash.
-      if (Date.parse(match[2]!) + DAY < now - RETENTION) {
-        try { await unlink(file); }
-        catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-        }
-      } else if (match[1] === identity && name.endsWith('.json')) {
-        items.push(...await this.readFile(file, now));
+      try {
+        const observations = await this.readFile(file, now);
+        items.push(...observations.filter(item => item.start === cycle.start && item.end === cycle.end));
+      } catch (error) {
+        // Keep malformed journals intact without hiding real storage failures.
+        if (!(error instanceof InvalidJournalError)) throw error;
       }
     }
     return retainObservations(items, now);
@@ -141,14 +170,23 @@ export class HistoryStore {
     if (!isObservation(item)) throw new Error('Invalid observation');
     const now = Math.max(item.at, this.clock.now().getTime());
     const day = new Date(item.at).toISOString().slice(0, 10);
-    const file = join(this.directory, `${identity}.${day}.${this.writer}.json`);
+    let file = join(this.directory, `${identity}.${day}.${this.writer}.json`);
     await mkdir(this.directory, { recursive: true });
+    let saved: Observation[];
+    try { saved = await this.readFile(file, now); }
+    catch (error) {
+      if (!(error instanceof InvalidJournalError)) throw error;
+      // A new private journal preserves the damaged file and avoids a shared write lock.
+      this.writer = randomUUID();
+      file = join(this.directory, `${identity}.${day}.${this.writer}.json`);
+      saved = [];
+    }
     const temporary = `${file}.${randomUUID()}.tmp`;
     try {
-      const items = retainObservations([...await this.readFile(file, now), item], now);
+      const items = retainObservations([...saved, item], now);
       await writeFile(temporary, JSON.stringify({ version: 1, observations: items }), { flag: 'wx' });
       await rename(temporary, file);
-      return await this.read(identity, now);
+      return await this.read(identity, now, { start: item.start, end: item.end });
     } finally {
       await unlink(temporary).catch(() => {});
     }
