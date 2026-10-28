@@ -28,6 +28,7 @@ function harness(initial: Record<string, unknown> = {}, options: {
   openDocument?: (uri: { fsPath: string }) => Promise<{ fsPath: string }>;
   now?: () => number;
   beforeHistoryRead?: (file: string) => Promise<void>;
+  beforeHistoryWrite?: (file: string) => Promise<void>;
 } = {}) {
   const settings = { ...initial };
   const configurationListeners: Array<(event: vscode.ConfigurationChangeEvent) => void> = [];
@@ -159,11 +160,15 @@ function harness(initial: Record<string, unknown> = {}, options: {
     require: (id: string) => {
       if (id === 'vscode') return host;
       if (id === 'node:https') return http;
-      if (id === 'node:fs/promises' && options.beforeHistoryRead) return {
+      if (id === 'node:fs/promises' && (options.beforeHistoryRead || options.beforeHistoryWrite)) return {
         ...loadNodeModule(id),
         readFile: async (file: string) => {
-          await options.beforeHistoryRead!(file);
+          await options.beforeHistoryRead?.(file);
           return readFile(file);
+        },
+        writeFile: async (file: string, data: string, writeOptions: Parameters<typeof writeFile>[2]) => {
+          await options.beforeHistoryWrite?.(file);
+          return writeFile(file, data, writeOptions);
         },
       };
       return loadNodeModule(id);
@@ -265,6 +270,114 @@ describe('Connection integration with native VS Code services', () => {
       await rm(directory, { recursive: true, force: true });
     }
   });
+  it('restores the daily chart beside a corrupted journal while accepting and saving fresh quota', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'copilot-pace-corrupt-history-'));
+    const key = historyIdentity('github', 'https://github.com', 'same-account-id');
+    const now = Date.parse('2026-10-21T12:00Z');
+    const cycle = { start: Date.parse('2026-10-01T00:00Z'), end: Date.parse('2026-11-01T00:00Z') };
+    const saved = [
+      { ...cycle, at: now - 3_600_000, used: 10, total: 100 },
+      { ...cycle, at: now - 1_800_000, used: 20, total: 100 },
+    ];
+    const healthyFile = join(directory, `${key}.2026-10-21.00000000-0000-0000-0000-000000000000.json`);
+    const damagedFile = join(directory, `${key}.2026-10-20.00000000-0000-0000-0000-000000000001.json`);
+    const body = JSON.stringify({ version: 1, observations: saved });
+    await writeFile(healthyFile, body);
+    await writeFile(damagedFile, '{"version":1,"observations":[');
+    const store = new HistoryStore(directory);
+    const host = harness({ 'copilotPace.chartMetric': 'daily' }, { storageDirectory: directory, now: () => now });
+    try {
+      const deadline = Date.now() + 5000;
+      while ((await store.read(key, now, cycle)).length !== 3 || !host.api.getModel().canOpenHistory) {
+        assert.ok(Date.now() < deadline, 'Healthy daily history and fresh quota were not restored');
+        await settle();
+      }
+
+      const model = host.api.getModel();
+      assert.equal(host.api.getState().phase, 'ready');
+      assert.equal(model.percentage, '25%');
+      assert.equal(model.used, '25 credits');
+      assert.equal(model.historyLatest, '15 credits');
+      assert.equal(model.history.length, 1);
+      assert.equal(model.history[0]!.partial, true);
+      assert.equal(model.historyMessage, model.text.historyDailyNote);
+      assert.equal(await readFile(healthyFile, 'utf8'), body);
+      assert.equal(await readFile(damagedFile, 'utf8'), '{"version":1,"observations":[');
+      assert.equal((await readdir(directory)).length, 3);
+    } finally {
+      host.dispose();
+      await rm(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+    }
+  });
+  for (const [operation, code] of [['read', 'EACCES'], ['write', 'EACCES'], ['write', 'ENOSPC']] as const) {
+    it(`keeps accepted quota visible after a history ${operation} fails with ${code} and recovers on refresh`, async () => {
+      const directory = await mkdtemp(join(tmpdir(), 'copilot-pace-storage-failure-'));
+      const key = historyIdentity('github', 'https://github.com', 'same-account-id');
+      let now = Date.parse('2026-10-21T12:00Z');
+      const cycle = { start: Date.parse('2026-10-01T00:00Z'), end: Date.parse('2026-11-01T00:00Z') };
+      const file = join(directory, `${key}.2026-10-21.00000000-0000-0000-0000-000000000000.json`);
+      const body = JSON.stringify({ version: 1, observations: [
+        { ...cycle, at: now - 3_600_000, used: 10, total: 100 },
+        { ...cycle, at: now - 1_800_000, used: 20, total: 100 },
+      ] });
+      await writeFile(file, body);
+      let failing = true;
+      let failedOperations = 0;
+      const host = harness({ 'copilotPace.chartMetric': 'daily' }, {
+        storageDirectory: directory,
+        now: () => now,
+        beforeHistoryRead: async path => {
+          if (failing && operation === 'read' && path === file) {
+            failedOperations++;
+            throw Object.assign(new Error('Synthetic storage read failure'), { code });
+          }
+        },
+        beforeHistoryWrite: async temporary => {
+          if (failing && operation === 'write') {
+            failedOperations++;
+            // A full disk can leave a partial temporary file before writeFile rejects.
+            if (code === 'ENOSPC') await writeFile(temporary, '{"version":1,', { flag: 'wx' });
+            throw Object.assign(new Error('Synthetic storage write failure'), { code });
+          }
+        },
+      });
+      try {
+        const deadline = Date.now() + 5000;
+        const expectedFailures = operation === 'read' ? 2 : 1;
+        while (failedOperations < expectedFailures || host.api.getState().phase !== 'ready' ||
+            host.api.getModel().historyMessage !== host.api.getModel().text.historyError) {
+          assert.ok(Date.now() < deadline, 'Storage failure was not reported alongside accepted quota');
+          await settle();
+        }
+
+        assert.equal(host.api.getModel().percentage, '25%');
+        assert.equal(host.api.getModel().used, '25 credits');
+        assert.equal(await readFile(file, 'utf8'), body);
+        assert.ok((await readdir(directory)).every(name => name.endsWith('.json')));
+
+        failing = false;
+        now += 60_000;
+        await host.api.receiveMessage({ action: 'refresh' });
+        const store = new HistoryStore(directory);
+        while (!(await store.read(key, now, cycle)).some(item => item.at === now) ||
+            !host.api.getModel().canOpenHistory ||
+            host.api.getModel().historyMessage !== host.api.getModel().text.historyDailyNote) {
+          assert.ok(Date.now() < deadline, 'History did not recover after storage became available');
+          await settle();
+        }
+
+        assert.equal(host.api.getState().phase, 'ready');
+        assert.equal(host.api.getModel().historyLatest, '15 credits');
+        assert.equal(host.api.getModel().history.length, 1);
+        assert.equal(host.api.getModel().history[0]!.partial, true);
+        assert.equal(await readFile(file, 'utf8'), body);
+        assert.ok((await readdir(directory)).every(name => name.endsWith('.json')));
+      } finally {
+        host.dispose();
+        await rm(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+      }
+    });
+  }
   it('prunes storage at activation and the next UTC day without a GitHub session, then stops on dispose', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'copilot-pace-maintenance-'));
     const key = historyIdentity('github', 'https://github.com', 'maintenance-account');

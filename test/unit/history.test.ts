@@ -2,6 +2,7 @@ import * as assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readdir, readFile, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { observedDailyUsage, UTC_DAY } from '../../src/daily';
 import { HistoryStore, historyIdentity, observation, retainObservations, type Observation } from '../../src/history';
 
 const at = Date.parse('2026-10-21T12:00Z');
@@ -75,8 +76,12 @@ describe('Local observed usage history', () => {
     assert.deepEqual(await readdir(directory), ['keep.txt']);
   });
   for (const [name, body] of [
+    ['an empty file', ''],
     ['malformed JSON', '{broken'],
+    ['a truncated write', '{"version":1,"observations":[{"at":'],
+    ['a null document', 'null'],
     ['an unsupported version', JSON.stringify({ version: 2, observations: [point()] })],
+    ['a missing version', JSON.stringify({ observations: [point()] })],
     ['an unsupported schema', JSON.stringify({ version: 1, observations: {} })],
     ['an oversized journal', ' '.repeat(3 * 1024 * 1024 + 1)],
   ] as const) {
@@ -85,12 +90,23 @@ describe('Local observed usage history', () => {
       await store.append(identity, point());
       const file = join(directory, (await readdir(directory))[0]!);
       await writeFile(file, body);
+      const healthy = [point(at + 1000, 120), point(at + 2000, 130)];
+      const otherWindow = new HistoryStore(directory, clock);
+      for (const item of healthy) await otherWindow.append(identity, item);
 
       const recovered = new HistoryStore(directory, clock);
-      await recovered.append(identity, point(at + 1000, 120));
+      assert.deepEqual(await recovered.read(identity, at + 2000, cycle), healthy);
+      assert.equal((await readdir(directory)).length, 2, 'Reading must not replace damaged files');
 
-      assert.deepEqual(await new HistoryStore(directory, clock).read(identity, at + 1000, cycle), [point(at + 1000, 120)]);
+      const items = await recovered.append(identity, point(at + 3000, 140));
+
+      assert.deepEqual(items, [...healthy, point(at + 3000, 140)]);
+      assert.deepEqual(await new HistoryStore(directory, clock).read(identity, at + 3000, cycle), items);
+      assert.deepEqual(observedDailyUsage(items, cycle), [
+        { day: Date.parse('2026-10-21T00:00Z'), used: 20, partial: true },
+      ]);
       assert.equal(await readFile(file, 'utf8'), body);
+      assert.equal((await readdir(directory)).length, 3);
     });
   }
   it('starts a new journal when the current writer file is damaged', async () => {
@@ -104,6 +120,131 @@ describe('Local observed usage history', () => {
     assert.deepEqual(items, [point(at + 1000, 120)]);
     assert.equal((await readdir(directory)).length, 2);
     assert.equal(await readFile(file, 'utf8'), '{broken');
+  });
+  for (const [name, invalid] of [
+    ['a null record', null],
+    ['a boolean record', false],
+    ['a string record', 'invalid'],
+    ['missing fields', {}],
+    ['negative credits', { ...point(at - 30_000), used: -1 }],
+    ['credits stored as text', { ...point(at - 30_000), used: '999' }],
+    ['null credits', { ...point(at - 30_000), used: null }],
+    ['an out-of-range timestamp', { ...point(), at: 9e15 }],
+    ['a timestamp at renewal', { ...point(), at: cycle.end }],
+    ['a cycle starting after the observation', { ...point(at - 30_000), start: at + 1 }],
+    ['an inverted cycle', { ...point(at - 30_000), end: cycle.start }],
+    ['an oversized cycle', { ...point(at - 30_000), end: cycle.start + 33 * UTC_DAY }],
+    ['a zero budget', { ...point(at - 30_000), total: 0 }],
+    ['a budget stored as text', { ...point(at - 30_000), total: '1000' }],
+    ['a future observation', point(at + 120_000, 999)],
+    ['another cycle', { ...point(at - 30_000, 999), start: cycle.start + UTC_DAY }],
+  ] as const) {
+    it(`restores healthy daily usage beside ${name} without rewriting the journal`, async () => {
+      const healthy = [point(at - 60_000, 90), point()];
+      const body = JSON.stringify({ version: 1, observations: [
+        { ...healthy[0], token: 'must-not-restore', prompt: 'private' }, invalid, healthy[1],
+      ] });
+      const file = join(directory, `${identity}.2026-10-21.00000000-0000-0000-0000-000000000000.json`);
+      await writeFile(file, body);
+
+      const items = await new HistoryStore(directory, clock).read(identity, at, cycle);
+
+      assert.deepEqual(items, healthy);
+      assert.deepEqual(observedDailyUsage(items, cycle), [
+        { day: Date.parse('2026-10-21T00:00Z'), used: 10, partial: true },
+      ]);
+      assert.equal(await readFile(file, 'utf8'), body);
+    });
+  }
+  for (const damage of ['corrupted', 'deleted']) {
+    it(`keeps surrounding UTC days when a daily journal is ${damage} without inventing usage for the gap`, async () => {
+      const now = at + UTC_DAY;
+      const store = new HistoryStore(directory, { now: () => new Date(now) });
+      const healthy = [
+        point(at - UTC_DAY - 60_000, 70), point(at - UTC_DAY, 80),
+        point(now - 60_000, 140), point(now, 155),
+      ];
+      for (const item of healthy) await store.append(identity, item);
+      await store.append(identity, point());
+      const damaged = (await readdir(directory)).find(name => name.includes('.2026-10-21.'))!;
+      const file = join(directory, damaged);
+      if (damage === 'corrupted') await writeFile(file, '{broken');
+      else await rm(file);
+
+      const items = await new HistoryStore(directory, clock).read(identity, now, cycle);
+
+      assert.deepEqual(items, healthy);
+      assert.deepEqual(observedDailyUsage(items, cycle), [
+        { day: Date.parse('2026-10-20T00:00Z'), used: 10, partial: true },
+        { day: Date.parse('2026-10-22T00:00Z'), used: 15, partial: true },
+      ]);
+      if (damage === 'corrupted') assert.equal(await readFile(file, 'utf8'), '{broken');
+    });
+  }
+  it('ignores complete and truncated abandoned writes and quarantined files when restoring daily usage', async () => {
+    const healthy = [point(at - 60_000, 90), point()];
+    const store = new HistoryStore(directory, clock);
+    for (const item of healthy) await store.append(identity, item);
+    const file = (await readdir(directory))[0]!;
+    const abandoned = [
+      [`${file}.00000000-0000-0000-0000-000000000001.tmp`, JSON.stringify({ version: 1, observations: [point(at + 1000, 999)] })],
+      [`${file}.00000000-0000-0000-0000-000000000002.tmp`, '{"version":1,"observations":['],
+      [`${file}.corrupt`, '{broken'],
+    ] as const;
+    for (const [name, body] of abandoned) await writeFile(join(directory, name), body);
+
+    const recovered = new HistoryStore(directory, clock);
+    const items = await recovered.read(identity, at + 1000, cycle);
+
+    assert.deepEqual(items, healthy);
+    assert.deepEqual(observedDailyUsage(items, cycle), [
+      { day: Date.parse('2026-10-21T00:00Z'), used: 10, partial: true },
+    ]);
+    assert.equal(await recovered.latestFile(identity), join(directory, file));
+    for (const [name, body] of abandoned) assert.equal(await readFile(join(directory, name), 'utf8'), body);
+  });
+  for (const removed of ['journal', 'directory']) {
+    it(`resumes recording after the ${removed} is deleted without recreating lost daily totals`, async () => {
+      const store = new HistoryStore(directory, clock);
+      await store.append(identity, point(at - 60_000, 90));
+      await store.append(identity, point());
+      const name = (await readdir(directory))[0]!;
+      const file = join(directory, name);
+      if (removed === 'journal') await rm(file);
+      else await rm(directory, { recursive: true });
+
+      assert.deepEqual(await store.read(identity, at, cycle), []);
+      assert.equal(await store.latestFile(identity), undefined);
+      const first = await store.append(identity, point(at + 1000, 120));
+      const items = await store.append(identity, point(at + 2000, 125));
+
+      assert.deepEqual(first, [point(at + 1000, 120)]);
+      assert.deepEqual(observedDailyUsage(first, cycle), []);
+      assert.deepEqual(items, [point(at + 1000, 120), point(at + 2000, 125)]);
+      assert.deepEqual(observedDailyUsage(items, cycle), [
+        { day: Date.parse('2026-10-21T00:00Z'), used: 5, partial: true },
+      ]);
+      assert.deepEqual(await new HistoryStore(directory, clock).read(identity, at + 2000, cycle), items);
+      assert.deepEqual(await readdir(directory), [name]);
+    });
+  }
+  it('recovers the write queue after a storage failure and preserves the inaccessible entry', async () => {
+    const store = new HistoryStore(directory, clock);
+    await store.append(identity, point());
+    const file = join(directory, (await readdir(directory))[0]!);
+    await rm(file);
+    await mkdir(file);
+    await writeFile(join(file, 'keep.txt'), 'preserved');
+
+    await assert.rejects(store.append(identity, point(at + 1000, 120)));
+
+    assert.equal(await readFile(join(file, 'keep.txt'), 'utf8'), 'preserved');
+    assert.equal((await readdir(directory)).length, 1);
+    await rm(file, { recursive: true });
+    const items = await store.append(identity, point(at + 2000, 125));
+
+    assert.deepEqual(items, [point(at + 2000, 125)]);
+    assert.deepEqual(await new HistoryStore(directory, clock).read(identity, at + 2000, cycle), items);
   });
   it('keeps real storage errors visible instead of treating them as damaged JSON', async () => {
     const file = join(directory, `${identity}.2026-10-21.00000000-0000-0000-0000-000000000000.json`);
