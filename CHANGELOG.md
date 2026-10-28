@@ -1,8 +1,12 @@
 # Changelog
 
-Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.5 and 1.3.7–1.3.8 are pilot versions. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
+Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.5 and 1.3.7–1.3.9 are pilot versions. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
 
 ## [Unreleased]
+
+## [1.3.9] - 2026-10-28
+
+- Maintenance pilot for the daily-history recovery behavior from 1.3.8; quota display, billing sources and the local history format are unchanged.
 
 ## [1.3.8] - 2026-10-27
 
