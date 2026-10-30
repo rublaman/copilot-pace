@@ -10,23 +10,27 @@ import { resolveChartStyle } from '../../src/chart';
 
 interface PanelElement {
   textContent: string; value: string; hidden?: boolean; disabled?: boolean;
+  clientWidth: number; clientHeight: number; offsetWidth: number;
   attributes: Map<string, string>; children: PanelElement[];
   style: { top?: string; left?: string };
   setAttribute(key: string, value: string): void;
   addEventListener(event: string, listener: (event: { target: { value: string } }) => void): void;
   appendChild(child: PanelElement): void; replaceChildren(): void; click(): void; change(value: string): void;
+  dispatch(event: string, key?: string): void;
 }
 
 function panelElement(): PanelElement {
   const attributes = new Map<string, string>();
-  const listeners = new Map<string, (event: { target: { value: string } }) => void>();
+  const listeners = new Map<string, (event: { target: { value: string }; key?: string }) => void>();
   return {
     textContent: '', value: '', attributes, children: [], style: {},
+    clientWidth: 400, clientHeight: 160, offsetWidth: 240,
     setAttribute: (key, value) => { attributes.set(key, value); },
     addEventListener: (event, listener) => { listeners.set(event, listener); },
     appendChild(child) { this.children.push(child); },
     replaceChildren() { this.children = []; },
     click: () => listeners.get('click')?.({ target: { value: '' } }),
+    dispatch: (event, key) => listeners.get(event)?.({ target: { value: '' }, key }),
     change(value) {
       this.value = value;
       listeners.get('change')?.({ target: { value } });
@@ -34,7 +38,7 @@ function panelElement(): PanelElement {
   };
 }
 
-function panelElements(model: ViewModel, updates: ViewModel[] = [], messages: unknown[] = []) {
+function panelElements(model: ViewModel, updates: Array<ViewModel | ((elements: Map<string, PanelElement>) => void)> = [], messages: unknown[] = []) {
   const elements = new Map<string, PanelElement>();
   const html = renderHtml(model, 'safe-nonce');
   for (const [, id] of html.matchAll(/id="([\w]+)"/g)) {
@@ -48,7 +52,10 @@ function panelElements(model: ViewModel, updates: ViewModel[] = [], messages: un
     document: { getElementById: (id: string) => elements.get(id), createElementNS: () => panelElement(), createElement: () => panelElement() },
     window: { addEventListener: (_event: string, listener: typeof update) => { update = listener; } },
   });
-  for (const next of updates) update({ data: { type: 'state', model: next } });
+  for (const next of updates) {
+    if (typeof next === 'function') next(elements);
+    else update({ data: { type: 'state', model: next } });
+  }
   return elements;
 }
 
@@ -92,7 +99,7 @@ describe('Forecast, history and appearance presentation', () => {
     assert.equal(lines.length, 2);
     assert.equal(lines[0]!.attributes.get('d'), lines[1]!.attributes.get('d'));
     assert.equal(shapes.filter(shape => shape.attributes.get('class')?.startsWith('chart-area')).length, 0);
-    assert.equal(shapes.find(shape => shape.attributes.get('class')?.startsWith('chart-dot'))?.children[0]?.textContent, model.history[0]?.label);
+    assert.equal(shapes.find(shape => shape.attributes.get('class')?.startsWith('chart-dot'))?.attributes.get('aria-label'), model.history[0]?.label);
     assert.ok(elements.get('historyBudget')?.attributes.get('d')?.startsWith('M32 168L'));
     const empty = createViewModel({ phase: 'disconnected' }, demoClock, 'all', false, '', 0);
     const updated = panelElements(model, [empty]);
@@ -104,6 +111,69 @@ describe('Forecast, history and appearance presentation', () => {
     assert.equal(model.historyBudget[2]?.y, model.historyBudget[3]?.y);
     assert.equal(model.historyBudget[3]?.y, model.historyBudget[4]?.y);
     assert.notEqual(model.historyBudget[4]?.y, model.historyBudget[5]?.y);
+  });
+  it('shows localized credits for every point and column on hover and keyboard focus', () => {
+    const start = Date.parse('2026-10-01T00:00Z');
+    const end = Date.parse('2026-11-01T00:00Z');
+    const at = Date.parse('2026-10-12T10:00Z');
+    const history = [100, 150.5, 175].map((used, index) => ({ at: at + index * 3600000, used, total: 10000, start, end }));
+    const dailyUsage = [
+      { day: start, used: 0, partial: false },
+      { day: at - 36000000, used: 150.5, partial: true },
+    ];
+    for (const language of ['en', 'es-ES'] as const) {
+      for (const chartMetric of ['cumulative', 'daily'] as const) {
+        for (const chartStyle of ['line', 'columns'] as const) {
+          const model = createViewModel({ phase: 'ready', snapshot, dailyUsage }, demoClock, 'all', false, '', 0, language, { history, chartMetric, chartStyle });
+          const elements = panelElements(model);
+          const tooltip = elements.get('historyTooltip')!;
+          const shapes = elements.get('historyPoints')!.children.filter(shape => shape.attributes.has('tabindex'));
+          const points = chartStyle === 'columns' ? model.historyColumns : model.history;
+          assert.equal(shapes.length, points.length);
+          assert.equal(tooltip.hidden, true);
+          if (chartMetric === 'daily' && chartStyle === 'columns') {
+            const zeroColumn = shapes[0]!;
+            assert.equal(zeroColumn.children[0]!.attributes.get('height'), '0.5');
+            assert.ok(Number(zeroColumn.children[1]!.attributes.get('height')) >= 10);
+            assert.equal(zeroColumn.children[1]!.attributes.get('class'), 'chart-column-hit');
+          }
+          for (const [index, shape] of shapes.entries()) {
+            assert.equal(shape.attributes.get('aria-label'), points[index]!.label);
+            shape.dispatch('pointerenter');
+            assert.equal(tooltip.hidden, false);
+            assert.equal(tooltip.textContent, points[index]!.label);
+            assert.match(tooltip.textContent, /UTC/);
+            assert.ok(tooltip.textContent.includes(model.text.credits));
+            assert.ok(Number.parseFloat(tooltip.style.left!) >= 0);
+            assert.ok(Number.parseFloat(tooltip.style.left!) + tooltip.offsetWidth <= 400);
+            shape.dispatch('pointerleave');
+            assert.equal(tooltip.hidden, true);
+            shape.dispatch('focus');
+            assert.equal(tooltip.hidden, false);
+            shape.dispatch('keydown', 'Escape');
+            assert.equal(tooltip.hidden, true);
+            shape.dispatch('focus');
+            shape.dispatch('blur');
+            assert.equal(tooltip.hidden, true);
+          }
+          if (chartMetric === 'daily') assert.ok(tooltip.textContent.endsWith(model.text.historyPartial));
+        }
+      }
+    }
+  });
+  it('clears an open chart tooltip when the panel updates or history disappears', () => {
+    const start = Date.parse('2026-10-01T00:00Z');
+    const end = Date.parse('2026-11-01T00:00Z');
+    const history = [{ at: start, used: 100, total: 10000, start, end }];
+    const model = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0, 'en', { history });
+    const empty = createViewModel({ phase: 'disconnected' }, demoClock, 'all', false, '', 0);
+    for (const next of [model, empty]) {
+      const elements = panelElements(model, [current => {
+        current.get('historyPoints')!.children[0]!.dispatch('pointerenter');
+        assert.equal(current.get('historyTooltip')!.hidden, false);
+      }, next]);
+      assert.equal(elements.get('historyTooltip')!.hidden, true);
+    }
   });
   it('labels the monthly target and the daily calendar limits at the dashed reference', () => {
     const cumulative = createViewModel({ phase: 'ready', snapshot }, demoClock, 'all', false, '', 0);

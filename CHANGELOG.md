@@ -1,8 +1,13 @@
 # Changelog
 
-Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.5 and 1.3.7–1.3.9 are pilot versions. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
+Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.5, 1.3.7–1.3.9 and 1.4.0 are pilot versions. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
 
 ## [Unreleased]
+
+## [1.4.0] - 2026-10-30
+
+- Show credit usage and UTC dates immediately on hover or keyboard focus for every chart point and column, including partial daily values.
+- Make zero and small columns easier to inspect with a larger pointer target without changing the displayed consumption.
 
 ## [1.3.9] - 2026-10-28
 
