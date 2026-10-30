@@ -211,6 +211,33 @@ function harness(initial: Record<string, unknown> = {}, options: {
 }
 
 describe('Connection integration with native VS Code services', () => {
+  it('keeps the rendered model paired with its hover across a clock rounding boundary', async () => {
+    const cycleEnd = Date.parse('2026-11-01T00:00Z');
+    const boundary = cycleEnd - 75 / 58.75 * 86_400_000;
+    let now = Math.floor(boundary);
+    const host = harness({}, { now: () => now });
+    try {
+      await settle();
+      await settle();
+      assert.equal(host.api.getState().phase, 'ready');
+      const rendered = host.api.getRenderedModel();
+      assert.equal(rendered.allowance, '58.7 / day');
+      const tooltip = host.api.getTooltip()!.value;
+
+      now = Math.ceil(boundary);
+
+      assert.equal(host.api.getModel().allowance, '58.8 / day');
+      assert.equal(host.api.getRenderedModel(), rendered);
+      assert.ok(tooltip.includes(`Daily allowance: **${rendered.allowance}** · Mon–Sun`));
+
+      host.set('copilotPace.statusStyle', 'dots');
+
+      assert.equal(host.api.getRenderedModel().allowance, '58.8 / day');
+      assert.ok(host.api.getTooltip()!.value.includes('Daily allowance: **58.8 / day** · Mon–Sun'));
+    } finally {
+      host.dispose();
+    }
+  });
   for (const enterprise of [false, true]) {
     it(`retrieves daily reports silently on the matched ${enterprise ? 'Enterprise' : 'GitHub.com'} API host`, async () => {
       const now = new Date();

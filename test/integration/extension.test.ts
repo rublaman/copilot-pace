@@ -137,6 +137,7 @@ describe('Copilot Pace in the Extension Development Host', () => {
   });
   it('renders a compact native hover with a restricted command allowlist', () => {
     const tooltip = api.getTooltip();
+    const model = api.getRenderedModel();
     assert.ok(tooltip instanceof vscode.MarkdownString);
     assert.equal(tooltip.supportThemeIcons, true);
     assert.equal(tooltip.supportHtml, true);
@@ -144,11 +145,11 @@ describe('Copilot Pace in the Extension Development Host', () => {
     assert.ok(tooltip.value.includes('Remaining: **6,000 credits**'));
     assert.ok(!tooltip.value.includes('Today:'));
     assert.ok(!tooltip.value.includes('$(pass)'));
-    assert.ok(tooltip.value.includes(`Daily allowance: **${api.getModel().allowance}** · Mon–Sun`));
+    assert.ok(tooltip.value.includes(`Daily allowance: **${model.allowance}** · Mon–Sun`));
     assert.ok(!tooltip.value.includes('Every day'));
     assert.equal(tooltip.value.match(/Daily allowance/g)?.length, 1);
     assert.ok(tooltip.value.includes('Projected at renewal:'));
-    assert.ok(tooltip.value.includes(`Updated ${api.getModel().updated}`));
+    assert.ok(tooltip.value.includes(`Updated ${model.updated}`));
     assert.ok(!tooltip.value.includes('**Daily pace**'));
     assert.ok(!tooltip.value.includes('Cycle baseline:'));
     assert.ok(!tooltip.value.includes('GitHub account:'));
@@ -181,7 +182,9 @@ describe('Copilot Pace in the Extension Development Host', () => {
     assert.ok(Number.parseFloat(api.getModel().daysLeft) <= Number.parseFloat(old.daysLeft));
     assert.equal(api.getModel().used, old.used);
     const hover = api.getTooltip()?.value ?? '';
-    assert.ok(hover.includes(`Daily allowance: **${api.getModel().allowance}** · Mon–Fr`));
+    const rendered = api.getRenderedModel();
+    assert.equal(rendered.dayMode, 'weekdays');
+    assert.ok(hover.includes(`Daily allowance: **${rendered.allowance}** · Mon–Fr`));
     assert.equal(hover.match(/Daily allowance/g)?.length, 1);
     assert.equal(hover.match(/Mon–Fr/g)?.length, 1);
     await api.receiveMessage({ action: 'dayMode', value: 'all' });
