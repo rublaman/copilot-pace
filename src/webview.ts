@@ -15,16 +15,35 @@ const vscode = acquireVsCodeApi();
 let currentLanguage: ViewModel['language'];
 function drawHistory(model: ViewModel) {
   const layer = element('historyPoints');
+  const tooltip = element('historyTooltip');
+  tooltip.hidden = true;
   layer.replaceChildren();
-  const create = (tag: string, attributes: Record<string, string | number>, label?: string) => {
+  const create = (tag: string, attributes: Record<string, string | number>, parent: Element = layer) => {
     const element = document.createElementNS('http://www.w3.org/2000/svg', tag);
     for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, String(value));
-    if (label) {
-      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-      title.textContent = label;
-      element.appendChild(title);
-    }
-    layer.appendChild(element);
+    parent.appendChild(element);
+    return element;
+  };
+  const describe = (shape: SVGElement, point: ViewModel['history'][number]) => {
+    shape.setAttribute('tabindex', '0');
+    shape.setAttribute('aria-label', point.label);
+    const showTooltip = () => {
+      tooltip.textContent = point.label;
+      tooltip.hidden = false;
+      const chart = element('historyChart');
+      const x = point.x / chartLayout.svgWidth * chart.clientWidth;
+      const left = Math.max(0, Math.min(x - tooltip.offsetWidth / 2, chart.clientWidth - tooltip.offsetWidth));
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = (point.y / chartLayout.svgHeight * chart.clientHeight - 10) + 'px';
+    };
+    const hideTooltip = () => { tooltip.hidden = true; };
+    shape.addEventListener('pointerenter', showTooltip);
+    shape.addEventListener('pointerleave', hideTooltip);
+    shape.addEventListener('focus', showTooltip);
+    shape.addEventListener('blur', hideTooltip);
+    shape.addEventListener('keydown', event => {
+      if (event.key === 'Escape') hideTooltip();
+    });
   };
   const drawPath = (path: string, className: string) => {
     if (model.historyBudget.length === 0) {
@@ -36,10 +55,18 @@ function drawHistory(model: ViewModel) {
   };
   if (model.chartStyle === 'columns') {
     for (const point of model.historyColumns) {
+      const column = create('g', {
+        class: 'chart-column ' + point.tone + (point.partial ? ' partial' : ''),
+      });
       create('rect', {
         x: point.x - 5, y: point.y, width: 10, height: Math.max(.5, chartLayout.bottom - point.y),
-        rx: 3, class: 'chart-column ' + point.tone + (point.partial ? ' partial' : ''), tabindex: 0, 'aria-label': point.label,
-      }, point.label);
+        rx: 3,
+      }, column);
+      create('rect', {
+        x: point.x - 7, y: Math.min(point.y, chartLayout.bottom - 10), width: 14,
+        height: Math.max(10.5, chartLayout.bottom - point.y + .5), class: 'chart-column-hit',
+      }, column);
+      describe(column, point);
     }
     return;
   }
@@ -49,25 +76,19 @@ function drawHistory(model: ViewModel) {
     segments[segments.length - 1]!.push(point);
   }
   for (const segment of segments) {
-    const first = segment[0]!;
-    const last = segment[segment.length - 1]!;
     const path = segment.map((point, index) => (index === 0 ? 'M' : 'L') + point.x + ' ' + point.y).join('');
     if (segment.length > 1) {
       drawPath(path, 'chart-line');
     }
-    if (model.chartMetric !== 'daily') {
-      create('circle', { cx: first.x, cy: first.y, r: 3, class: 'chart-dot ' + first.tone }, first.label);
-      if (last !== first) create('circle', { cx: last.x, cy: last.y, r: 3, class: 'chart-dot ' + last.tone }, last.label);
-    }
-  }
-  if (model.chartMetric === 'daily') {
-    for (const point of model.history) create('circle', {
-      cx: point.x, cy: point.y, r: 3.5, class: 'chart-dot ' + point.tone + (point.partial ? ' partial' : ''),
-      tabindex: 0, 'aria-label': point.label,
-    }, point.label);
   }
   const latest = model.history[model.history.length - 1];
-  if (latest) create('circle', { cx: latest.x, cy: latest.y, r: 4.5, class: 'chart-last ' + latest.tone, tabindex: 0, 'aria-label': latest.label }, latest.label);
+  for (const point of model.history) {
+    const dot = create('circle', {
+      cx: point.x, cy: point.y, r: point === latest ? 4.5 : 3.5,
+      class: (point === latest ? 'chart-last ' : 'chart-dot ') + point.tone + (point.partial ? ' partial' : ''),
+    });
+    describe(dot, point);
+  }
 }
 function drawCalendarTicks(model: ViewModel) {
   const layer = element('historyCalendarTicks');
@@ -133,7 +154,7 @@ function show(model: ViewModel) {
   const chart = element('historyChart');
   element('historyPlot').hidden = model.history.length === 0;
   chart.setAttribute('aria-label', model.historyAria);
-  chart.setAttribute('role', model.chartMetric === 'daily' ? 'group' : 'img');
+  chart.setAttribute('role', 'group');
   const budgetPath = model.historyBudget.map((point, index) => (index === 0 ? 'M' : 'L') + point.x + ' ' + point.y).join('');
   element('historyBudget').setAttribute('d', budgetPath);
   const target = element('historyBudgetTargetPosition');

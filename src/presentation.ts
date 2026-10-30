@@ -399,6 +399,7 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
   }
 
   #historyBudget,#historyBudgetLeader {
+    pointer-events: none;
     fill: none;
     stroke: var(--muted);
     stroke-dasharray: 5 5;
@@ -419,7 +420,7 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     stroke-width: 2;
   }
 
-  .chart-dot.partial {
+  .chart-dot.partial,.chart-last.partial {
     fill: var(--surface);
     stroke: var(--chart-accent);
     stroke-dasharray: 2 2;
@@ -452,6 +453,12 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
   .chart-column:hover,.chart-column:focus-visible {
     fill: var(--chart-accent);
     outline: none;
+  }
+
+  .chart-column-hit {
+    fill: transparent;
+    stroke: none;
+    pointer-events: all;
   }
 
   .chart-column-top {
@@ -537,6 +544,23 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
 
   .chart-plot {
     position: relative;
+  }
+
+  .chart-tooltip {
+    position: absolute;
+    z-index: 1;
+    max-width: min(280px,100%);
+    box-sizing: border-box;
+    padding: 7px 10px;
+    border: 1px solid var(--vscode-editorHoverWidget-border,var(--line));
+    border-radius: 4px;
+    background: var(--vscode-editorHoverWidget-background,var(--surface));
+    color: var(--vscode-editorHoverWidget-foreground,var(--vscode-foreground));
+    box-shadow: 0 2px 8px var(--vscode-widget-shadow,#0004);
+    font-size: 12px;
+    line-height: 1.5;
+    pointer-events: none;
+    transform: translateY(-100%);
   }
 
   .chart-calendar-label {
@@ -860,6 +884,7 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
             <g id="historyCalendarMarks"></g>
           </svg>
           <div id="historyCalendarTicks"></div>
+          <div id="historyTooltip" class="chart-tooltip" role="tooltip" hidden></div>
         </div>
         <div class="chart-target">
           <div id="historyBudgetTargetPosition" class="chart-target-content">
