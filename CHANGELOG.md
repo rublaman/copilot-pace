@@ -1,8 +1,12 @@
 # Changelog
 
-Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.5, 1.3.7–1.3.9 and 1.4.0 are pilot versions. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
+Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.5, 1.3.7–1.3.9, 1.4.0 and 1.4.2 are pilot versions. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
 
 ## [Unreleased]
+
+## [1.4.2] - 2026-10-30
+
+- Maintenance pilot for hover validation; credit display, chart behavior and the local history format are unchanged from 1.4.1.
 
 ## [1.4.1] - 2026-10-30
 
