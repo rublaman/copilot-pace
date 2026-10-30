@@ -2,7 +2,7 @@ import * as assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runInNewContext } from 'node:vm';
@@ -26,6 +26,9 @@ function harness(initial: Record<string, unknown> = {}, options: {
   storageDirectory?: string;
   apiResponse?: (url: string) => { status: number; body: unknown };
   openDocument?: (uri: { fsPath: string }) => Promise<{ fsPath: string }>;
+  now?: () => number;
+  beforeHistoryRead?: (file: string) => Promise<void>;
+  beforeHistoryWrite?: (file: string) => Promise<void>;
 } = {}) {
   const settings = { ...initial };
   const configurationListeners: Array<(event: vscode.ConfigurationChangeEvent) => void> = [];
@@ -39,6 +42,7 @@ function harness(initial: Record<string, unknown> = {}, options: {
   const openedFiles: string[] = [];
   const shownFiles: string[] = [];
   const revealedFiles: string[] = [];
+  const timers = new Map<ReturnType<typeof setTimeout>, { callback: () => void; delay: number }>();
   let choice: string | undefined;
   const disposable = { dispose() { } };
   const fireConfiguration = (key: string) => configurationListeners.forEach(listener => listener({
@@ -129,7 +133,7 @@ function harness(initial: Record<string, unknown> = {}, options: {
       };
       requestOptions.signal.addEventListener('abort', () => request.destroy(new Error('Aborted')), { once: true });
       const respond = () => {
-        const result = quotaRequest ? { status: 200, body: boundedFixture(100, 25, new Date()) }
+        const result = quotaRequest ? { status: 200, body: boundedFixture(100, 25, new Date(options.now?.() ?? Date.now())) }
           : options.apiResponse?.(url) ?? { status: 403, body: undefined };
         const response = Object.assign(new EventEmitter(), { statusCode: result.status, headers: {} });
         callback(response);
@@ -147,14 +151,53 @@ function harness(initial: Record<string, unknown> = {}, options: {
     globalStorageUri: options.storageDirectory ? { fsPath: options.storageDirectory } : undefined,
   };
   const module = { exports: {} as { activate: typeof activate } };
+  const runtimeDate = options.now ? class extends Date {
+    constructor(value?: string | number) { super(value ?? options.now!()); }
+    static now() { return options.now!(); }
+  } : Date;
   runInNewContext(readFileSync('out/development/dist/extension.js', 'utf8'), {
     module, exports: module.exports,
-    require: (id: string) => id === 'vscode' ? host : id === 'node:https' ? http : loadNodeModule(id),
-    Date, Intl, URL, URLSearchParams, Buffer, AbortController, AbortSignal, setTimeout, clearTimeout,
+    require: (id: string) => {
+      if (id === 'vscode') return host;
+      if (id === 'node:https') return http;
+      if (id === 'node:fs/promises' && (options.beforeHistoryRead || options.beforeHistoryWrite)) return {
+        ...loadNodeModule(id),
+        readFile: async (file: string) => {
+          await options.beforeHistoryRead?.(file);
+          return readFile(file);
+        },
+        writeFile: async (file: string, data: string, writeOptions: Parameters<typeof writeFile>[2]) => {
+          await options.beforeHistoryWrite?.(file);
+          return writeFile(file, data, writeOptions);
+        },
+      };
+      return loadNodeModule(id);
+    },
+    Date: runtimeDate, Intl, URL, URLSearchParams, Buffer, AbortController, AbortSignal,
+    setTimeout: (callback: () => void, delay: number) => {
+      const timer = setTimeout(() => {
+        timers.delete(timer);
+        callback();
+      }, delay);
+      timers.set(timer, { callback, delay });
+      return timer;
+    },
+    clearTimeout: (timer: ReturnType<typeof setTimeout>) => {
+      timers.delete(timer);
+      clearTimeout(timer);
+    },
   });
   const api = module.exports.activate(context as unknown as vscode.ExtensionContext) as TestApi;
   return {
-    api, authCalls, requests, allRequests, settings, pickedChoices, openedFiles, shownFiles, revealedFiles,
+    api, authCalls, requests, allRequests, settings, pickedChoices, openedFiles, shownFiles, revealedFiles, timers,
+    fireTimer: (delay: number) => {
+      const selected = [...timers].find(([, task]) => task.delay === delay);
+      assert.ok(selected, `No timer scheduled for ${delay}ms`);
+      const [timer, task] = selected;
+      clearTimeout(timer);
+      timers.delete(timer);
+      task.callback();
+    },
     choose: (provider: string | undefined) => { choice = provider; },
     connect: () => commands.get('copilotPace.connect')!(),
     completeRequest: (index: number) => responses[index]!(),
@@ -198,31 +241,214 @@ describe('Connection integration with native VS Code services', () => {
     const directory = await mkdtemp(join(tmpdir(), 'copilot-pace-activation-history-'));
     const key = historyIdentity('github', 'https://github.com', 'same-account-id');
     const store = new HistoryStore(directory);
+    const now = new Date();
+    const cycle = { start: Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1), end: Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1) };
     const first = harness({}, { storageDirectory: directory });
     let second: ReturnType<typeof harness> | undefined;
     try {
       const deadline = Date.now() + 5000;
-      while ((await store.read(key, Date.now())).length === 0) {
+      while ((await store.read(key, Date.now(), cycle)).length === 0) {
         assert.ok(Date.now() < deadline, 'Accepted observation was not persisted');
         await settle();
       }
-      const saved = await store.read(key, Date.now());
+      const saved = await store.read(key, Date.now(), cycle);
       assert.equal(saved.length, 1);
       first.dispose();
       second = harness({}, { storageDirectory: directory, pendingNetwork: true });
       await settle();
       second.completeRequest(0);
-      while ((await store.read(key, Date.now())).length < 2) {
+      while ((await store.read(key, Date.now(), cycle)).length < 2) {
         assert.ok(Date.now() < deadline, 'Second activation did not retain the first observation');
         await settle();
       }
-      const restored = await store.read(key, Date.now());
+      const restored = await store.read(key, Date.now(), cycle);
       assert.ok(restored.some(item => item.at === saved[0]!.at));
       assert.ok(second.api.getModel().history.length >= 1);
     } finally {
       first.dispose();
       second?.dispose();
       await rm(directory, { recursive: true, force: true });
+    }
+  });
+  it('restores the daily chart beside a corrupted journal while accepting and saving fresh quota', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'copilot-pace-corrupt-history-'));
+    const key = historyIdentity('github', 'https://github.com', 'same-account-id');
+    const now = Date.parse('2026-10-21T12:00Z');
+    const cycle = { start: Date.parse('2026-10-01T00:00Z'), end: Date.parse('2026-11-01T00:00Z') };
+    const saved = [
+      { ...cycle, at: now - 3_600_000, used: 10, total: 100 },
+      { ...cycle, at: now - 1_800_000, used: 20, total: 100 },
+    ];
+    const healthyFile = join(directory, `${key}.2026-10-21.00000000-0000-0000-0000-000000000000.json`);
+    const damagedFile = join(directory, `${key}.2026-10-20.00000000-0000-0000-0000-000000000001.json`);
+    const body = JSON.stringify({ version: 1, observations: saved });
+    await writeFile(healthyFile, body);
+    await writeFile(damagedFile, '{"version":1,"observations":[');
+    const store = new HistoryStore(directory);
+    const host = harness({ 'copilotPace.chartMetric': 'daily' }, { storageDirectory: directory, now: () => now });
+    try {
+      const deadline = Date.now() + 5000;
+      while ((await store.read(key, now, cycle)).length !== 3 || !host.api.getModel().canOpenHistory) {
+        assert.ok(Date.now() < deadline, 'Healthy daily history and fresh quota were not restored');
+        await settle();
+      }
+
+      const model = host.api.getModel();
+      assert.equal(host.api.getState().phase, 'ready');
+      assert.equal(model.percentage, '25%');
+      assert.equal(model.used, '25 credits');
+      assert.equal(model.historyLatest, '15 credits');
+      assert.equal(model.history.length, 1);
+      assert.equal(model.history[0]!.partial, true);
+      assert.equal(model.historyMessage, model.text.historyDailyNote);
+      assert.equal(await readFile(healthyFile, 'utf8'), body);
+      assert.equal(await readFile(damagedFile, 'utf8'), '{"version":1,"observations":[');
+      assert.equal((await readdir(directory)).length, 3);
+    } finally {
+      host.dispose();
+      await rm(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+    }
+  });
+  for (const [operation, code] of [['read', 'EACCES'], ['write', 'EACCES'], ['write', 'ENOSPC']] as const) {
+    it(`keeps accepted quota visible after a history ${operation} fails with ${code} and recovers on refresh`, async () => {
+      const directory = await mkdtemp(join(tmpdir(), 'copilot-pace-storage-failure-'));
+      const key = historyIdentity('github', 'https://github.com', 'same-account-id');
+      let now = Date.parse('2026-10-21T12:00Z');
+      const cycle = { start: Date.parse('2026-10-01T00:00Z'), end: Date.parse('2026-11-01T00:00Z') };
+      const file = join(directory, `${key}.2026-10-21.00000000-0000-0000-0000-000000000000.json`);
+      const body = JSON.stringify({ version: 1, observations: [
+        { ...cycle, at: now - 3_600_000, used: 10, total: 100 },
+        { ...cycle, at: now - 1_800_000, used: 20, total: 100 },
+      ] });
+      await writeFile(file, body);
+      let failing = true;
+      let failedOperations = 0;
+      const host = harness({ 'copilotPace.chartMetric': 'daily' }, {
+        storageDirectory: directory,
+        now: () => now,
+        beforeHistoryRead: async path => {
+          if (failing && operation === 'read' && path === file) {
+            failedOperations++;
+            throw Object.assign(new Error('Synthetic storage read failure'), { code });
+          }
+        },
+        beforeHistoryWrite: async temporary => {
+          if (failing && operation === 'write') {
+            failedOperations++;
+            // A full disk can leave a partial temporary file before writeFile rejects.
+            if (code === 'ENOSPC') await writeFile(temporary, '{"version":1,', { flag: 'wx' });
+            throw Object.assign(new Error('Synthetic storage write failure'), { code });
+          }
+        },
+      });
+      try {
+        const deadline = Date.now() + 5000;
+        const expectedFailures = operation === 'read' ? 2 : 1;
+        while (failedOperations < expectedFailures || host.api.getState().phase !== 'ready' ||
+            host.api.getModel().historyMessage !== host.api.getModel().text.historyError) {
+          assert.ok(Date.now() < deadline, 'Storage failure was not reported alongside accepted quota');
+          await settle();
+        }
+
+        assert.equal(host.api.getModel().percentage, '25%');
+        assert.equal(host.api.getModel().used, '25 credits');
+        assert.equal(await readFile(file, 'utf8'), body);
+        assert.ok((await readdir(directory)).every(name => name.endsWith('.json')));
+
+        failing = false;
+        now += 60_000;
+        await host.api.receiveMessage({ action: 'refresh' });
+        const store = new HistoryStore(directory);
+        while (!(await store.read(key, now, cycle)).some(item => item.at === now) ||
+            !host.api.getModel().canOpenHistory ||
+            host.api.getModel().historyMessage !== host.api.getModel().text.historyDailyNote) {
+          assert.ok(Date.now() < deadline, 'History did not recover after storage became available');
+          await settle();
+        }
+
+        assert.equal(host.api.getState().phase, 'ready');
+        assert.equal(host.api.getModel().historyLatest, '15 credits');
+        assert.equal(host.api.getModel().history.length, 1);
+        assert.equal(host.api.getModel().history[0]!.partial, true);
+        assert.equal(await readFile(file, 'utf8'), body);
+        assert.ok((await readdir(directory)).every(name => name.endsWith('.json')));
+      } finally {
+        host.dispose();
+        await rm(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+      }
+    });
+  }
+  it('prunes storage at activation and the next UTC day without a GitHub session, then stops on dispose', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'copilot-pace-maintenance-'));
+    const key = historyIdentity('github', 'https://github.com', 'maintenance-account');
+    let now = Date.parse('2026-10-21T12:00Z');
+    const expired = `${key}.2026-07-01.00000000-0000-0000-0000-000000000000.json`;
+    await writeFile(join(directory, expired), '{broken');
+    const host = harness({}, { storageDirectory: directory, authenticate: async () => undefined, now: () => now });
+    try {
+      const deadline = Date.now() + 5000;
+      while ((await readdir(directory)).length || ![...host.timers.values()].some(timer => timer.delay === 12 * 3_600_000)) {
+        assert.ok(Date.now() < deadline, 'Startup maintenance did not finish');
+        await settle();
+      }
+      assert.equal(host.api.getState().phase, 'disconnected');
+      assert.equal(host.requests.length, 0);
+      const authCalls = host.authCalls.length;
+      await writeFile(join(directory, expired), '{broken');
+      now = Date.parse('2026-10-22T00:00Z');
+
+      host.fireTimer(12 * 3_600_000);
+
+      while ((await readdir(directory)).length || ![...host.timers.values()].some(timer => timer.delay === 24 * 3_600_000)) {
+        assert.ok(Date.now() < deadline, 'Daily maintenance did not finish');
+        await settle();
+      }
+      assert.equal(host.authCalls.length, authCalls);
+      assert.equal(host.requests.length, 0);
+      host.dispose();
+      assert.equal(host.timers.size, 0);
+    } finally {
+      host.dispose();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+  it('ignores a late history failure after the account has entered a new cycle', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'copilot-pace-cycle-history-'));
+    const key = historyIdentity('github', 'https://github.com', 'same-account-id');
+    let now = Date.parse('2026-10-21T12:00Z');
+    const file = join(directory, `${key}.2026-10-21.00000000-0000-0000-0000-000000000000.json`);
+    await writeFile(file, JSON.stringify({ version: 1, observations: [] }));
+    let rejectRead!: (error: Error) => void;
+    let delayed = false;
+    const host = harness({}, { storageDirectory: directory, now: () => now, beforeHistoryRead: async path => {
+      if (path === file && !delayed) {
+        delayed = true;
+        await new Promise<void>((_resolve, reject) => { rejectRead = reject; });
+      }
+    } });
+    try {
+      const deadline = Date.now() + 5000;
+      while (!delayed) {
+        assert.ok(Date.now() < deadline, 'Initial history read did not start');
+        await settle();
+      }
+      now = Date.parse('2026-11-02T12:00Z');
+      await host.api.receiveMessage({ action: 'refresh' });
+      while (!host.api.getModel().history.length || !host.api.getModel().canOpenHistory ||
+          !(await readdir(directory)).some(name => name.includes('.2026-11-02.') && name.endsWith('.json'))) {
+        assert.ok(Date.now() < deadline, 'New cycle observations did not become available');
+        await settle();
+      }
+
+      rejectRead(Object.assign(new Error('History read denied'), { code: 'EACCES' }));
+      await settle();
+
+      assert.equal(host.api.getState().snapshot?.cycle?.start, now - 36 * 3_600_000);
+      assert.equal(host.api.getModel().historyMessage, host.api.getModel().text.historyNote);
+    } finally {
+      rejectRead?.(new Error('Test disposed'));
+      host.dispose();
+      await rm(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
     }
   });
   it('opens only the active account journal and clears file access when the account disconnects', async () => {

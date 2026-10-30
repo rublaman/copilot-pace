@@ -153,3 +153,15 @@ describe('Rate limit headers', () => {
     assert.equal(failure?.retryAt, now + 120_000);
   });
 });
+
+describe('HTTP failure details', () => {
+  it('keeps the HTTP status separate from the safe diagnostic without treating it as a retry timestamp', () => {
+    for (const status of [302, 404, 500, 503]) {
+      const failure = responseError({ status, headers: {}, body: undefined }, 0);
+      assert.equal(failure?.code, 'server');
+      assert.equal(failure.httpStatus, status);
+      assert.equal(failure.retryAt, undefined);
+      assert.equal(failure.message, `Usage is currently unavailable (HTTP ${status}).`);
+    }
+  });
+});

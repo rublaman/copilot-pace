@@ -28,10 +28,12 @@ function enterpriseOrigin(value: unknown): string {
 }
 
 export function resolveConnection(settings: ConnectionSettings): Connection {
-  const provider: AuthProvider = settings.provider === 'github' ? 'github'
-    : settings.provider === 'github-enterprise' || settings.copilotProvider === 'github-enterprise' ? 'github-enterprise' : 'github';
-  const values = settings.enterpriseUris !== undefined ? settings.enterpriseUris
-    : settings.enterpriseUri ? [settings.enterpriseUri] : [];
+  let provider: AuthProvider = 'github';
+  if (settings.provider !== 'github' && (settings.provider === 'github-enterprise' || settings.copilotProvider === 'github-enterprise')) {
+    provider = 'github-enterprise';
+  }
+  let values = settings.enterpriseUris;
+  if (values === undefined) values = settings.enterpriseUri ? [settings.enterpriseUri] : [];
   let origins: string[] = [];
   let invalid = false;
   try {

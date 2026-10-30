@@ -1,8 +1,34 @@
 # Changelog
 
-Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0 and 1.3.0–1.3.5 are pilot versions. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
+Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.5, 1.3.7–1.3.9 and 1.4.0 are pilot versions. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
 
 ## [Unreleased]
+
+## [1.4.1] - 2026-10-30
+
+- Release the chart tooltips and small-column pointer targets from the 1.4.0 pilot as stable.
+- Include the history recovery and retention fixes from the 1.3.7–1.3.9 pilots for users upgrading from stable 1.3.6.
+
+## [1.4.0] - 2026-10-30
+
+- Show credit usage and UTC dates immediately on hover or keyboard focus for every chart point and column, including partial daily values.
+- Make zero and small columns easier to inspect with a larger pointer target without changing the displayed consumption.
+
+## [1.3.9] - 2026-10-28
+
+- Maintenance pilot for the daily-history recovery behavior from 1.3.8; quota display, billing sources and the local history format are unchanged.
+
+## [1.3.8] - 2026-10-27
+
+- Clean up expired local history at startup and each new UTC day, including when signed out, without blocking usage when a file cannot be deleted.
+- Recover available history when a journal is damaged or unsupported, and preserve that file while continuing new observations in another journal.
+- Load only the active account's current cycle for the history chart while retaining other observations for 90 days.
+
+## [1.3.7] - 2026-10-26
+
+- Keep Spanish quota and HTTP error messages independent of English diagnostic wording.
+- Preserve panel controls and daily/cumulative chart behavior while moving browser rendering to typed source and separating chart construction.
+- Refresh Marketplace availability and contributor documentation.
 
 ## [1.3.6] - 2026-10-22
 

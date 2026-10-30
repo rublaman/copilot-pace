@@ -3,7 +3,7 @@
   "displayName": "Copilot Pace",
   "description": "Track GitHub Copilot credits, daily allowance and projected usage in your VS Code status bar.",
   "icon": "images/copilot-pace-128.png",
-  "version": "1.3.6",
+  "version": "1.4.1",
   "publisher": "rubenblancomanzano",
   "author": "Ruben Blanco Manzano",
   "private": true,
@@ -176,9 +176,12 @@
     "build:production": "node scripts/build.mjs --production"
   },
   "overrides": {
+    "@azure/identity": {
+      "@azure/msal-node": "7.1.1"
+    },
     "mocha": {
       "diff": "8.0.3",
-      "serialize-javascript": "7.0.5"
+      "serialize-javascript": "7.1.3"
     }
   },
   "devDependencies": {

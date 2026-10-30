@@ -65,6 +65,8 @@ The color follows **projected usage at renewal**, calculated from your average c
 
 ## Get started
 
+Version 1.3.6 is available on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=rubenblancomanzano.copilot-pace).
+
 1. In VS Code, open **Extensions** (`Ctrl+Shift+X`) and search for **Copilot Pace** by **Ruben Blanco Manzano**. Select **Install**.
 2. Open the Command Palette (`Ctrl+Shift+P`) and run **Copilot Pace: Connect GitHub**. Authorize access through VS Code and select the account with Copilot.
 3. Find Copilot Pace on the right side of the status bar. Hover for a summary or click for details.
@@ -136,7 +138,7 @@ Pace saves successful quota observations in local extension storage and displays
 
 Billing queries are limited to the current cycle and cached in memory. Ambiguous billing accounts and unsupported reports use the observed fallback. The current session is not guaranteed to have billing access, and Pace does not request broader permissions or a separate token. See the [personal and organization API requirements](https://docs.github.com/en/rest/billing/usage) and [enterprise requirements](https://docs.github.com/en/enterprise-cloud@latest/rest/billing/usage).
 
-Account observations can reflect usage from other devices. Daily journals are separated by authentication provider, server and account, and expired journals are removed after 90 days when history is accessed. Demo data is never saved or sent to billing. Storage errors do not prevent quota refreshes. Neither chart attributes consumption to models or projects.
+Account observations can reflect usage from other devices. Daily journals are separated by authentication provider, server and account. The chart loads only the current cycle; journals are retained for 90 days. Cleanup runs when the extension starts and at each new UTC day while it remains active, including when signed out. Files that cannot be deleted are retried on the next cleanup. Damaged or unsupported journals are skipped and preserved until they expire; new observations use a new journal if the active file is damaged. Demo data is never saved or sent to billing. Storage errors do not prevent quota refreshes. Neither chart attributes consumption to models or projects.
 
 ## Settings
 
@@ -173,7 +175,7 @@ Supports **GitHub.com personal and Business accounts** and **GitHub Enterprise (
 
 Copilot Pace uses an internal GitHub endpoint that may change. Browser-based VS Code is unsupported.
 
-The quota endpoint provides aggregate credits. Daily billing access is optional and depends on the account, session permissions and API availability. Its new integration has synthetic coverage; real-account billing acceptance is still pending. Pace does not estimate tokens or provide individual-session or per-model analytics.
+The quota endpoint provides aggregate credits. Daily billing access is optional and depends on the account, session permissions and API availability. Pace does not estimate tokens or provide individual-session or per-model analytics.
 
 ### When a value is unavailable
 
