@@ -4,6 +4,11 @@ Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.5
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-10-30
+
+- Release the chart tooltips and small-column pointer targets from the 1.4.0 pilot as stable.
+- Include the history recovery and retention fixes from the 1.3.7–1.3.9 pilots for users upgrading from stable 1.3.6.
+
 ## [1.4.0] - 2026-10-30
 
 - Show credit usage and UTC dates immediately on hover or keyboard focus for every chart point and column, including partial daily values.
