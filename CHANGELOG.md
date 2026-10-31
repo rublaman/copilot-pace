@@ -4,6 +4,10 @@ Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.5
 
 ## [Unreleased]
 
+## [1.4.3] - 2026-10-31
+
+- Promote the hover validation pilot as stable with no user-facing behavior changes from 1.4.2.
+
 ## [1.4.2] - 2026-10-30
 
 - Maintenance pilot for hover validation; credit display, chart behavior and the local history format are unchanged from 1.4.1.
