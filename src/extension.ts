@@ -16,6 +16,7 @@ import { resolveChartMetric, resolveChartStyle, type ChartMetric, type ChartStyl
 export interface TestApi {
   getState(): ServiceState;
   getModel(): ViewModel;
+  getRenderedModel(): ViewModel;
   getStatus(): { text: string; color: string | vscode.ThemeColor | undefined; alignment: vscode.StatusBarAlignment; priority: number | undefined };
   getPanel(): vscode.WebviewPanel | undefined;
   getTooltip(): vscode.MarkdownString | undefined;
@@ -29,6 +30,7 @@ class CopilotPace implements vscode.Disposable {
   private readonly status = vscode.window.createStatusBarItem('copilotPace.status', vscode.StatusBarAlignment.Right, 100.05);
   private readonly imageDirectory: vscode.Uri;
   private service!: QuotaService;
+  private renderedModel!: ViewModel;
   private readonly clock = systemClock;
   private demo = false;
   private scenario = '';
@@ -314,6 +316,7 @@ class CopilotPace implements vscode.Disposable {
   private render() {
     if (this.disposed) return;
     const model = this.model;
+    this.renderedModel = model;
     this.status.text = model.statusText;
     const color = { good: 'charts.green', watch: 'charts.yellow', over: 'charts.red', neutral: undefined }[model.tone];
     this.status.color = color ? new vscode.ThemeColor(color) : undefined;
@@ -379,6 +382,7 @@ class CopilotPace implements vscode.Disposable {
   get testApi(): TestApi {
     return {
       getState: () => this.service.current, getModel: () => this.model,
+      getRenderedModel: () => this.renderedModel,
       getTooltip: () => this.status.tooltip instanceof vscode.MarkdownString ? this.status.tooltip : undefined,
       getStatus: () => ({ text: this.status.text, color: this.status.color, alignment: this.status.alignment, priority: this.status.priority }),
       getPanel: () => this.panel, isPanelReady: () => this.panelReady, receiveMessage: message => this.receiveMessage(message), dispose: () => this.dispose(),
