@@ -177,24 +177,30 @@ describe('Copilot Pace in the Extension Development Host', () => {
   it('updates the calculation when switching to weekdays', async () => {
     const old = api.getModel();
     await api.receiveMessage({ action: 'dayMode', value: 'weekdays' });
-    await waitFor(() => api.getModel().dayMode === 'weekdays');
+    await waitFor(() => api.getModel().dayMode === 'weekdays' && api.getRenderedModel().dayMode === 'weekdays');
     assert.ok(api.getModel().daysLeft.endsWith('weekdays left'));
     assert.ok(Number.parseFloat(api.getModel().daysLeft) <= Number.parseFloat(old.daysLeft));
     assert.equal(api.getModel().used, old.used);
     const hover = api.getTooltip()?.value ?? '';
     const rendered = api.getRenderedModel();
     assert.equal(rendered.dayMode, 'weekdays');
-    assert.ok(hover.includes(`Daily allowance: **${rendered.allowance}** · Mon–Fr`));
-    assert.equal(hover.match(/Daily allowance/g)?.length, 1);
-    assert.equal(hover.match(/Mon–Fr/g)?.length, 1);
+    if (Number.parseFloat(api.getModel().daysLeft) === 0) {
+      assert.equal(rendered.allowance, '—');
+      assert.equal(hover.match(/Daily allowance/g)?.length ?? 0, 0);
+    } else {
+      assert.ok(hover.includes(`Daily allowance: **${rendered.allowance}** · Mon–Fr`));
+      assert.equal(hover.match(/Daily allowance/g)?.length, 1);
+      assert.equal(hover.match(/Mon–Fr/g)?.length, 1);
+    }
     await api.receiveMessage({ action: 'dayMode', value: 'all' });
-    await waitFor(() => api.getModel().dayMode === 'all');
+    await waitFor(() => api.getModel().dayMode === 'all' && api.getRenderedModel().dayMode === 'all');
   });
   it('ignores messages outside the allowed actions', async () => {
     await api.receiveMessage({ action: 'dayMode', value: 'invalid' });
     await api.receiveMessage({ action: 'executeCommand', value: 'workbench.action.closeWindow' });
     await api.receiveMessage(null);
     assert.equal(api.getModel().dayMode, 'all');
+    assert.equal(api.getRenderedModel().dayMode, 'all');
     await api.receiveMessage({ action: 'language', value: 'fr' });
     await api.receiveMessage({ action: 'language', value: ['es-ES'] });
     assert.equal(api.getModel().language, 'en');
@@ -207,7 +213,7 @@ describe('Copilot Pace in the Extension Development Host', () => {
     const color = api.getStatus().color;
     try {
       await api.receiveMessage({ action: 'language', value: 'es-ES' });
-      await waitFor(() => api.getModel().language === 'es-ES');
+      await waitFor(() => api.getModel().language === 'es-ES' && api.getRenderedModel().language === 'es-ES');
       assert.equal(vscode.workspace.getConfiguration('copilotPace').inspect('language')?.globalValue, 'es-ES');
       assert.equal(api.getPanel(), panel);
       assert.equal(api.isPanelReady(), true);
@@ -217,14 +223,20 @@ describe('Copilot Pace in the Extension Development Host', () => {
       assert.equal(api.getModel().text.switchLanguage, 'Inglés');
       assert.ok(api.getModel().used.endsWith(' créditos'));
       assert.ok(api.getTooltip()?.value.includes('[$(graph) Ver detalles]'));
-      assert.ok(api.getTooltip()?.value.includes(api.getModel().dayMode === 'weekdays' ? 'De lunes a viernes' : 'De lunes a domingo'));
+      const rendered = api.getRenderedModel();
+      const calendarLabel = rendered.dayMode === 'weekdays' ? 'De lunes a viernes' : 'De lunes a domingo';
+      if (rendered.allowance === '—') assert.ok(!api.getTooltip()?.value.includes('Disponible por día:'));
+      else assert.ok(api.getTooltip()?.value.includes(calendarLabel));
       assert.ok(!api.getTooltip()?.value.includes('[Inglés]'));
       assert.ok(!api.getTooltip()?.value.includes('[Spanish]'));
       await api.receiveMessage({ action: 'language', value: 'en' });
-      await waitFor(() => api.getModel().language === 'en');
+      await waitFor(() => api.getModel().language === 'en' && api.getRenderedModel().language === 'en');
       assert.equal(api.getModel().text.switchLanguage, 'Spanish');
       assert.equal(api.getState().snapshot, snapshot);
-    } finally { await api.receiveMessage({ action: 'language', value: 'en' }); }
+    } finally {
+      await api.receiveMessage({ action: 'language', value: 'en' });
+      await waitFor(() => api.getModel().language === 'en' && api.getRenderedModel().language === 'en');
+    }
   });
   it('colors the status and native hover according to the current pace for each budget', async () => {
     for (const [name, used] of [['3900-on-track', 45], ['3900-over-pace', 60], ['budget-10000', 19.5]] as const) {
