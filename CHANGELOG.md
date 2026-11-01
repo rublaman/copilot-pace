@@ -1,6 +1,6 @@
 # Changelog
 
-Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.1, 1.3.3–1.3.5, 1.3.7–1.3.9, 1.4.0, 1.4.2 and 1.4.4 are pilot versions. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
+Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.1, 1.3.3–1.3.5, 1.3.7–1.3.9, 1.4.0, 1.4.2 and 1.4.4 are pilot versions. Versions 1.3.2 and 1.4.3 were later published as historical GitHub prereleases. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
 
 ## [1.4.5] - 2026-11-01
 
@@ -57,7 +57,11 @@ Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.1
 ## [1.3.3] - 2026-10-22
 
 - Add cursor-free animated examples of cumulative/daily charts and all four status bar styles to the README and Marketplace overview.
-- Hide local history file controls and explanatory text when signed out, and restore them after sign-in.
+- Include the local history sign-in visibility fix from 1.3.2.
+
+## [1.3.2] - 2026-10-22
+
+- Hide local history file controls when signed out, and restore them after sign-in.
 
 ## [1.3.1] - 2026-10-21
 
