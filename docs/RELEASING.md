@@ -6,8 +6,10 @@ This guide defines the release workflow. Published versions, tested artifacts, c
 
 - Stable: releases from `main`, with `preview: false` and Latest. See [the latest stable release](https://github.com/rublaman/copilot-pace/releases/latest) for the published version.
 - Pilot: GitHub prereleases from `develop`, with `preview: true`, without Latest. See [GitHub Releases](https://github.com/rublaman/copilot-pace/releases) for published pilot versions.
+- Pilot 1.4.4 corrects the changelog. The maintainer confirmed successful operation of the published VSIX with a real account on a corporate network on 2026-11-01.
+- Stable candidate 1.4.5 promotes pilot 1.4.4. Final stable VSIX validation and target-environment acceptance remain pending.
 - Pilot 1.4.2 includes the rendered-model snapshot used to make hover integration checks independent of later clock reads. Credit calculations, charts and the history format retain the 1.4.1 behavior. The maintainer confirmed that the prerelease works correctly on 2026-10-31; this does not establish real-account or corporate-network acceptance of the final stable package.
-- Stable 1.4.3 promotes pilot 1.4.2 with preview disabled and a new version, preserving the published pilot tag and assets. It does not change user-facing behavior. Final stable VSIX validation is pending.
+- The 1.4.3 stable candidate promotes pilot 1.4.2 with preview disabled and a new version, preserving the published pilot tag and assets. It does not change user-facing behavior. The GitHub Release is a draft and final stable VSIX validation is pending.
 - Stable 1.4.1 promotes the chart tooltips and small-column pointer targets from pilot 1.4.0, together with the intervening history recovery and retention fixes. The maintainer confirmed successful real-account operation of the published 1.4.0 VSIX on 2026-10-30. This confirms the pilot's account behavior, not a new corporate-network acceptance or real-account test of the 1.4.1 package; validate the final stable artifact separately.
 - The maintainer confirmed real-account acceptance of the 1.3.x pilot, including daily billing and corporate policies, on 2026-10-22. This is maintainer-reported acceptance; synthetic tests do not establish it.
 - Marketplace: stable 1.3.6 is published on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=rubenblancomanzano.copilot-pace). The maintainer confirmed publication and successful operation on 2026-10-26. Marketplace and GitHub publication remain separate steps.
@@ -86,7 +88,7 @@ Tag pushes run the workflow from the tagged commit. A pilot can therefore run fr
 ## Create and review a candidate
 
 1. Prepare version, preview flag, changelog and release notes in a PR. Run `npm ci`, `npm run check`, `npm run test:integration`, `npm run test:package` and `npm audit`. Review audit findings without automatic forced upgrades.
-2. Merge to the intended branch and wait for CI on that SHA. For stable promotion, merge `develop` into `main` first.
+2. Merge to the intended branch and wait for CI on that SHA. For stable promotion, merge `develop` into `main` first. Use `gh run list --workflow ci.yml --branch <branch> --commit <sha>` to identify the run, then `gh run watch <run-id> --exit-status` to wait in a terminal. Review failures with `gh run view <run-id> --log-failed`.
 3. With a clean checkout and authenticated `gh`, fetch branches/tags and tag the exact validated SHA. This example requires a prepared pilot version on `develop` without an existing tag:
 
 ```powershell
