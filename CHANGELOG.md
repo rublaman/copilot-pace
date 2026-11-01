@@ -1,8 +1,10 @@
 # Changelog
 
-Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.5, 1.3.7–1.3.9, 1.4.0 and 1.4.2 are pilot versions. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
+Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.1, 1.3.3–1.3.5, 1.3.7–1.3.9, 1.4.0, 1.4.2 and 1.4.4 are pilot versions. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
 
-## [Unreleased]
+## [1.4.4] - 2026-11-01
+
+- Correct the release history in the changelog.
 
 ## [1.4.3] - 2026-10-31
 
@@ -35,32 +37,23 @@ Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.5
 ## [1.3.7] - 2026-10-26
 
 - Keep Spanish quota and HTTP error messages independent of English diagnostic wording.
-- Preserve panel controls and daily/cumulative chart behavior while moving browser rendering to typed source and separating chart construction.
-- Refresh Marketplace availability and contributor documentation.
 
 ## [1.3.6] - 2026-10-22
 
 - Release the validated 1.3.x features as stable: usage history, daily/cumulative charts, status indicator styles and local history file controls.
-- Include the high-resolution animated examples and documentation privacy cleanup from 1.3.5.
 
 ## [1.3.5] - 2026-10-22
 
 - Shorten the status-mode GIF to eight seconds and show both green Comfortable and red Over pace examples.
-- Keep internal reports, review captures and the corporate authentication reference local and excluded from public documentation and extension packages.
 
 ## [1.3.4] - 2026-10-22
 
-- Improve the README and Marketplace status-mode GIF with native high-resolution captures, explicit mode labels and a full-resolution link.
-- Show each mode for three seconds while preserving the clarity of percentages and credit totals.
+- Update the README and Marketplace status-mode GIF with high-resolution captures and mode labels.
 
 ## [1.3.3] - 2026-10-22
 
 - Add cursor-free animated examples of cumulative/daily charts and all four status bar styles to the README and Marketplace overview.
-- Include the local history sign-in visibility fix from the unpublished 1.3.2 candidate.
-
-## [1.3.2] - 2026-10-22
-
-- Hide the local history file controls and explanatory text when no account is connected; show them again after sign-in.
+- Hide local history file controls and explanatory text when signed out, and restore them after sign-in.
 
 ## [1.3.1] - 2026-10-21
 
@@ -79,7 +72,6 @@ Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.5
 - Color usage charts green within budget pace and red above it, including line and area crossings.
 - Fix successful sign-in appearing disconnected after an early VS Code session-change event.
 - Reject Enterprise authentication when multiple instances are configured.
-- Add README badges and simplify code and documentation for account connections.
 
 ## [1.2.1] - 2026-10-19
 
