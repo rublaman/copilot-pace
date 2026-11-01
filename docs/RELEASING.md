@@ -73,15 +73,15 @@ Use GitHub prereleases for beta testing rather than `-beta` or `-rc` tags. Ordin
 
 ## Automation
 
-`ci.yml` runs on PRs, configured branch pushes, manual dispatch and reusable calls. It preserves the Node/VS Code matrices, runs `npm audit`, packages once, tests the installed VSIX and inspects its identity and contents. The artifact contains the VSIX, `SHA256SUMS.txt` and `build-info.json` with the commit and run URL.
+`ci.yml` runs on PRs, pushes to `main` and `develop`, and manual dispatch. It preserves the Node/VS Code matrices, runs `npm audit`, packages once, tests the installed VSIX and inspects its identity and contents. The artifact contains the VSIX, `SHA256SUMS.txt` and `build-info.json` with the commit and run URL.
 
 `release.yml` runs on tag pushes matching `v*`. It:
 
 1. Rejects malformed/lightweight tags, mismatched versions, a missing preview flag, incomplete changelog or unresolved license. The tagged commit must be reachable from `develop` for pilots or `main` for stable versions. Stable versions must be at least `1.0.0`.
-2. Calls the CI workflow on that tagged commit with read permissions. Candidate code receives no release-writing credentials.
-3. Downloads the tested artifact in a separate job, checks its recorded SHA and checksum, and creates a draft with notes and assets. Existing releases cause failure; assets are never replaced.
+2. Selects a successful push of `ci.yml` on the appropriate source branch for the exact tagged commit. It requires the original CI artifact to remain available; it does not rebuild or rerun the matrix. Candidate code receives no release-writing credentials.
+3. Downloads that run's tested artifact in a separate job, checks its run URL, commit, version, preview flag, packaged manifest and checksum, and creates a draft with notes and assets. Existing releases cause failure; assets are never replaced.
 
-Only the draft job has `contents: write`; it does not check out or execute candidate code. Neither workflow publishes to Marketplace or publishes the GitHub draft automatically.
+Only the draft job has `contents: write`; it does not check out or execute candidate code. Release jobs also need `actions: read` to find and download the earlier CI artifact. Neither workflow publishes to Marketplace or publishes the GitHub draft automatically.
 
 Tag pushes run the workflow from the tagged commit. A pilot can therefore run from `develop` without promotion to `main`; manual Actions dispatch requires the workflow on the default branch. Push tags with the maintainer's identity: events created using `GITHUB_TOKEN` generally do not start another workflow. [GitHub event reference](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
 
@@ -108,7 +108,7 @@ node scripts/release.mjs $releaseTag
 git push origin "refs/tags/$releaseTag"
 ```
 
-4. Wait for the tag workflow and review the draft. Download its VSIX and verify `SHA256SUMS.txt`; retain the full SHA, tag, run URL and hash.
+4. Wait for the tag workflow and review the draft. It reuses the artifact from successful branch CI for the exact tagged SHA. If no matching run or retained artifact exists, it fails; rerun and review branch CI for that SHA before retrying. Download the VSIX and verify `SHA256SUMS.txt`; retain the full SHA, tag, run URL and hash.
 5. Test that downloaded artifact in the target environment and add the results to the notes. Publish the draft explicitly: pilot as prerelease without Latest; stable as a normal release with Latest. Retain the tested assets unchanged.
 
 If automation is unavailable, download `copilot-pace-production-vsix` from the successful branch CI run for the exact candidate SHA. Verify its metadata/hash and create a draft with `gh release create --verify-tag --draft --latest=false --notes-file <notes.md>`, attaching the VSIX, checksum and build record. Add `--prerelease` for a pilot. Do not rebuild an untested replacement during upload.

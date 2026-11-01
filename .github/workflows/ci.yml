@@ -2,10 +2,9 @@ name: Validate and package
 
 on:
   push:
-    branches: [main, develop, 'feature/**', 'fix/**', 'chore/**', 'hotfix/**']
+    branches: [main, develop]
   pull_request:
   workflow_dispatch:
-  workflow_call:
 
 permissions:
   contents: read
