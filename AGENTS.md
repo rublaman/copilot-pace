@@ -53,6 +53,7 @@ Copilot Pace is a VS Code extension that displays GitHub Copilot credits and an 
 - Before a release: run all three commands above, review `npm audit` and inspect the VSIX contents. Retain evidence of the SHA and the tested file. The CI matrix defines the versions to validate.
 - Documentation: check links, consistency, Git tracking and `git diff --check`; do not repeat host tests when neither code nor packaging changes.
 - Add regression coverage for behavioral bugs. Do not weaken checks to make CI pass. Distinguish local tests, remote CI and manual validation; report checks that have not run.
+- For GitHub Actions, identify runs for the exact PR commit and wait with `gh run watch <run-id> --exit-status --interval 15` in one process. Suppress repetitive progress output when it is not needed; check the exit code and use `gh run view <run-id> --log-failed` to investigate failures. Report pending or unverified checks accurately.
 
 ## Release workflow
 
