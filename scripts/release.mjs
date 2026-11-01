@@ -42,7 +42,7 @@ export async function validateRelease(tag) {
     `Commit: ${sha}\n\nBefore publishing this draft, record manual validation of the attached VSIX and review its checksum.\n`;
   await writeFile('dist-release-notes.md', notes);
   if (process.env.GITHUB_OUTPUT) {
-    await appendFile(process.env.GITHUB_OUTPUT, `version=${metadata.version}\nsha=${sha}\nprerelease=${metadata.prerelease}\n`);
+    await appendFile(process.env.GITHUB_OUTPUT, `version=${metadata.version}\nsha=${sha}\nprerelease=${metadata.prerelease}\nbranch=${metadata.branch}\n`);
   }
   console.log(`Validated ${tag} on ${metadata.branch} at ${sha}.`);
 }

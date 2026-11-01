@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 defaults:
   run:
@@ -23,6 +24,7 @@ jobs:
       version: ${{ steps.release.outputs.version }}
       sha: ${{ steps.release.outputs.sha }}
       prerelease: ${{ steps.release.outputs.prerelease }}
+      run_id: ${{ steps.ci.outputs.run_id }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -36,6 +38,14 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: node scripts/release.mjs $env:RELEASE_TAG
+      - name: Select the successful branch CI run for the tagged commit
+        id: ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+          RELEASE_BRANCH: ${{ steps.release.outputs.branch }}
+        run: node scripts/select-ci-run.mjs
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: copilot-pace-release-notes
@@ -43,23 +53,20 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  test:
-    needs: validate
-    uses: ./.github/workflows/ci.yml
-    permissions:
-      contents: read
-
   draft:
-    needs: [validate, test]
+    needs: validate
     runs-on: windows-latest
     timeout-minutes: 5
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/download-artifact@v8.0.2
         with:
           name: copilot-pace-production-vsix
           path: candidate
+          run-id: ${{ needs.validate.outputs.run_id }}
+          github-token: ${{ github.token }}
       - uses: actions/download-artifact@v8.0.2
         with:
           name: copilot-pace-release-notes
@@ -73,14 +80,16 @@ jobs:
           RELEASE_VERSION: ${{ needs.validate.outputs.version }}
           RELEASE_SHA: ${{ needs.validate.outputs.sha }}
           RELEASE_PRERELEASE: ${{ needs.validate.outputs.prerelease }}
+          CI_RUN_ID: ${{ needs.validate.outputs.run_id }}
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
           $info = Get-Content candidate/build-info.json -Raw | ConvertFrom-Json
           $expectedFile = "copilot-pace-$env:RELEASE_VERSION.vsix"
           $preview = $env:RELEASE_PRERELEASE -eq 'true'
-          if ($info.sha -cne $env:RELEASE_SHA -or $info.dirty -ne $false -or
-              $info.version -cne $env:RELEASE_VERSION -or $info.preview -ne $preview -or
+          $expectedRunUrl = "$env:GITHUB_SERVER_URL/$env:GH_REPO/actions/runs/$env:CI_RUN_ID"
+          if ($info.runUrl -cne $expectedRunUrl -or $info.sha -cne $env:RELEASE_SHA -or $info.dirty -ne $false -or
+              $info.version -cne $env:RELEASE_VERSION -or $info.preview -isnot [bool] -or $info.preview -ne $preview -or
               $info.name -cne 'copilot-pace' -or $info.publisher -cne 'rubenblancomanzano' -or
               $info.file -cne $expectedFile) { throw 'Artifact provenance differs from the candidate.' }
           $vsix = Join-Path 'candidate' $expectedFile
@@ -94,7 +103,7 @@ jobs:
               if (-not $entry) { throw 'The VSIX manifest is missing.' }
               $reader = [System.IO.StreamReader]::new($entry.Open())
               try { $manifest = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
-              if ($manifest.version -cne $env:RELEASE_VERSION -or $manifest.preview -ne $preview -or
+              if ($manifest.version -cne $env:RELEASE_VERSION -or $manifest.preview -isnot [bool] -or $manifest.preview -ne $preview -or
                   $manifest.name -cne $info.name -or $manifest.publisher -cne $info.publisher) {
                   throw 'Packaged manifest differs from the release.'
               }
