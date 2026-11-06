@@ -623,6 +623,26 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     outline: 1px solid var(--line);
   }
 
+  #days button[aria-pressed=true] {
+    background: #238636;
+    color: #fff;
+  }
+
+  #days button[aria-pressed=true]:hover {
+    background: #1f7a30;
+  }
+
+  body.vscode-high-contrast #days button[aria-pressed=true],
+  body.vscode-high-contrast-light #days button[aria-pressed=true] {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+  }
+
+  body.vscode-high-contrast #days button[aria-pressed=true]:hover,
+  body.vscode-high-contrast-light #days button[aria-pressed=true]:hover {
+    background: var(--vscode-button-hoverBackground);
+  }
+
   footer {
     margin-top: 24px;
     padding-top: 18px;
