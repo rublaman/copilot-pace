@@ -2,6 +2,10 @@
 
 Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.1, 1.3.3–1.3.5, 1.3.7–1.3.9, 1.4.0, 1.4.2, 1.4.4 and 1.4.6 are pilot versions. Versions 1.3.2 and 1.4.3 were later published as historical GitHub prereleases. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
 
+## [1.4.7] - 2026-11-08
+
+- Promote the selected day mode highlight from pilot 1.4.6 as stable.
+
 ## [1.4.6] - 2026-11-06
 
 - Highlight the selected Every day or Mon–Fri option in green and preserve theme button colors in high-contrast modes.
