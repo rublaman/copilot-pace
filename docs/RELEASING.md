@@ -6,14 +6,15 @@ This guide defines the release workflow. Published versions, tested artifacts, c
 
 - Stable: releases from `main`, with `preview: false` and Latest. See [the latest stable release](https://github.com/rublaman/copilot-pace/releases/latest) for the published version.
 - Pilot: GitHub prereleases from `develop`, with `preview: true`, without Latest. See [GitHub Releases](https://github.com/rublaman/copilot-pace/releases) for published pilot versions.
+- Pilot 1.4.6 highlights the selected Every day or Mon–Fri calendar mode. The maintainer visually reviewed the attached VSIX and confirmed it looks correct on 2026-11-06; real-account and corporate-network validation remain pending. Commit: `a59f7a4100ead4a51b14df01e7ef9ccf1f55ba6f`; VSIX SHA-256: `f42f899bcff17120ae35244d27dccd65dd835f9262a858b72fee4622949e1dd7`. See the [GitHub release](https://github.com/rublaman/copilot-pace/releases/tag/v1.4.6) and [validation run](https://github.com/rublaman/copilot-pace/actions/runs/42229752829).
 - Pilot 1.4.4 corrects the changelog. The maintainer confirmed successful operation of the published VSIX with a real account on a corporate network on 2026-11-01.
-- Stable candidate 1.4.5 promotes pilot 1.4.4. Final stable VSIX validation and target-environment acceptance remain pending.
+- Stable 1.4.5 promotes pilot 1.4.4. The final stable VSIX passed automated installation and inspection; separate manual validation was not reported before GitHub publication.
 - Pilot 1.4.2 includes the rendered-model snapshot used to make hover integration checks independent of later clock reads. Credit calculations, charts and the history format retain the 1.4.1 behavior. The maintainer confirmed that the prerelease works correctly on 2026-10-31; this does not establish real-account or corporate-network acceptance of the final stable package.
-- The 1.4.3 stable candidate promotes pilot 1.4.2 with preview disabled and a new version, preserving the published pilot tag and assets. It does not change user-facing behavior. The GitHub Release is a draft and final stable VSIX validation is pending.
+- The 1.4.3 stable candidate was later published as a historical GitHub prerelease. Its original VSIX retains `preview: false`; separate manual validation was not recorded.
 - Stable 1.4.1 promotes the chart tooltips and small-column pointer targets from pilot 1.4.0, together with the intervening history recovery and retention fixes. The maintainer confirmed successful real-account operation of the published 1.4.0 VSIX on 2026-10-30. This confirms the pilot's account behavior, not a new corporate-network acceptance or real-account test of the 1.4.1 package; validate the final stable artifact separately.
 - The maintainer confirmed real-account acceptance of the 1.3.x pilot, including daily billing and corporate policies, on 2026-10-22. This is maintainer-reported acceptance; synthetic tests do not establish it.
 - Marketplace: stable 1.3.6 is published on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=rubenblancomanzano.copilot-pace). The maintainer confirmed publication and successful operation on 2026-10-26. Marketplace and GitHub publication remain separate steps.
-- The 1.3.2 candidate remains an unpublished draft; retain its tag and assets.
+- The 1.3.2 candidate was later published as a historical GitHub prerelease. Separate manual validation of its original VSIX was not recorded.
 
 ## Documentation records
 
@@ -73,15 +74,15 @@ Use GitHub prereleases for beta testing rather than `-beta` or `-rc` tags. Ordin
 
 ## Automation
 
-`ci.yml` runs on PRs, configured branch pushes, manual dispatch and reusable calls. It preserves the Node/VS Code matrices, runs `npm audit`, packages once, tests the installed VSIX and inspects its identity and contents. The artifact contains the VSIX, `SHA256SUMS.txt` and `build-info.json` with the commit and run URL.
+`ci.yml` runs on PRs, pushes to `main` and `develop`, and manual dispatch. It preserves the Node/VS Code matrices, runs `npm audit`, packages once, tests the installed VSIX and inspects its identity and contents. The artifact contains the VSIX, `SHA256SUMS.txt` and `build-info.json` with the commit and run URL.
 
 `release.yml` runs on tag pushes matching `v*`. It:
 
 1. Rejects malformed/lightweight tags, mismatched versions, a missing preview flag, incomplete changelog or unresolved license. The tagged commit must be reachable from `develop` for pilots or `main` for stable versions. Stable versions must be at least `1.0.0`.
-2. Calls the CI workflow on that tagged commit with read permissions. Candidate code receives no release-writing credentials.
-3. Downloads the tested artifact in a separate job, checks its recorded SHA and checksum, and creates a draft with notes and assets. Existing releases cause failure; assets are never replaced.
+2. Selects a successful push of `ci.yml` on the appropriate source branch for the exact tagged commit. It requires the original CI artifact to remain available; it does not rebuild or rerun the matrix. Candidate code receives no release-writing credentials.
+3. Downloads that run's tested artifact in a separate job, checks its run URL, commit, version, preview flag, packaged manifest and checksum, and creates a draft with notes and assets. Existing releases cause failure; assets are never replaced.
 
-Only the draft job has `contents: write`; it does not check out or execute candidate code. Neither workflow publishes to Marketplace or publishes the GitHub draft automatically.
+Only the draft job has `contents: write`; it does not check out or execute candidate code. Release jobs also need `actions: read` to find and download the earlier CI artifact. Neither workflow publishes to Marketplace or publishes the GitHub draft automatically.
 
 Tag pushes run the workflow from the tagged commit. A pilot can therefore run from `develop` without promotion to `main`; manual Actions dispatch requires the workflow on the default branch. Push tags with the maintainer's identity: events created using `GITHUB_TOKEN` generally do not start another workflow. [GitHub event reference](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
 
@@ -108,7 +109,7 @@ node scripts/release.mjs $releaseTag
 git push origin "refs/tags/$releaseTag"
 ```
 
-4. Wait for the tag workflow and review the draft. Download its VSIX and verify `SHA256SUMS.txt`; retain the full SHA, tag, run URL and hash.
+4. Wait for the tag workflow and review the draft. It reuses the artifact from successful branch CI for the exact tagged SHA. If no matching run or retained artifact exists, it fails; rerun and review branch CI for that SHA before retrying. Download the VSIX and verify `SHA256SUMS.txt`; retain the full SHA, tag, run URL and hash.
 5. Test that downloaded artifact in the target environment and add the results to the notes. Publish the draft explicitly: pilot as prerelease without Latest; stable as a normal release with Latest. Retain the tested assets unchanged.
 
 If automation is unavailable, download `copilot-pace-production-vsix` from the successful branch CI run for the exact candidate SHA. Verify its metadata/hash and create a draft with `gh release create --verify-tag --draft --latest=false --notes-file <notes.md>`, attaching the VSIX, checksum and build record. Add `--prerelease` for a pilot. Do not rebuild an untested replacement during upload.
