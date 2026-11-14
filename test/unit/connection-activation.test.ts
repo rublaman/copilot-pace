@@ -623,13 +623,25 @@ describe('Connection integration with native VS Code services', () => {
   it('ignores untrusted workspace instance settings and uses only the user instance', async () => {
     const host = harness({
       'copilotPace.authProvider': 'github-enterprise', 'github-enterprise.uri': 'https://user.ghe.com',
-      'workspace:github-enterprise.uris': ['https://untrusted.example.com']
+      'workspace:github-enterprise.uris': ['https://untrusted.ghe.com']
     }, { trusted: false });
     try {
       await settle();
       assert.equal(host.requests[0]?.url, 'https://api.user.ghe.com/copilot_internal/user');
     }
     finally { host.dispose(); }
+  });
+  it('blocks silent refresh and interactive sign-in for a self-hosted Enterprise instance', async () => {
+    const host = harness({ 'copilotPace.authProvider': 'github-enterprise', 'github-enterprise.uri': 'https://git.corporate.example' });
+    try {
+      await settle();
+      host.choose('github-enterprise');
+      await host.connect();
+
+      assert.equal(host.authCalls.length, 0);
+      assert.equal(host.allRequests.length, 0);
+      assert.equal(host.api.getState().failure?.code, 'configuration');
+    } finally { host.dispose(); }
   });
   it('uses the effective workspace instance when the workspace is trusted', async () => {
     const host = harness({

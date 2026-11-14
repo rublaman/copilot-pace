@@ -89,6 +89,16 @@ describe('Real HTTP adapter with a simulated network engine', () => {
     await assert.rejects(new GitHubTransport('1.141.0', 10000, fake.factory, connection).request('synthetic', new AbortController().signal), { code: 'configuration' });
     assert.equal(fake.inspect().url, '');
   });
+  it('blocks quota and billing requests for an unsupported Enterprise origin', async () => {
+    const fake = engine(200, '{}');
+    const connection = { ...resolveConnection({ provider: 'github-enterprise' }), origins: ['https://git.corporate.example'] };
+    const transport = new GitHubTransport('1.141.0', 10000, fake.factory, connection);
+    const signal = new AbortController().signal;
+
+    await assert.rejects(transport.request('synthetic', signal), { code: 'configuration' });
+    await assert.rejects(transport.api('/user', 'synthetic', signal), { code: 'configuration' });
+    assert.equal(fake.inspect().url, '');
+  });
   it('requests only the quota endpoint with authorization and the host TLS integration', async () => {
     const fake = engine(200, '{"token_based_billing":true}');
     const response = await new GitHubTransport('1.141.0', 10000, fake.factory).request('test-secret', new AbortController().signal);

@@ -1,7 +1,7 @@
 import type * as vscode from 'vscode';
 import { SafeError, type SessionProvider } from './transport';
 import { getStrings, type Language } from './i18n';
-import { defaultConnection, type Connection } from './connection';
+import { defaultConnection, quotaEndpoint, type Connection } from './connection';
 
 export class GitHubSessions implements SessionProvider {
   constructor(
@@ -12,11 +12,11 @@ export class GitHubSessions implements SessionProvider {
 
   async get(interactive: boolean, forceNewSession = false) {
     const text = getStrings(this.getLanguage());
-    if (this.connection.provider === 'github-enterprise' && (this.connection.invalid || this.connection.origins.length !== 1)) {
-      throw new SafeError('configuration', getStrings('en').errorConfiguration);
-    }
     if (this.connection.provider === 'github-enterprise' && this.connection.requiresReload) {
       throw new SafeError('configurationChanged', getStrings('en').errorConfigurationChanged);
+    }
+    if (!quotaEndpoint(this.connection)) {
+      throw new SafeError('configuration', getStrings('en').errorConfiguration);
     }
     let options: vscode.AuthenticationGetSessionOptions;
     if (!interactive) {
