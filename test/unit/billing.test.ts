@@ -55,10 +55,17 @@ describe('Optional daily billing usage', () => {
         { day: start + 2 * UTC_DAY, used: 50, partial: true },
       ]);
       assert.ok(requests.every(request => request.token === 'synthetic'));
-      const daily = requests.filter(request => request.path.includes('&day='));
-      assert.equal(daily.length, 3);
-      assert.ok(daily.every(request => scope === 'user' || request.path.includes('&user=octocat')));
-      assert.equal(requests.some(request => request.path.startsWith('/users/')), scope === 'user');
+      const reports = requests.map(request => new URL(request.path, 'https://api.github.com'))
+        .filter(url => url.pathname.endsWith('/settings/billing/ai_credit/usage'));
+      const paths = { user: '/users/octocat', organization: '/organizations/team', enterprise: '/enterprises/company' };
+      const acceptedReports = reports.filter(url => url.pathname === `${paths[scope]}/settings/billing/ai_credit/usage`);
+      assert.deepEqual(acceptedReports.map(url => url.searchParams.get('day')), [null, '3', '2', '1']);
+      for (const url of reports) {
+        assert.equal(url.searchParams.get('year'), '2026');
+        assert.equal(url.searchParams.get('month'), '10');
+        assert.equal(url.searchParams.get('user'), url.pathname.startsWith('/users/') ? null : 'octocat');
+      }
+      assert.equal(reports.some(url => url.pathname.startsWith('/users/')), scope === 'user');
     });
   }
   for (const status of [401, 403, 404, 500]) {
@@ -80,6 +87,28 @@ describe('Optional daily billing usage', () => {
     const { billing } = setup({ failDay: 2 });
     const days = await billing.read(session, snapshot, {}, new AbortController().signal);
     assert.deepEqual(days.map(item => item.day), [start, start + 2 * UTC_DAY]);
+  });
+  it('keeps accepted days when a rate limit interrupts the daily report sequence', async () => {
+    const { billing, transport, requests } = setup({ scope: 'organization' });
+    const original = transport.api;
+    transport.api = async (path, token, signal, query) => {
+      if (new URL(path, 'https://api.github.com').searchParams.get('day') === '2') {
+        requests.push({ path, token, query });
+        return { status: 403, headers: { 'x-ratelimit-remaining': '0', 'retry-after': '7200' }, body: undefined };
+      }
+      return original(path, token, signal, query);
+    };
+    const quota = { copilot_plan: 'business', organization_login_list: ['team'] };
+    const signal = new AbortController().signal;
+
+    const days = await billing.read(session, snapshot, quota, signal);
+
+    assert.deepEqual(days, [{ day: start + 2 * UTC_DAY, used: 50, partial: true }]);
+    assert.deepEqual(requests.map(request => new URL(request.path, 'https://api.github.com').searchParams.get('day')), [null, null, '3', '2']);
+    assert.equal(billing.nextAllowedAt, now + 7_200_000);
+    const count = requests.length;
+    assert.deepEqual(await billing.read(session, snapshot, quota, signal), days);
+    assert.equal(requests.length, count);
   });
   it('caches reports and refreshes the current and preceding UTC days after one hour', async () => {
     const { billing, requests, advance } = setup();
@@ -140,6 +169,21 @@ describe('Optional daily billing usage', () => {
 
 describe('Daily credit report validation', () => {
   const target = { kind: 'user' as const, name: 'octocat' };
+  it('accepts the documented AI credit row and ignores unrelated products in a filtered organization report', () => {
+    const body = {
+      organization: 'TEAM', timePeriod: { year: 2026, month: 10, day: 1 },
+      usageItems: [
+        { product: 'Copilot AI Credits', unitType: 'ai-credits', grossQuantity: 10.5, netQuantity: 0, model: 'first' },
+        { product: 'Copilot', unitType: 'credits', grossQuantity: 4, user: 'Octocat', model: 'second' },
+        { product: 'Other', unitType: 'credits', grossQuantity: 80 },
+      ],
+    };
+    const organization = { kind: 'organization' as const, name: 'team' };
+
+    assert.deepEqual(creditReport(body, organization, start, 'octocat', true), { used: 14.5, hasCredits: true });
+    body.usageItems[1]!.user = 'different-account';
+    assert.equal(creditReport(body, organization, start, 'octocat', true), undefined);
+  });
   it('counts gross credit consumption across models, including credits covered by the plan', () => {
     const body = report('user', 'octocat', 1, 50);
     body.usageItems.push({ product: 'Copilot', unitType: 'ai-credits', grossQuantity: 12.5, netQuantity: 0, discountQuantity: 12.5 });
@@ -159,6 +203,8 @@ describe('Daily credit report validation', () => {
     assert.equal(creditReport(report('user', 'other', 1), target, start, 'octocat', true), undefined);
     assert.equal(creditReport(report('user', 'octocat'), target, start, 'octocat', true), undefined);
     assert.equal(creditReport(report('user', 'octocat', 2), target, start, 'octocat', true), undefined);
+    assert.equal(creditReport(report('user', 'octocat', 1), target, Date.UTC(2025, 9, 1), 'octocat', true), undefined);
+    assert.equal(creditReport(report('user', 'octocat', 1), target, Date.UTC(2026, 8, 1), 'octocat', true), undefined);
     const empty = { user: 'octocat', timePeriod: { year: 2026, month: 10, day: 1 }, usageItems: [] };
     assert.deepEqual(creditReport(empty, target, start, 'octocat', true), { used: 0, hasCredits: false });
   });

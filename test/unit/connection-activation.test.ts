@@ -25,6 +25,7 @@ function harness(initial: Record<string, unknown> = {}, options: {
   pluralSupported?: boolean;
   storageDirectory?: string;
   apiResponse?: (url: string) => { status: number; body: unknown };
+  deferApiResponse?: (url: string, respond: () => void) => void;
   openDocument?: (uri: { fsPath: string }) => Promise<{ fsPath: string }>;
   now?: () => number;
   beforeHistoryRead?: (file: string) => Promise<void>;
@@ -142,7 +143,11 @@ function harness(initial: Record<string, unknown> = {}, options: {
         request.emit('close');
       };
       if (quotaRequest) responses.push(respond);
-      request.end = () => queueMicrotask(() => { if (!quotaRequest || !options.pendingNetwork) respond(); });
+      request.end = () => queueMicrotask(() => {
+        if (quotaRequest && options.pendingNetwork) return;
+        if (!quotaRequest && options.deferApiResponse) options.deferApiResponse(url, respond);
+        else respond();
+      });
       return request;
     },
   };
@@ -580,6 +585,14 @@ describe('Connection integration with native VS Code services', () => {
       host.choose('github-enterprise');
       await host.connect();
       assert.equal(host.requests.at(-1)?.url, 'https://api.corp.ghe.com/copilot_internal/user');
+      assert.equal(host.api.getModel().accountLabel, 'github-enterprise (corp.ghe.com)');
+      const tokenByOrigin = new Map([
+        ['https://api.github.com', 'Bearer github-synthetic'],
+        ['https://api.corp.ghe.com', 'Bearer github-enterprise-synthetic'],
+      ]);
+      for (const { url, token } of host.allRequests) {
+        assert.equal(token, tokenByOrigin.get(new URL(url).origin));
+      }
     } finally { host.dispose(); }
   });
   it('cancels provider selection without changing account, quota or configuration', async () => {
@@ -641,6 +654,30 @@ describe('Connection integration with native VS Code services', () => {
       assert.equal(host.authCalls.length, 0);
       assert.equal(host.allRequests.length, 0);
       assert.equal(host.api.getState().failure?.code, 'configuration');
+    } finally { host.dispose(); }
+  });
+  it('blocks Enterprise when a hosted and a self-hosted instance are configured together', async () => {
+    const host = harness({
+      'copilotPace.authProvider': 'github-enterprise',
+      'github-enterprise.uris': ['https://corp.ghe.com', 'https://git.corporate.example'],
+    });
+    try {
+      await settle();
+      assert.equal(host.api.getState().failure?.code, 'configuration');
+      assert.equal(host.authCalls.length, 0);
+      assert.equal(host.allRequests.length, 0);
+
+      host.choose('github');
+      await host.connect();
+
+      assert.equal(host.api.getState().phase, 'ready');
+      assert.ok(host.authCalls.length > 0);
+      assert.ok(host.authCalls.every(call => call.provider === 'github'));
+      assert.ok(host.allRequests.length > 0);
+      for (const request of host.allRequests) {
+        assert.equal(new URL(request.url).origin, 'https://api.github.com');
+        assert.equal(request.token, 'Bearer github-synthetic');
+      }
     } finally { host.dispose(); }
   });
   it('uses the effective workspace instance when the workspace is trusted', async () => {
@@ -880,6 +917,54 @@ describe('Connection integration with native VS Code services', () => {
       host.set('copilotPace.authProvider', 'github');
       await settle();
       assert.equal(host.requests.at(-1)?.url, 'https://api.github.com/copilot_internal/user');
+    } finally { host.dispose(); }
+  });
+  it('cancels Enterprise billing on an unsupported instance change and keeps personal requests isolated', async () => {
+    const now = Date.parse('2026-11-14T12:00Z');
+    let finishEnterpriseIdentity: (() => void) | undefined;
+    const host = harness({ 'copilotPace.authProvider': 'github-enterprise', 'github-enterprise.uri': 'https://corp.ghe.com' }, {
+      now: () => now,
+      apiResponse: raw => new URL(raw).pathname === '/user'
+        ? { status: 200, body: { login: 'octocat', id: 'same-account-id' } }
+        : { status: 403, body: undefined },
+      deferApiResponse: (raw, respond) => {
+        const url = new URL(raw);
+        if (url.hostname === 'api.corp.ghe.com' && url.pathname === '/user') finishEnterpriseIdentity = respond;
+        else respond();
+      },
+    });
+    try {
+      await settle();
+      assert.equal(host.api.getState().phase, 'ready');
+      assert.ok(finishEnterpriseIdentity);
+      const enterpriseRequests = host.allRequests.length;
+      const enterpriseLookup = host.allRequests.at(-1)!;
+      assert.equal(enterpriseLookup.url, 'https://api.corp.ghe.com/user');
+      assert.equal(enterpriseLookup.token, 'Bearer github-enterprise-synthetic');
+
+      host.set('github-enterprise.uri', 'https://git.corporate.example');
+      await settle();
+      assert.equal(enterpriseLookup.signal.aborted, true);
+      assert.equal(host.api.getState().failure?.code, 'configurationChanged');
+      assert.equal(host.api.getState().snapshot, undefined);
+      assert.equal(host.allRequests.length, enterpriseRequests);
+      assert.equal(host.authCalls.length, 1);
+
+      host.choose('github');
+      await host.connect();
+      await settle();
+      finishEnterpriseIdentity();
+      await settle();
+
+      const personalRequests = host.allRequests.slice(enterpriseRequests);
+      assert.ok(personalRequests.some(request => new URL(request.url).pathname === '/user'));
+      for (const { url, token } of personalRequests) {
+        assert.equal(new URL(url).origin, 'https://api.github.com');
+        assert.equal(token, 'Bearer github-synthetic');
+      }
+      assert.equal(host.api.getState().phase, 'ready');
+      assert.equal(host.api.getModel().accountLabel, 'github');
+      assert.equal(host.api.getState().dailyUsage?.length, 0);
     } finally { host.dispose(); }
   });
   it('ignores unrelated provider events and clears quota when the selected provider loses its session', async () => {
