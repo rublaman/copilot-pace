@@ -4,11 +4,11 @@ The manifest uses `copilot-pace-1024.png` for the extension listing. The 128 px 
 
 ## Listing icon options
 
-| Monochrome (active) | Teal (option 2) | Traffic light (option 8) |
+| Monochrome | Teal (active, option 2) | Traffic light (option 8) |
 | --- | --- | --- |
-| <img src="copilot-pace.svg" width="96" alt="Monochrome icon"> | <img src="variants/copilot-pace-teal.svg" width="96" alt="Icon with a teal percent symbol"> | <img src="variants/copilot-pace-traffic-light.svg" width="96" alt="Icon with a green, amber, and red percent symbol"> |
+| <img src="variants/copilot-pace-monochrome.svg" width="96" alt="Monochrome icon"> | <img src="copilot-pace.svg" width="96" alt="Icon with a teal percent symbol"> | <img src="variants/copilot-pace-traffic-light.svg" width="96" alt="Icon with a green, amber, and red percent symbol"> |
 
-The teal and traffic-light SVGs share the monochrome icon's dimensions and silhouette. Both alternatives are excluded from the VSIX.
+The monochrome and traffic-light SVGs share the active icon's dimensions and silhouette. Both alternatives are excluded from the VSIX.
 
 ## Other assets
 
