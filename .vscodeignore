@@ -12,6 +12,7 @@ dist/**
 !dist/extension.js
 docs/**
 images/transparent/**
+images/variants/**
 images/README.md
 images/social-preview/**
 **/*.map
