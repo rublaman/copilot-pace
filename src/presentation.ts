@@ -598,48 +598,43 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
     cursor: default;
   }
 
-  .days {
+  .segmented-control {
     gap: 0;
     border: 1px solid var(--line);
     border-radius: 5px;
     padding: 2px;
   }
 
-  .days button {
+  .segmented-control button {
     font-size: 11px;
     padding: 4px 8px;
     color: var(--muted);
     background: transparent;
   }
 
-  .days button:hover {
+  .segmented-control button:hover {
     background: var(--vscode-toolbar-hoverBackground,var(--vscode-button-secondaryHoverBackground));
     color: var(--vscode-foreground);
   }
 
-  .days button[aria-pressed=true] {
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+  .segmented-control button[aria-pressed=true] {
+    background: #238636;
+    color: #fff;
     outline: 1px solid var(--line);
   }
 
-  #days button[aria-pressed=true] {
-    background: #238636;
-    color: #fff;
-  }
-
-  #days button[aria-pressed=true]:hover {
+  .segmented-control button[aria-pressed=true]:hover {
     background: #1f7a30;
   }
 
-  body.vscode-high-contrast #days button[aria-pressed=true],
-  body.vscode-high-contrast-light #days button[aria-pressed=true] {
+  body.vscode-high-contrast .segmented-control button[aria-pressed=true],
+  body.vscode-high-contrast-light .segmented-control button[aria-pressed=true] {
     background: var(--vscode-button-background);
     color: var(--vscode-button-foreground);
   }
 
-  body.vscode-high-contrast #days button[aria-pressed=true]:hover,
-  body.vscode-high-contrast-light #days button[aria-pressed=true]:hover {
+  body.vscode-high-contrast .segmented-control button[aria-pressed=true]:hover,
+  body.vscode-high-contrast-light .segmented-control button[aria-pressed=true]:hover {
     background: var(--vscode-button-hoverBackground);
   }
 
@@ -823,7 +818,7 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
   <section aria-labelledby="paceHeading">
     <div class="section-head">
       <h2 id="paceHeading"></h2>
-      <div id="days" class="controls days" role="group">
+      <div id="days" class="controls segmented-control" role="group">
         <button id="all" aria-pressed="false"></button>
         <button id="weekdays" aria-pressed="false"></button>
       </div>
@@ -864,7 +859,7 @@ export function renderHtml(model: ViewModel, nonce: string, iconUri = '', cspSou
       <h2 id="historyHeading"></h2>
       <span id="historyMaximum"></span>
     </div>
-    <div id="chartMetrics" class="controls days" role="group">
+    <div id="chartMetrics" class="controls segmented-control" role="group">
       <button id="metricCumulative" aria-pressed="false"></button>
       <button id="metricDaily" aria-pressed="false"></button>
     </div>
