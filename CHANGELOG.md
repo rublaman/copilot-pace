@@ -2,6 +2,10 @@
 
 Versions 0.1.x were local development builds; 0.2.x, 1.1.0, 1.2.0, 1.3.0–1.3.1, 1.3.3–1.3.5, 1.3.7–1.3.9, 1.4.0, 1.4.2, 1.4.4, 1.4.6 and 1.4.8 are pilot versions. Versions 1.3.2 and 1.4.3 were later published as historical GitHub prereleases. Published artifacts and validation records are in [GitHub Releases](https://github.com/rublaman/copilot-pace/releases); the release workflow is in [RELEASING.md](docs/RELEASING.md).
 
+## [1.4.11] - 2026-11-19
+
+- Restrict GitHub Enterprise quota requests to a single hosted `https://<instance>.ghe.com` address.
+
 ## [1.4.10] - 2026-11-18
 
 - Use a teal percentage symbol and adjust the size of the extension listing icon's silhouette.
