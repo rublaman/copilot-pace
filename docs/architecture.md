@@ -16,7 +16,7 @@ The extension separates quota calculations from authentication, HTTP transport a
 | `formatters.ts` | Shared English/Spanish number and UTC date formatters |
 | `daily.ts` | Same-day observed credit differences and reported-day precedence |
 | `billing.ts` | Optional current-cycle daily billing retrieval, account discovery, caching and fallback |
-| `connection.ts` | Provider resolution, validated Enterprise origins and matched quota destinations |
+| `connection.ts` | Provider resolution and quota destination validation shared by session lookup and HTTP transport. Enterprise requires one hosted `https://<instance>.ghe.com` origin |
 | `sessions.ts` | VS Code GitHub/GitHub Enterprise authentication with `read:user` |
 | `transport.ts` | Matched HTTPS endpoint, cancellation, 10-second total timeout and 1 MiB response limit |
 | `service.ts` | Deduplication, session changes, stale response rejection, retained snapshots and retry cooldowns |

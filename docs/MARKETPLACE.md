@@ -9,6 +9,8 @@
 
 Copilot Pace is a VS Code extension that displays GitHub Copilot credit usage and estimates consumption at the next renewal. It supports personal and Business accounts on GitHub.com and GitHub Enterprise (GHE) accounts on Windows, with VS Code 1.120 or later.
 
+Copilot Pace uses VS Code's GitHub sign-in. It does not store your GitHub token, send telemetry, or read your code or Copilot chats. Credit history stays on your device. See [Privacy](#privacy) for what the extension stores and sends.
+
 [Get started](#get-started) · [Commands](#commands) · [Settings](#settings) · [Report an issue](https://github.com/rublaman/copilot-pace/issues)
 
 ## Usage
@@ -79,7 +81,7 @@ Copilot Pace uses VS Code's GitHub authentication and shows the selected account
 
 By default, Copilot Pace follows Copilot's configured authentication provider and otherwise uses GitHub.com. When a corporate instance is configured, **Connect GitHub** offers **GitHub.com** for personal and Business accounts or **GitHub Enterprise** for GHE accounts. VS Code handles account selection and sign-in. The choice is saved only for Copilot Pace; use `copilotPace.authProvider: "auto"` to follow Copilot again.
 
-For GHE, configure one HTTPS instance address in VS Code's GitHub Enterprise settings, without a login, project or repository path. Recent VS Code versions use `github-enterprise.uris`; older versions use `github-enterprise.uri`.
+For GHE, configure one hosted instance in VS Code's GitHub Enterprise settings using `https://<instance>.ghe.com`. Recent VS Code versions use `github-enterprise.uris`. Older versions use `github-enterprise.uri`.
 
 After changing the Enterprise instance settings, reload VS Code before reconnecting.
 
@@ -164,14 +166,14 @@ Search for **Copilot Pace** in VS Code Settings, or edit these application-level
 
 ## Privacy
 
-- Authentication stays with VS Code's built-in GitHub or GitHub Enterprise provider, using the `read:user` scope.
-- Usage requests go directly to GitHub over HTTPS with TLS verification.
+- VS Code's built-in GitHub authentication provider handles sign-in. Copilot Pace requests `read:user` and uses the token in memory to query quota and, when available, daily billing.
+- Copilot Pace sends those requests over HTTPS to `api.github.com` or `api.<instance>.ghe.com`, using VS Code's proxy and certificate settings.
 - The extension does not read workspace files or conversations, send telemetry, or log tokens or complete response bodies.
 - Local history stores observation times, credit amounts, known budgets and cycle boundaries under a hashed account/server key. It contains no account labels, credentials, prompts or responses and is not sent by Pace to another service.
 
 ## Compatibility
 
-Supports **GitHub.com personal and Business accounts** and **GitHub Enterprise (GHE) accounts** on desktop VS Code for Windows, version 1.120 or later. Enterprise usage queries require a single configured HTTPS instance.
+Supports **GitHub.com personal and Business accounts** and **GitHub Enterprise (GHE) accounts** on desktop VS Code for Windows, version 1.120 or later. Enterprise usage queries require a single hosted instance at `https://<instance>.ghe.com`.
 
 Copilot Pace uses an internal GitHub endpoint that may change. Browser-based VS Code is unsupported.
 

@@ -303,7 +303,7 @@ describe('Copilot Pace in the Extension Development Host', () => {
       await config.update('dataSource', 'github', vscode.ConfigurationTarget.Global);
       await waitFor(() => !api.getModel().demo && api.getState().failure?.code === 'configuration');
       assert.equal(api.getState().snapshot, undefined);
-      assert.ok(api.getModel().message.includes('HTTPS'));
+    assert.ok(api.getModel().message.includes('https://<instance>.ghe.com'));
       await config.update('language', 'es-ES', vscode.ConfigurationTarget.Global);
       await waitFor(() => api.getModel().language === 'es-ES');
       assert.ok(api.getModel().message.includes('GitHub Enterprise'));
