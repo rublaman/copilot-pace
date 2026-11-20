@@ -1,17 +1,19 @@
 import * as assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
-import type { ClientRequest, IncomingMessage } from 'node:http';
+import type { ClientRequest, IncomingHttpHeaders, IncomingMessage } from 'node:http';
 import type { RequestOptions } from 'node:https';
 import { GitHubTransport, responseError, SafeError } from '../../src/transport';
 import { createViewModel } from '../../src/view';
 import { resolveConnection } from '../../src/connection';
 
-function engine(status: number, body: string, options: { pending?: boolean; failure?: Error; oversize?: boolean } = {}) {
+function engine(status: number, body: string, options: { pending?: boolean; failure?: Error; oversize?: boolean; headers?: IncomingHttpHeaders } = {}) {
   let capturedUrl = '';
   let capturedOptions: RequestOptions = {};
   let capturedPayload: string | undefined;
+  const urls: string[] = [];
   const factory = (url: string, requestOptions: RequestOptions, callback: (response: IncomingMessage) => void): ClientRequest => {
+    urls.push(url);
     capturedUrl = url;
     capturedOptions = requestOptions;
     const request = new EventEmitter() as EventEmitter & { end(payload?: string): void; destroy(error?: Error): void };
@@ -30,7 +32,7 @@ function engine(status: number, body: string, options: { pending?: boolean; fail
       if (options.pending) return;
       const response = new EventEmitter() as IncomingMessage;
       response.statusCode = status;
-      response.headers = {};
+      response.headers = options.headers ?? {};
       callback(response);
       response.emit('data', options.oversize ? Buffer.alloc(1_048_577) : Buffer.from(body));
       response.emit('end');
@@ -39,7 +41,7 @@ function engine(status: number, body: string, options: { pending?: boolean; fail
     };
     return request as unknown as ClientRequest;
   };
-  return { factory, inspect: () => ({ url: capturedUrl, options: capturedOptions, payload: capturedPayload }) };
+  return { factory, urls, inspect: () => ({ url: capturedUrl, options: capturedOptions, payload: capturedPayload }) };
 }
 describe('Real HTTP adapter with a simulated network engine', () => {
   it('keeps billing and read-only account discovery on the selected host with the existing transport protections', async () => {
@@ -77,16 +79,26 @@ describe('Real HTTP adapter with a simulated network engine', () => {
     assert.equal(fake.inspect().options.rejectUnauthorized, undefined);
   });
   it('does not follow redirects or resend credentials to GitHub.com', async () => {
-    const fake = engine(302, '');
+    const fake = engine(302, '', { headers: { location: 'https://api.github.com/copilot_internal/user' } });
     const connection = resolveConnection({ provider: 'github-enterprise', enterpriseUri: 'https://corp.ghe.com' });
     const response = await new GitHubTransport('1.141.0', 10000, fake.factory, connection).request('synthetic', new AbortController().signal);
     assert.equal(response.status, 302);
-    assert.equal(fake.inspect().url, 'https://api.corp.ghe.com/copilot_internal/user');
+    assert.deepEqual(fake.urls, ['https://api.corp.ghe.com/copilot_internal/user']);
   });
   it('does not invoke the HTTP engine when an enterprise quota destination is ambiguous', async () => {
     const fake = engine(200, '{}');
     const connection = resolveConnection({ provider: 'github-enterprise', enterpriseUris: ['https://one.ghe.com', 'https://two.ghe.com'] });
     await assert.rejects(new GitHubTransport('1.141.0', 10000, fake.factory, connection).request('synthetic', new AbortController().signal), { code: 'configuration' });
+    assert.equal(fake.inspect().url, '');
+  });
+  it('blocks quota and billing requests for an unsupported Enterprise origin', async () => {
+    const fake = engine(200, '{}');
+    const connection = { ...resolveConnection({ provider: 'github-enterprise' }), origins: ['https://git.corporate.example'] };
+    const transport = new GitHubTransport('1.141.0', 10000, fake.factory, connection);
+    const signal = new AbortController().signal;
+
+    await assert.rejects(transport.request('synthetic', signal), { code: 'configuration' });
+    await assert.rejects(transport.api('/user', 'synthetic', signal), { code: 'configuration' });
     assert.equal(fake.inspect().url, '');
   });
   it('requests only the quota endpoint with authorization and the host TLS integration', async () => {

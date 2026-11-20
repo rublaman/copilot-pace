@@ -127,7 +127,7 @@ describe('Installed production VSIX', () => {
       await waitFor(() => api.getState().failure?.code === 'configuration');
       assert.equal(api.getModel().demo, false);
       assert.equal(api.getState().snapshot, undefined);
-      assert.ok(api.getModel().message.includes('HTTPS'));
+      assert.ok(api.getModel().message.includes('https://<instance>.ghe.com'));
       await config.update('authProvider', 'github', vscode.ConfigurationTarget.Global);
       await waitFor(() => api.getState().phase === 'disconnected');
       assert.equal(api.getStatus().text, 'Connect GitHub');

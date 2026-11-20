@@ -86,6 +86,18 @@ describe('Quota normalization', () => {
     const invalid = normalizeQuota(quota({}, { quota_reset_date_utc: '2026-11-15T00:00Z' }), now);
     assert.equal(invalid.cycle, undefined);
   });
+  it('drops a stale cycle at the UTC renewal boundary without dropping the credit snapshot', () => {
+    const renewal = Date.parse('2026-11-01T00:00:00Z');
+    const payload = quota({ quota_remaining: 3800 });
+    const before = normalizeQuota(payload, new Date(renewal - 1));
+    const after = normalizeQuota(payload, new Date(renewal));
+
+    assert.equal(before.cycle?.end, renewal);
+    assert.equal(after.cycle, undefined);
+    if (after.kind !== 'bounded') return assert.fail('Expected bounded credits from the last quota response');
+    assert.equal(after.used, 100);
+    assert.equal(calculatePace(after, new Date(renewal), 'all').kind, 'unavailable');
+  });
 });
 
 describe('Monthly pace', () => {

@@ -1,5 +1,3 @@
-import { isIP } from 'node:net';
-
 export type AuthProvider = 'github' | 'github-enterprise';
 export interface ConnectionSettings {
   provider?: unknown;
@@ -17,14 +15,11 @@ export interface Connection {
 }
 
 function enterpriseOrigin(value: unknown): string {
-  // Accept an instance origin, never a login/repository path or an arbitrary API URL.
-  if (typeof value !== 'string' || !/^https:\/\/[a-z0-9.-]+(?::443)?\/?$/i.test(value)) throw new Error('Invalid instance');
-  const url = new URL(value);
-  const hostname = url.hostname;
-  if (isIP(hostname) || !hostname.includes('.') || hostname.endsWith('.') ||
-      hostname === 'github.com' || hostname.endsWith('.github.com') ||
-      hostname.split('.').some(label => !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label))) throw new Error('Invalid instance');
-  return url.origin;
+  // The native provider uses the api.<instance>.ghe.com pattern for hosted instances.
+  if (typeof value !== 'string' || !/^https:\/\/[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.ghe\.com\/?$/.test(value)) {
+    throw new Error('Invalid instance');
+  }
+  return new URL(value).origin;
 }
 
 export function resolveConnection(settings: ConnectionSettings): Connection {
@@ -55,7 +50,6 @@ export function quotaEndpoint(connection: Connection): string | undefined {
   if (connection.requiresReload || connection.invalid || connection.origins.length !== 1) return undefined;
   try {
     const origin = enterpriseOrigin(connection.origins[0]);
-    // Match Copilot's enterprise dotcom API mapping; never fall back across hosts.
     return `https://api.${new URL(origin).hostname}/copilot_internal/user`;
   } catch { return undefined; }
 }

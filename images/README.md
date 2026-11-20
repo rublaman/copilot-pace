@@ -2,6 +2,16 @@
 
 The manifest uses `copilot-pace-1024.png` for the extension listing. The 128 px PNG and SVG provide the same artwork on a white circular background with transparent corners. The `copilot-pace-ui.svg` and `copilot-pace-ui-dark.svg` variants are used by the extension UI.
 
+## Listing icon options
+
+| Monochrome | Teal (active, option 2) | Traffic light (option 8) |
+| --- | --- | --- |
+| <img src="variants/copilot-pace-monochrome.svg" width="96" alt="Monochrome icon"> | <img src="copilot-pace.svg" width="96" alt="Icon with a teal percent symbol"> | <img src="variants/copilot-pace-traffic-light.svg" width="96" alt="Icon with a green, amber, and red percent symbol"> |
+
+The monochrome and traffic-light SVGs share the active icon's dimensions and silhouette. Both alternatives are excluded from the VSIX.
+
+## Other assets
+
 Original transparent SVG (512 × 512 viewBox) and 128/1024 px PNGs are preserved in `transparent/`. Those originals and this guide are excluded from the VSIX.
 
 The repository social preview is `social-preview/copilot-pace.png` (1280 × 640). Regenerate it on Windows with `pwsh -NoProfile -File scripts/render-social-preview.ps1`, then upload it under GitHub Settings → Social preview. It is excluded from the VSIX.
